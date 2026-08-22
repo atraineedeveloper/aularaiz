@@ -4,9 +4,11 @@ import 'package:aularaiz/application/contracts/school_year_repository.dart';
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
+import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
+import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
@@ -75,12 +77,26 @@ class AppDependencies extends StatelessWidget {
             idGenerator: context.read<IdGenerator>(),
           ),
         ),
+        Provider<EnrollStudent>(
+          create: (context) => EnrollStudent(
+            enrollmentRepository: context.read<EnrollmentRepository>(),
+            schoolYearRepository: context.read<SchoolYearRepository>(),
+            studentRepository: context.read<StudentRepository>(),
+            teachingGroupRepository: context.read<TeachingGroupRepository>(),
+          ),
+        ),
         Provider<CreateStudentInGroup>(
           create: (context) => CreateStudentInGroup(
             teachingGroupRepository: context.read<TeachingGroupRepository>(),
             schoolYearRepository: context.read<SchoolYearRepository>(),
             enrollmentRepository: context.read<EnrollmentRepository>(),
             writer: context.read<StudentEnrollmentWriter>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<ReactivateStudentInGroup>(
+          create: (context) => ReactivateStudentInGroup(
+            enrollStudent: context.read<EnrollStudent>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

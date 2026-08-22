@@ -54,10 +54,7 @@ void main() {
       AttendanceStatus.justifiedAbsence,
     );
 
-    expect(
-      updated.statusFor('student-1'),
-      AttendanceStatus.justifiedAbsence,
-    );
+    expect(updated.statusFor('student-1'), AttendanceStatus.justifiedAbsence);
     expect(
       () => attendance.withStatus('student-2', AttendanceStatus.present),
       throwsArgumentError,

@@ -16,7 +16,7 @@
   "@back": {"description": "Acción genérica para volver"},
   "setupTitle": "Configura tu escuela",
   "@setupTitle": {"description": "Título de la configuración inicial"},
-  "setupSubtitle": "Estos datos se guardan solo en este dispositivo y podrás editarlos después.",
+  "setupSubtitle": "Estos datos se guardan solo en este dispositivo.",
   "@setupSubtitle": {"description": "Explicación de privacidad de la configuración inicial"},
   "schoolName": "Nombre de la escuela",
   "@schoolName": {"description": "Etiqueta del nombre de la escuela"},
@@ -139,5 +139,13 @@
   "invalidListNumber": "El número de lista debe ser mayor que cero",
   "@invalidListNumber": {"description": "Validación del número de lista"},
   "noSearchResults": "No hay alumnos que coincidan con la búsqueda.",
-  "@noSearchResults": {"description": "Estado vacío del filtro de alumnos"}
+  "@noSearchResults": {"description": "Estado vacío del filtro de alumnos"},
+  "discardChangesTitle": "¿Descartar cambios?",
+  "@discardChangesTitle": {"description": "Título de confirmación al salir con cambios sin guardar"},
+  "discardChangesBody": "Tienes cambios sin guardar. Si sales ahora, se perderán.",
+  "@discardChangesBody": {"description": "Aviso de pérdida de cambios sin guardar"},
+  "keepEditing": "Seguir editando",
+  "@keepEditing": {"description": "Acción para continuar editando un formulario"},
+  "discardChanges": "Descartar",
+  "@discardChanges": {"description": "Acción para descartar cambios sin guardar"}
 }

@@ -1,0 +1,88 @@
+name: Phase 5 wiring
+
+on:
+  push:
+    branches: [feat/formative-evaluation]
+    paths:
+      - '.github/workflows/phase5-wire.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/formative-evaluation
+      - name: Wire evaluation and student record screens
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Anchor not found in {path}: {old[:120]!r}')
+              file.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          p = 'lib/features/projects/presentation/projects_screen.dart'
+          replace(p,
+              "import 'package:aularaiz/domain/education/primary_grade.dart';\n",
+              "import 'package:aularaiz/application/contracts/evaluation_repository.dart';\nimport 'package:aularaiz/application/contracts/student_repository.dart';\nimport 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';\nimport 'package:aularaiz/domain/education/primary_grade.dart';\n")
+          replace(p,
+              "import 'package:aularaiz/features/projects/presentation/projects_controller.dart';\n",
+              "import 'package:aularaiz/features/evaluation/presentation/activity_evaluation_controller.dart';\nimport 'package:aularaiz/features/evaluation/presentation/activity_evaluation_screen.dart';\nimport 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';\nimport 'package:aularaiz/features/projects/presentation/projects_controller.dart';\n")
+          replace(p,
+              "                                onAddActivity: () {\n                                  _createActivity(context, project);\n                                },\n",
+              "                                onAddActivity: () {\n                                  _createActivity(context, project);\n                                },\n                                onEvaluateActivity: (activity) {\n                                  _openEvaluation(context, activity);\n                                },\n")
+          replace(p,
+              "  Future<void> _createActivity(BuildContext context, Project project) async {\n    final draft = await showDialog<_ActivityDraft>(\n      context: context,\n      builder: (context) => _ActivityDialog(project: project),\n    );\n    if (draft == null || !context.mounted) return;\n    await context.read<ProjectsController>().createActivity(\n      project: project,\n      title: draft.title,\n      targetGrades: draft.targetGrades,\n    );\n  }\n",
+              "  Future<void> _createActivity(BuildContext context, Project project) async {\n    final draft = await showDialog<_ActivityDraft>(\n      context: context,\n      builder: (context) => _ActivityDialog(project: project),\n    );\n    if (draft == null || !context.mounted) return;\n    await context.read<ProjectsController>().createActivity(\n      project: project,\n      title: draft.title,\n      targetGrades: draft.targetGrades,\n    );\n  }\n\n  Future<void> _openEvaluation(\n    BuildContext context,\n    Activity activity,\n  ) async {\n    final evaluationRepository = context.read<EvaluationRepository>();\n    final studentRepository = context.read<StudentRepository>();\n    final saveActivityEvaluation = context.read<SaveActivityEvaluation>();\n\n    await Navigator.of(context).push(\n      MaterialPageRoute<void>(\n        builder: (context) => ChangeNotifierProvider(\n          create: (_) => ActivityEvaluationController(\n            evaluationRepository: evaluationRepository,\n            studentRepository: studentRepository,\n            saveActivityEvaluation: saveActivityEvaluation,\n          ),\n          child: ActivityEvaluationScreen(activity: activity),\n        ),\n      ),\n    );\n  }\n")
+          replace(p,
+              "    required this.onAddActivity,\n",
+              "    required this.onAddActivity,\n    required this.onEvaluateActivity,\n")
+          replace(p,
+              "  final VoidCallback onAddActivity;\n",
+              "  final VoidCallback onAddActivity;\n  final ValueChanged<Activity> onEvaluateActivity;\n")
+          replace(p,
+              "                ListTile(\n                  contentPadding: EdgeInsets.zero,\n                  leading: const Icon(Icons.assignment_outlined),\n                  title: Text(activity.title),\n                  subtitle: Text(\n                    l10n.activityRosterCount(activity.roster.length),\n                  ),\n                ),\n",
+              "                ListTile(\n                  contentPadding: EdgeInsets.zero,\n                  leading: const Icon(Icons.assignment_outlined),\n                  title: Text(activity.title),\n                  subtitle: Text(\n                    l10n.activityRosterCount(activity.roster.length),\n                  ),\n                  trailing: IconButton(\n                    tooltip: l10n.formativeEvaluation,\n                    onPressed: () => onEvaluateActivity(activity),\n                    icon: const Icon(Icons.fact_check_outlined),\n                  ),\n                ),\n")
+
+          p = 'lib/features/student_roster/presentation/student_roster_screen.dart'
+          replace(p,
+              "import 'package:aularaiz/domain/education/primary_grade.dart';\n",
+              "import 'package:aularaiz/application/contracts/evaluation_repository.dart';\nimport 'package:aularaiz/application/contracts/student_record_repository.dart';\nimport 'package:aularaiz/application/student_record/add_student_record_entry.dart';\nimport 'package:aularaiz/application/student_record/save_student_record.dart';\nimport 'package:aularaiz/domain/education/primary_grade.dart';\n")
+          replace(p,
+              "import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';\n",
+              "import 'package:aularaiz/features/student_record/presentation/student_record_controller.dart';\nimport 'package:aularaiz/features/student_record/presentation/student_record_localization.dart';\nimport 'package:aularaiz/features/student_record/presentation/student_record_screen.dart';\nimport 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';\n")
+          replace(p,
+              "                            onEdit: () => _editStudent(context, entries[index]),\n",
+              "                            onRecord: () => _openRecord(context, entries[index]),\n                            onEdit: () => _editStudent(context, entries[index]),\n")
+          replace(p,
+              "  Future<void> _editStudent(\n",
+              "  Future<void> _openRecord(\n    BuildContext context,\n    StudentRosterEntry entry,\n  ) async {\n    final recordRepository = context.read<StudentRecordRepository>();\n    final evaluationRepository = context.read<EvaluationRepository>();\n    final saveStudentRecord = context.read<SaveStudentRecord>();\n    final addStudentRecordEntry = context.read<AddStudentRecordEntry>();\n\n    await Navigator.of(context).push(\n      MaterialPageRoute<void>(\n        builder: (context) => ChangeNotifierProvider(\n          create: (_) => StudentRecordController(\n            recordRepository: recordRepository,\n            evaluationRepository: evaluationRepository,\n            saveStudentRecord: saveStudentRecord,\n            addStudentRecordEntry: addStudentRecordEntry,\n          ),\n          child: StudentRecordScreen(student: entry.student),\n        ),\n      ),\n    );\n  }\n\n  Future<void> _editStudent(\n")
+          replace(p,
+              "    required this.onEdit,\n",
+              "    required this.onRecord,\n    required this.onEdit,\n")
+          replace(p,
+              "  final VoidCallback onEdit;\n",
+              "  final VoidCallback onRecord;\n  final VoidCallback onEdit;\n")
+          replace(p,
+              "            switch (action) {\n              case _StudentAction.edit:\n                onEdit();\n",
+              "            switch (action) {\n              case _StudentAction.record:\n                onRecord();\n              case _StudentAction.edit:\n                onEdit();\n")
+          replace(p,
+              "          itemBuilder: (context) => [\n            PopupMenuItem(\n              value: _StudentAction.edit,\n",
+              "          itemBuilder: (context) => [\n            PopupMenuItem(\n              value: _StudentAction.record,\n              child: Text(l10n.studentRecordTitle),\n            ),\n            PopupMenuItem(\n              value: _StudentAction.edit,\n")
+          replace(p,
+              "enum _StudentAction { edit, deactivate, reactivate }\n",
+              "enum _StudentAction { record, edit, deactivate, reactivate }\n")
+      - name: Commit wiring
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/projects/presentation/projects_screen.dart lib/features/student_roster/presentation/student_roster_screen.dart
+          git commit -m 'feat: wire evaluation and student record navigation'
+          git push origin HEAD:feat/formative-evaluation

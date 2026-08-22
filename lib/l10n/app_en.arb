@@ -8,7 +8,7 @@
   "openAbout": "About",
   "back": "Back",
   "setupTitle": "Set up your school",
-  "setupSubtitle": "These details stay on this device and can be edited later.",
+  "setupSubtitle": "These details stay on this device.",
   "schoolName": "School name",
   "cct": "CCT (optional)",
   "schoolOrganization": "School organization",
@@ -69,5 +69,9 @@
   "save": "Save",
   "studentSaveError": "The student or enrollment could not be saved.",
   "invalidListNumber": "The list number must be greater than zero",
-  "noSearchResults": "No students match the search."
+  "noSearchResults": "No students match the search.",
+  "discardChangesTitle": "Discard changes?",
+  "discardChangesBody": "You have unsaved changes. If you leave now, they will be lost.",
+  "keepEditing": "Keep editing",
+  "discardChanges": "Discard"
 }

@@ -11,7 +11,7 @@ class StudentRecordEntries extends Table {
   )();
   late final kind = textEnum<StudentRecordEntryKind>()();
   late final occurredAt = dateTime()();
-  late final text = text()();
+  late final content = text().named('text')();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

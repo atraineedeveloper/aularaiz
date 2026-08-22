@@ -58,7 +58,7 @@ if (Test-Path $sampleTest) {
 }
 
 Invoke-Flutter pub get
-Invoke-Dart run build_runner build --delete-conflicting-outputs
+Invoke-Dart run build_runner build
 Invoke-Flutter gen-l10n
 Invoke-Flutter analyze
 Invoke-Flutter test

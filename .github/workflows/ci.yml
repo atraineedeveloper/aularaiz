@@ -20,7 +20,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart run build_runner build
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |
@@ -41,7 +41,7 @@ jobs:
           cache: true
       - run: flutter create --platforms=android --org=com.mindtzijib --project-name=aularaiz .
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart run build_runner build
       - run: flutter gen-l10n
       - run: flutter build apk --debug
 
@@ -57,6 +57,6 @@ jobs:
           cache: true
       - run: flutter create --platforms=windows --org=com.mindtzijib --project-name=aularaiz .
       - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart run build_runner build
       - run: flutter gen-l10n
       - run: flutter build windows --release

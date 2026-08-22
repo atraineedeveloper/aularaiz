@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
+import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
@@ -12,7 +13,7 @@ final class EnrollStudentSucceeded extends EnrollStudentResult {
   const EnrollStudentSucceeded();
 }
 
-enum EnrollmentReference { teachingGroup, schoolYear }
+enum EnrollmentReference { student, teachingGroup, schoolYear }
 
 final class EnrollStudentMissingReference extends EnrollStudentResult {
   const EnrollStudentMissingReference(this.reference);
@@ -31,14 +32,21 @@ final class EnrollStudent {
   const EnrollStudent({
     required this.enrollmentRepository,
     required this.schoolYearRepository,
+    required this.studentRepository,
     required this.teachingGroupRepository,
   });
 
   final EnrollmentRepository enrollmentRepository;
   final SchoolYearRepository schoolYearRepository;
+  final StudentRepository studentRepository;
   final TeachingGroupRepository teachingGroupRepository;
 
   Future<EnrollStudentResult> call(Enrollment candidate) async {
+    final student = await studentRepository.findById(candidate.studentId);
+    if (student == null) {
+      return const EnrollStudentMissingReference(EnrollmentReference.student);
+    }
+
     final group = await teachingGroupRepository.findById(candidate.groupId);
     if (group == null) {
       return const EnrollStudentMissingReference(

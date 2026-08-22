@@ -1,6 +1,7 @@
 import 'package:aularaiz/data/local/schema/projects.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('ActivityRow')
 class Activities extends Table {
   late final id = text()();
   late final projectId = text().references(

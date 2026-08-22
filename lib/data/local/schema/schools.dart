@@ -1,6 +1,7 @@
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('SchoolRow')
 class Schools extends Table {
   late final id = text()();
   late final name = text()();

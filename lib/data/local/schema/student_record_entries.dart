@@ -2,6 +2,7 @@ import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('StudentRecordEntryRow')
 class StudentRecordEntries extends Table {
   late final id = text()();
   late final studentId = text().references(

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+@DataClassName('StudentRow')
 class Students extends Table {
   late final id = text()();
   late final givenNames = text()();

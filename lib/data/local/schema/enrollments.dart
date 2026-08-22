@@ -3,6 +3,7 @@ import 'package:aularaiz/data/local/schema/teaching_groups.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('EnrollmentRow')
 class Enrollments extends Table {
   late final id = text()();
   late final studentId = text().references(

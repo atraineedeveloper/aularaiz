@@ -4,6 +4,7 @@ import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('ActivityEvaluationRow')
 class ActivityEvaluations extends Table {
   late final activityId = text().references(
     Activities,

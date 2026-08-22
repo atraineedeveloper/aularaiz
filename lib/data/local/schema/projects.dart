@@ -4,6 +4,7 @@ import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('ProjectRow')
 class Projects extends Table {
   late final id = text()();
   late final groupId = text().references(

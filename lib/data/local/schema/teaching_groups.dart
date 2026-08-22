@@ -2,6 +2,7 @@ import 'package:aularaiz/data/local/schema/school_years.dart';
 import 'package:aularaiz/data/local/schema/schools.dart';
 import 'package:drift/drift.dart';
 
+@DataClassName('TeachingGroupRow')
 class TeachingGroups extends Table {
   late final id = text()();
   late final schoolId = text().references(

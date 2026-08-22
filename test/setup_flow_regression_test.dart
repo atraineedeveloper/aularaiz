@@ -53,7 +53,7 @@ void main() {
         'Primaria de prueba',
       );
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'CCT'),
+        find.widgetWithText(TextFormField, 'CCT (opcional)'),
         '27DPR1064V',
       );
       await tester.pump();

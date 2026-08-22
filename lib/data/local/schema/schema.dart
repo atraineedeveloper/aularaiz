@@ -10,5 +10,7 @@ export 'project_grades.dart';
 export 'projects.dart';
 export 'school_years.dart';
 export 'schools.dart';
+export 'student_record_entries.dart';
+export 'student_records.dart';
 export 'students.dart';
 export 'teaching_groups.dart';

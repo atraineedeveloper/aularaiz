@@ -122,10 +122,7 @@ void main() {
       existingGroupEnrollments: <Enrollment>[existing],
     );
 
-    expect(
-      violations,
-      contains(EnrollmentViolation.listNumberAlreadyAssigned),
-    );
+    expect(violations, contains(EnrollmentViolation.listNumberAlreadyAssigned));
   });
 
   test('a reused list number is allowed after the prior enrollment ends', () {

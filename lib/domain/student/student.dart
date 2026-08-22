@@ -59,7 +59,8 @@ final class Student {
     if (birth.isAfter(reference)) return null;
 
     var age = reference.year - birth.year;
-    final birthdayHasNotOccurred = reference.month < birth.month ||
+    final birthdayHasNotOccurred =
+        reference.month < birth.month ||
         (reference.month == birth.month && reference.day < birth.day);
     if (birthdayHasNotOccurred) age--;
     return age;

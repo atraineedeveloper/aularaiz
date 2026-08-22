@@ -1,0 +1,17 @@
+{
+  "@@locale": "es",
+  "appName": "AulaRaíz",
+  "@appName": {"description": "Nombre visible del producto"},
+  "homeTitle": "Tu aula, organizada",
+  "@homeTitle": {"description": "Título principal de la pantalla inicial"},
+  "homeSubtitle": "Una base nueva en Flutter, preparada para trabajar sin conexión.",
+  "@homeSubtitle": {"description": "Descripción de la pantalla inicial de la fase de fundación"},
+  "aboutTitle": "Acerca de AulaRaíz",
+  "@aboutTitle": {"description": "Título de la pantalla Acerca de"},
+  "aboutBody": "Gestión docente para la Nueva Escuela Mexicana.",
+  "@aboutBody": {"description": "Descripción corta del producto"},
+  "openAbout": "Acerca de",
+  "@openAbout": {"description": "Etiqueta de navegación hacia la pantalla Acerca de"},
+  "back": "Volver",
+  "@back": {"description": "Acción genérica para volver"}
+}

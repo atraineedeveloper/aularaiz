@@ -23,7 +23,10 @@ void main() {
     expect(await database.select(database.students).get(), hasLength(3));
     expect(await database.select(database.enrollments).get(), hasLength(3));
     expect(await database.select(database.attendanceDays).get(), hasLength(1));
-    expect(await database.select(database.attendanceEntries).get(), hasLength(3));
+    expect(
+      await database.select(database.attendanceEntries).get(),
+      hasLength(3),
+    );
     expect(await database.select(database.projects).get(), hasLength(1));
     expect(await database.select(database.activities).get(), hasLength(1));
     expect(await database.select(database.activityRoster).get(), hasLength(3));
@@ -37,11 +40,10 @@ void main() {
       hasLength(2),
     );
 
-    final carlaEvaluation = await (database.select(
-      database.activityEvaluations,
-    )..where(
-      (table) => table.studentId.equals('demo-student-carla'),
-    )).getSingle();
+    final carlaEvaluation =
+        await (database.select(database.activityEvaluations)
+              ..where((table) => table.studentId.equals('demo-student-carla')))
+            .getSingle();
     expect(carlaEvaluation.deliveryStatus, DeliveryStatus.notDelivered);
     expect(carlaEvaluation.achievement, isNull);
   });
@@ -67,13 +69,15 @@ void main() {
     final seeder = DemoDataSeeder(database);
 
     await seeder.resetAndSeed();
-    await database.into(database.students).insert(
-      const StudentsCompanion(
-        id: Value('temporary-demo-student'),
-        givenNames: Value('Temporal'),
-        firstSurname: Value('Demo'),
-      ),
-    );
+    await database
+        .into(database.students)
+        .insert(
+          const StudentsCompanion(
+            id: Value('temporary-demo-student'),
+            givenNames: Value('Temporal'),
+            firstSurname: Value('Demo'),
+          ),
+        );
 
     await seeder.resetAndSeed();
 
@@ -102,13 +106,15 @@ void main() {
     final seeder = DemoDataSeeder(database);
 
     await seeder.seedIfEmpty();
-    await database.into(database.students).insert(
-      const StudentsCompanion(
-        id: Value('teacher-added-demo-student'),
-        givenNames: Value('Adicional'),
-        firstSurname: Value('Demo'),
-      ),
-    );
+    await database
+        .into(database.students)
+        .insert(
+          const StudentsCompanion(
+            id: Value('teacher-added-demo-student'),
+            givenNames: Value('Adicional'),
+            firstSurname: Value('Demo'),
+          ),
+        );
 
     await seeder.seedIfEmpty();
 

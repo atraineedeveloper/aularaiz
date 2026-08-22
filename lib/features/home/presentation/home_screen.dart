@@ -1,10 +1,13 @@
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
+import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
+import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.dart';
+import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
+import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -58,43 +61,13 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        return Scaffold(
-          body: SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.appName,
-                        style: Theme.of(context).textTheme.displaySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.setupCompleteTitle,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.setupCompleteBody,
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                      const SizedBox(height: 24),
-                      FilledButton.icon(
-                        onPressed: () => context.go('/about'),
-                        icon: const Icon(Icons.info_outline),
-                        label: Text(l10n.openAbout),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+        return ChangeNotifierProvider(
+          create: (context) => SchoolWorkspaceController(
+            setupRepository: context.read<SchoolSetupRepository>(),
+            groupRepository: context.read<TeachingGroupRepository>(),
+            createTeachingGroup: context.read<CreateTeachingGroup>(),
           ),
+          child: const SchoolWorkspaceScreen(),
         );
       },
     );

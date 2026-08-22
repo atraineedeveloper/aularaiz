@@ -7,6 +7,7 @@ enum EnrollmentViolation {
   gradeNotOffered,
   outsideSchoolYear,
   overlapsExistingEnrollment,
+  listNumberAlreadyAssigned,
 }
 
 abstract final class EnrollmentPolicy {
@@ -14,7 +15,8 @@ abstract final class EnrollmentPolicy {
     required Enrollment candidate,
     required TeachingGroup group,
     required SchoolYear schoolYear,
-    required Iterable<Enrollment> existingEnrollments,
+    required Iterable<Enrollment> existingStudentEnrollments,
+    required Iterable<Enrollment> existingGroupEnrollments,
   }) {
     final violations = <EnrollmentViolation>{};
 
@@ -32,7 +34,7 @@ abstract final class EnrollmentPolicy {
       violations.add(EnrollmentViolation.outsideSchoolYear);
     }
 
-    final hasOverlap = existingEnrollments.any(
+    final hasOverlap = existingStudentEnrollments.any(
       (existing) =>
           existing.id != candidate.id &&
           existing.studentId == candidate.studentId &&
@@ -40,6 +42,18 @@ abstract final class EnrollmentPolicy {
     );
     if (hasOverlap) {
       violations.add(EnrollmentViolation.overlapsExistingEnrollment);
+    }
+
+    final hasListNumberConflict = existingGroupEnrollments.any(
+      (existing) =>
+          existing.id != candidate.id &&
+          existing.groupId == candidate.groupId &&
+          existing.studentId != candidate.studentId &&
+          existing.listNumber == candidate.listNumber &&
+          existing.overlaps(candidate),
+    );
+    if (hasListNumberConflict) {
+      violations.add(EnrollmentViolation.listNumberAlreadyAssigned);
     }
 
     return Set<EnrollmentViolation>.unmodifiable(violations);

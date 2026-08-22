@@ -9,6 +9,7 @@ void main() {
       studentId: 'student-1',
       groupId: 'group-1',
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
       endsOn: DateTime(2026, 12, 31),
     );
@@ -26,8 +27,23 @@ void main() {
         studentId: 'student-1',
         groupId: 'group-1',
         grade: PrimaryGrade.first,
+        listNumber: 1,
         startsOn: DateTime(2026, 9),
         endsOn: DateTime(2026, 8, 31),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('list number must be greater than zero', () {
+    expect(
+      () => Enrollment(
+        id: 'enrollment-1',
+        studentId: 'student-1',
+        groupId: 'group-1',
+        grade: PrimaryGrade.first,
+        listNumber: 0,
+        startsOn: DateTime(2026, 9),
       ),
       throwsArgumentError,
     );
@@ -39,6 +55,7 @@ void main() {
       studentId: 'student-1',
       groupId: 'group-1',
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
       endsOn: DateTime(2026, 10),
     );
@@ -47,6 +64,7 @@ void main() {
       studentId: 'student-1',
       groupId: 'group-2',
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 10),
     );
 

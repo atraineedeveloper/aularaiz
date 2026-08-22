@@ -26,6 +26,7 @@ void main() {
       studentId: 'student-1',
       groupId: group.id,
       grade: PrimaryGrade.second,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
     );
 
@@ -34,7 +35,8 @@ void main() {
         candidate: candidate,
         group: group,
         schoolYear: schoolYear,
-        existingEnrollments: const <Enrollment>[],
+        existingStudentEnrollments: const <Enrollment>[],
+        existingGroupEnrollments: const <Enrollment>[],
       ),
       isEmpty,
     );
@@ -46,6 +48,7 @@ void main() {
       studentId: 'student-1',
       groupId: group.id,
       grade: PrimaryGrade.third,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
     );
 
@@ -53,7 +56,8 @@ void main() {
       candidate: candidate,
       group: group,
       schoolYear: schoolYear,
-      existingEnrollments: const <Enrollment>[],
+      existingStudentEnrollments: const <Enrollment>[],
+      existingGroupEnrollments: const <Enrollment>[],
     );
 
     expect(violations, contains(EnrollmentViolation.gradeNotOffered));
@@ -65,6 +69,7 @@ void main() {
       studentId: 'student-1',
       groupId: 'group-old',
       grade: PrimaryGrade.first,
+      listNumber: 2,
       startsOn: DateTime(2026, 8, 31),
       endsOn: DateTime(2026, 10, 15),
     );
@@ -73,6 +78,7 @@ void main() {
       studentId: 'student-1',
       groupId: group.id,
       grade: PrimaryGrade.second,
+      listNumber: 1,
       startsOn: DateTime(2026, 10, 15),
     );
 
@@ -80,12 +86,78 @@ void main() {
       candidate: candidate,
       group: group,
       schoolYear: schoolYear,
-      existingEnrollments: <Enrollment>[existing],
+      existingStudentEnrollments: <Enrollment>[existing],
+      existingGroupEnrollments: const <Enrollment>[],
     );
 
     expect(
       violations,
       contains(EnrollmentViolation.overlapsExistingEnrollment),
+    );
+  });
+
+  test('active list number cannot be shared inside the same group', () {
+    final existing = Enrollment(
+      id: 'enrollment-existing',
+      studentId: 'student-2',
+      groupId: group.id,
+      grade: PrimaryGrade.first,
+      listNumber: 7,
+      startsOn: DateTime(2026, 9),
+    );
+    final candidate = Enrollment(
+      id: 'enrollment-candidate',
+      studentId: 'student-1',
+      groupId: group.id,
+      grade: PrimaryGrade.second,
+      listNumber: 7,
+      startsOn: DateTime(2026, 9),
+    );
+
+    final violations = EnrollmentPolicy.validate(
+      candidate: candidate,
+      group: group,
+      schoolYear: schoolYear,
+      existingStudentEnrollments: const <Enrollment>[],
+      existingGroupEnrollments: <Enrollment>[existing],
+    );
+
+    expect(
+      violations,
+      contains(EnrollmentViolation.listNumberAlreadyAssigned),
+    );
+  });
+
+  test('a reused list number is allowed after the prior enrollment ends', () {
+    final existing = Enrollment(
+      id: 'enrollment-existing',
+      studentId: 'student-2',
+      groupId: group.id,
+      grade: PrimaryGrade.first,
+      listNumber: 7,
+      startsOn: DateTime(2026, 9),
+      endsOn: DateTime(2026, 10, 1),
+    );
+    final candidate = Enrollment(
+      id: 'enrollment-candidate',
+      studentId: 'student-1',
+      groupId: group.id,
+      grade: PrimaryGrade.second,
+      listNumber: 7,
+      startsOn: DateTime(2026, 10, 2),
+    );
+
+    final violations = EnrollmentPolicy.validate(
+      candidate: candidate,
+      group: group,
+      schoolYear: schoolYear,
+      existingStudentEnrollments: const <Enrollment>[],
+      existingGroupEnrollments: <Enrollment>[existing],
+    );
+
+    expect(
+      violations,
+      isNot(contains(EnrollmentViolation.listNumberAlreadyAssigned)),
     );
   });
 
@@ -95,6 +167,7 @@ void main() {
       studentId: 'student-1',
       groupId: group.id,
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 8, 30),
       endsOn: DateTime(2027, 7, 16),
     );
@@ -103,7 +176,8 @@ void main() {
       candidate: candidate,
       group: group,
       schoolYear: schoolYear,
-      existingEnrollments: const <Enrollment>[],
+      existingStudentEnrollments: const <Enrollment>[],
+      existingGroupEnrollments: const <Enrollment>[],
     );
 
     expect(violations, contains(EnrollmentViolation.outsideSchoolYear));

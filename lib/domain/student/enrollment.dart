@@ -6,6 +6,7 @@ final class Enrollment {
     required this.studentId,
     required this.groupId,
     required this.grade,
+    required this.listNumber,
     required this.startsOn,
     this.endsOn,
   }) {
@@ -26,6 +27,13 @@ final class Enrollment {
         'Group id cannot be empty.',
       );
     }
+    if (listNumber <= 0) {
+      throw ArgumentError.value(
+        listNumber,
+        'listNumber',
+        'List number must be greater than zero.',
+      );
+    }
     if (endsOn != null && endsOn!.isBefore(startsOn)) {
       throw ArgumentError('Enrollment end date cannot precede its start date.');
     }
@@ -35,6 +43,7 @@ final class Enrollment {
   final String studentId;
   final String groupId;
   final PrimaryGrade grade;
+  final int listNumber;
   final DateTime startsOn;
   final DateTime? endsOn;
 

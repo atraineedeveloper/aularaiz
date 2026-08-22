@@ -61,14 +61,17 @@ final class EnrollStudent {
       );
     }
 
-    final existing = await enrollmentRepository.findByStudentId(
-      candidate.studentId,
+    final existingStudentEnrollments = await enrollmentRepository
+        .findByStudentId(candidate.studentId);
+    final existingGroupEnrollments = await enrollmentRepository.findByGroupId(
+      candidate.groupId,
     );
     final violations = EnrollmentPolicy.validate(
       candidate: candidate,
       group: group,
       schoolYear: schoolYear,
-      existingEnrollments: existing,
+      existingStudentEnrollments: existingStudentEnrollments,
+      existingGroupEnrollments: existingGroupEnrollments,
     );
 
     if (violations.isNotEmpty) {

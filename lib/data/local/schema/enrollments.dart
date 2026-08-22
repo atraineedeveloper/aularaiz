@@ -16,6 +16,7 @@ class Enrollments extends Table {
     onDelete: KeyAction.restrict,
   )();
   late final grade = textEnum<PrimaryGrade>()();
+  late final listNumber = integer()();
   late final startsOn = dateTime()();
   late final endsOn = dateTime().nullable()();
 

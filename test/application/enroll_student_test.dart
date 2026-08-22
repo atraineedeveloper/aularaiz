@@ -44,6 +44,7 @@ void main() {
       studentId: student.id,
       groupId: group.id,
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
     );
 
@@ -66,6 +67,7 @@ void main() {
       studentId: 'missing-student',
       groupId: group.id,
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
     );
 
@@ -92,6 +94,7 @@ void main() {
       studentId: student.id,
       groupId: 'missing-group',
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9),
     );
 
@@ -111,6 +114,7 @@ void main() {
       studentId: student.id,
       groupId: 'old-group',
       grade: PrimaryGrade.first,
+      listNumber: 2,
       startsOn: DateTime(2026, 8, 31),
       endsOn: DateTime(2026, 10),
     );
@@ -126,6 +130,7 @@ void main() {
       studentId: student.id,
       groupId: group.id,
       grade: PrimaryGrade.first,
+      listNumber: 1,
       startsOn: DateTime(2026, 9, 15),
     );
 
@@ -135,6 +140,41 @@ void main() {
     expect(
       (result as EnrollStudentRejected).violations,
       contains(EnrollmentViolation.overlapsExistingEnrollment),
+    );
+    expect(enrollments.saved, isNull);
+  });
+
+  test('list number conflict prevents persistence', () async {
+    final existing = Enrollment(
+      id: 'existing',
+      studentId: 'student-2',
+      groupId: group.id,
+      grade: PrimaryGrade.first,
+      listNumber: 4,
+      startsOn: DateTime(2026, 9),
+    );
+    final enrollments = _FakeEnrollmentRepository(<Enrollment>[existing]);
+    final useCase = EnrollStudent(
+      enrollmentRepository: enrollments,
+      schoolYearRepository: _FakeSchoolYearRepository(schoolYear),
+      studentRepository: _FakeStudentRepository(student),
+      teachingGroupRepository: _FakeTeachingGroupRepository(group),
+    );
+    final candidate = Enrollment(
+      id: 'candidate',
+      studentId: student.id,
+      groupId: group.id,
+      grade: PrimaryGrade.first,
+      listNumber: 4,
+      startsOn: DateTime(2026, 9),
+    );
+
+    final result = await useCase(candidate);
+
+    expect(result, isA<EnrollStudentRejected>());
+    expect(
+      (result as EnrollStudentRejected).violations,
+      contains(EnrollmentViolation.listNumberAlreadyAssigned),
     );
     expect(enrollments.saved, isNull);
   });
@@ -151,6 +191,13 @@ final class _FakeEnrollmentRepository implements EnrollmentRepository {
   Future<List<Enrollment>> findByStudentId(String studentId) async {
     return _existing
         .where((enrollment) => enrollment.studentId == studentId)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<Enrollment>> findByGroupId(String groupId) async {
+    return _existing
+        .where((enrollment) => enrollment.groupId == groupId)
         .toList(growable: false);
   }
 

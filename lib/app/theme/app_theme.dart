@@ -3,27 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
-  static ThemeData light(AppPalette palette) => _base(
-    Brightness.light,
-    palette,
-  );
+  static ThemeData light(AppPalette palette) =>
+      _base(Brightness.light, palette);
 
-  static ThemeData dark(AppPalette palette) => _base(
-    Brightness.dark,
-    palette,
-  );
+  static ThemeData dark(AppPalette palette) => _base(Brightness.dark, palette);
 
-  static ThemeData highContrastLight(AppPalette palette) => _base(
-    Brightness.light,
-    palette,
-    contrastLevel: 1,
-  );
+  static ThemeData highContrastLight(AppPalette palette) =>
+      _base(Brightness.light, palette, contrastLevel: 1);
 
-  static ThemeData highContrastDark(AppPalette palette) => _base(
-    Brightness.dark,
-    palette,
-    contrastLevel: 1,
-  );
+  static ThemeData highContrastDark(AppPalette palette) =>
+      _base(Brightness.dark, palette, contrastLevel: 1);
 
   static ThemeData _base(
     Brightness brightness,
@@ -101,9 +90,7 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surfaceContainerLowest,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: scheme.outlineVariant),
@@ -120,15 +107,11 @@ abstract final class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: palette.primary,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       chipTheme: base.chipTheme.copyWith(
         side: BorderSide(color: scheme.outlineVariant),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

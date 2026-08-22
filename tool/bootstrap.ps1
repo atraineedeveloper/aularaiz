@@ -23,7 +23,7 @@ Invoke-Flutter --version
 # minimal template. Existing application sources are preserved.
 Invoke-Flutter create `
   --empty `
-  --platforms=android,windows `
+  '--platforms=android,windows' `
   --org=com.mindtzijib `
   --project-name=aularaiz `
   .

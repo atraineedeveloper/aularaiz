@@ -123,7 +123,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       context: context,
       builder: (context) => _StudentDialog(group: widget.group),
     );
-    if (draft == null || !mounted) return;
+    if (draft == null || !context.mounted) return;
 
     await context.read<StudentRosterController>().createStudent(
       givenNames: draft.givenNames,
@@ -144,7 +144,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       builder: (context) =>
           _StudentDialog(group: widget.group, entry: entry, identityOnly: true),
     );
-    if (draft == null || !mounted) return;
+    if (draft == null || !context.mounted) return;
 
     await context.read<StudentRosterController>().updateStudent(
       entry: entry,
@@ -179,7 +179,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
         );
       },
     );
-    if (confirmed != true || !mounted) return;
+    if (confirmed != true || !context.mounted) return;
 
     await context.read<StudentRosterController>().deactivate(
       entry,
@@ -196,7 +196,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       builder: (context) =>
           _ReactivateDialog(group: widget.group, entry: entry),
     );
-    if (draft == null || !mounted) return;
+    if (draft == null || !context.mounted) return;
 
     await context.read<StudentRosterController>().reactivate(
       entry: entry,

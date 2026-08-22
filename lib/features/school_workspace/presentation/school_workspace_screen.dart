@@ -1,14 +1,25 @@
+import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/project/create_activity.dart';
+import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
+import 'package:aularaiz/features/attendance/presentation/attendance_screen.dart';
+import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
+import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class SchoolWorkspaceScreen extends StatefulWidget {
@@ -56,6 +67,14 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: l10n.settingsTitle,
+            onPressed: () => context.push('/settings'),
+            icon: const Icon(Icons.tune_rounded),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.isSaving ? null : _showCreateGroupDialog,
@@ -104,7 +123,10 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                     width: width,
                                     child: _GroupCard(
                                       group: group,
-                                      onTap: () => _openGroup(group),
+                                      onStudents: () => _openStudents(group),
+                                      onAttendance: () =>
+                                          _openAttendance(group),
+                                      onProjects: () => _openProjects(group),
                                     ),
                                   ),
                               ],
@@ -134,7 +156,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     );
   }
 
-  Future<void> _openGroup(TeachingGroup group) async {
+  Future<void> _openStudents(TeachingGroup group) async {
     final studentRepository = context.read<StudentRepository>();
     final enrollmentRepository = context.read<EnrollmentRepository>();
     final createStudentInGroup = context.read<CreateStudentInGroup>();
@@ -150,6 +172,48 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             reactivateStudentInGroup: reactivateStudentInGroup,
           ),
           child: StudentRosterScreen(group: group),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAttendance(TeachingGroup group) async {
+    final attendanceRepository = context.read<AttendanceRepository>();
+    final enrollmentRepository = context.read<EnrollmentRepository>();
+    final studentRepository = context.read<StudentRepository>();
+    final buildDailyAttendance = context.read<BuildDailyAttendance>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => AttendanceController(
+            attendanceRepository: attendanceRepository,
+            enrollmentRepository: enrollmentRepository,
+            studentRepository: studentRepository,
+            buildDailyAttendance: buildDailyAttendance,
+          ),
+          child: AttendanceScreen(group: group),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openProjects(TeachingGroup group) async {
+    final projectRepository = context.read<ProjectRepository>();
+    final activityRepository = context.read<ActivityRepository>();
+    final createProject = context.read<CreateProject>();
+    final createActivity = context.read<CreateActivity>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ProjectsController(
+            projectRepository: projectRepository,
+            activityRepository: activityRepository,
+            createProject: createProject,
+            createActivity: createActivity,
+          ),
+          child: ProjectsScreen(group: group),
         ),
       ),
     );
@@ -188,10 +252,17 @@ class _EmptyGroups extends StatelessWidget {
 }
 
 class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.group, required this.onTap});
+  const _GroupCard({
+    required this.group,
+    required this.onStudents,
+    required this.onAttendance,
+    required this.onProjects,
+  });
 
   final TeachingGroup group;
-  final VoidCallback onTap;
+  final VoidCallback onStudents;
+  final VoidCallback onAttendance;
+  final VoidCallback onProjects;
 
   @override
   Widget build(BuildContext context) {
@@ -201,43 +272,62 @@ class _GroupCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      group.name,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    group.name,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  Chip(
-                    label: Text(
-                      group.isMultigrade ? l10n.multigrade : l10n.unigrade,
-                    ),
+                ),
+                Chip(
+                  label: Text(
+                    group.isMultigrade ? l10n.multigrade : l10n.unigrade,
                   ),
-                ],
-              ),
-              if (group.shift != null) ...[
-                const SizedBox(height: 8),
-                Text('${l10n.shift}: ${group.shift}'),
+                ),
               ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final grade in grades)
-                    Chip(label: Text(_gradeLabel(grade, l10n))),
-                ],
-              ),
+            ),
+            if (group.shift != null) ...[
+              const SizedBox(height: 8),
+              Text('${l10n.shift}: ${group.shift}'),
             ],
-          ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final grade in grades)
+                  Chip(label: Text(_gradeLabel(grade, l10n))),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: onAttendance,
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: Text(l10n.openAttendance),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onProjects,
+                  icon: const Icon(Icons.auto_awesome_motion_outlined),
+                  label: Text(l10n.openProjects),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onStudents,
+                  icon: const Icon(Icons.groups_rounded),
+                  label: Text(l10n.openStudents),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

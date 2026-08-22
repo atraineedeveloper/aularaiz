@@ -19,15 +19,12 @@ Future<void> main() async {
     return true;
   };
 
-  await runZonedGuarded(
-    () async {
-      runApp(
-        ChangeNotifierProvider(
-          create: (_) => AppSettingsController(),
-          child: const AulaRaizApp(),
-        ),
-      );
-    },
-    (error, stack) => SafeLog.unhandledError(error),
-  );
+  await runZonedGuarded(() async {
+    runApp(
+      ChangeNotifierProvider(
+        create: (_) => AppSettingsController(),
+        child: const AulaRaizApp(),
+      ),
+    );
+  }, (error, stack) => SafeLog.unhandledError(error));
 }

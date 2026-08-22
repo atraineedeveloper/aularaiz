@@ -7,14 +7,14 @@ abstract final class AppTheme {
   static ThemeData get dark => _base(Brightness.dark);
 
   static ThemeData get highContrastLight => _base(
-        Brightness.light,
-        contrastLevel: 1,
-      );
+    Brightness.light,
+    contrastLevel: 1,
+  );
 
   static ThemeData get highContrastDark => _base(
-        Brightness.dark,
-        contrastLevel: 1,
-      );
+    Brightness.dark,
+    contrastLevel: 1,
+  );
 
   static ThemeData _base(
     Brightness brightness, {

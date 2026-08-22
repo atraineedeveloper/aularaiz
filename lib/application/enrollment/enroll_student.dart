@@ -29,33 +29,31 @@ final class EnrollStudentRejected extends EnrollStudentResult {
 
 final class EnrollStudent {
   const EnrollStudent({
-    required EnrollmentRepository enrollmentRepository,
-    required SchoolYearRepository schoolYearRepository,
-    required TeachingGroupRepository teachingGroupRepository,
-  }) : _enrollmentRepository = enrollmentRepository,
-       _schoolYearRepository = schoolYearRepository,
-       _teachingGroupRepository = teachingGroupRepository;
+    required this.enrollmentRepository,
+    required this.schoolYearRepository,
+    required this.teachingGroupRepository,
+  });
 
-  final EnrollmentRepository _enrollmentRepository;
-  final SchoolYearRepository _schoolYearRepository;
-  final TeachingGroupRepository _teachingGroupRepository;
+  final EnrollmentRepository enrollmentRepository;
+  final SchoolYearRepository schoolYearRepository;
+  final TeachingGroupRepository teachingGroupRepository;
 
   Future<EnrollStudentResult> call(Enrollment candidate) async {
-    final group = await _teachingGroupRepository.findById(candidate.groupId);
+    final group = await teachingGroupRepository.findById(candidate.groupId);
     if (group == null) {
       return const EnrollStudentMissingReference(
         EnrollmentReference.teachingGroup,
       );
     }
 
-    final schoolYear = await _schoolYearRepository.findById(group.schoolYearId);
+    final schoolYear = await schoolYearRepository.findById(group.schoolYearId);
     if (schoolYear == null) {
       return const EnrollStudentMissingReference(
         EnrollmentReference.schoolYear,
       );
     }
 
-    final existing = await _enrollmentRepository.findByStudentId(
+    final existing = await enrollmentRepository.findByStudentId(
       candidate.studentId,
     );
     final violations = EnrollmentPolicy.validate(
@@ -69,7 +67,7 @@ final class EnrollStudent {
       return EnrollStudentRejected(violations);
     }
 
-    await _enrollmentRepository.save(candidate);
+    await enrollmentRepository.save(candidate);
     return const EnrollStudentSucceeded();
   }
 }

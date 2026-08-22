@@ -10,7 +10,7 @@ extension EvaluationLocalization on AppLocalizations {
   String get saveEvaluations =>
       _evaluationEnglish ? 'Save evaluations' : 'Guardar evaluaciones';
   String get markAllDelivered =>
-      _evaluationEnglish ? 'Mark all delivered' : 'Marcar todos entregados';
+      _evaluationEnglish ? 'Mark visible as delivered' : 'Marcar visibles entregados';
   String get evaluationLoadError => _evaluationEnglish
       ? 'The activity evaluation could not be loaded.'
       : 'No se pudo cargar la evaluación de la actividad.';
@@ -20,6 +20,9 @@ extension EvaluationLocalization on AppLocalizations {
   String get noEvaluationRoster => _evaluationEnglish
       ? 'This activity has no students in its historical roster.'
       : 'Esta actividad no tiene alumnos en su roster histórico.';
+  String get noFilteredStudents => _evaluationEnglish
+      ? 'No students match the current filters.'
+      : 'Ningún alumno coincide con los filtros actuales.';
   String get delivery => _evaluationEnglish ? 'Delivery' : 'Entrega';
   String get achievement => _evaluationEnglish ? 'Achievement' : 'Logro';
   String get observation => _evaluationEnglish ? 'Observation' : 'Observación';
@@ -31,6 +34,13 @@ extension EvaluationLocalization on AppLocalizations {
       _evaluationEnglish ? 'Evidence summary' : 'Resumen de evidencias';
   String get evaluatedCount => _evaluationEnglish ? 'Evaluated' : 'Evaluados';
   String get pendingCount => _evaluationEnglish ? 'Pending' : 'Pendientes';
+  String get evaluationSearch =>
+      _evaluationEnglish ? 'Search student' : 'Buscar alumno';
+  String get allGrades => _evaluationEnglish ? 'All grades' : 'Todos los grados';
+  String get allDeliveryStates =>
+      _evaluationEnglish ? 'All delivery states' : 'Todas las entregas';
+  String get clearFilters =>
+      _evaluationEnglish ? 'Clear filters' : 'Limpiar filtros';
 
   String deliveryStatusLabel(DeliveryStatus status) => switch (status) {
     DeliveryStatus.pending => _evaluationEnglish ? 'Pending' : 'Pendiente',

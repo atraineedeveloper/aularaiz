@@ -48,9 +48,7 @@ final class EnrollStudent {
       );
     }
 
-    final schoolYear = await _schoolYearRepository.findById(
-      group.schoolYearId,
-    );
+    final schoolYear = await _schoolYearRepository.findById(group.schoolYearId);
     if (schoolYear == null) {
       return const EnrollStudentMissingReference(
         EnrollmentReference.schoolYear,

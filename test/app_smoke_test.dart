@@ -5,14 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('renders the Spanish localized foundation screen', (tester) async {
+  testWidgets('renders the Spanish localized foundation screen', (
+    tester,
+  ) async {
     final settings = AppSettingsController()..setLocale(const Locale('es'));
 
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: settings,
-        child: const AulaRaizApp(),
-      ),
+      ChangeNotifierProvider.value(value: settings, child: const AulaRaizApp()),
     );
     await tester.pumpAndSettle();
 

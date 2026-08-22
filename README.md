@@ -23,4 +23,9 @@ No production Flutter code should be added until the Phase 0 product scope, pari
 
 ## Phase 0 documents
 
-The Phase 0 specification will live under `docs/phase-0/`.
+- [`product-specification.md`](docs/phase-0/product-specification.md) — product intent, scope, platform and NEM baseline.
+- [`functional-parity.md`](docs/phase-0/functional-parity.md) — preserve/improve/replace/defer/remove matrix against the previous application.
+- [`domain-invariants.md`](docs/phase-0/domain-invariants.md) — behavioral rules that survive the technology rewrite.
+- [`privacy-baseline.md`](docs/phase-0/privacy-baseline.md) — local-data, diagnostics, exports, backups and agent privacy boundaries.
+- [`delivery-roadmap.md`](docs/phase-0/delivery-roadmap.md) — implementation phases from Flutter foundation through distribution and automation.
+- [`decisions-and-open-questions.md`](docs/phase-0/decisions-and-open-questions.md) — accepted defaults and decisions that still require an explicit product-owner choice.

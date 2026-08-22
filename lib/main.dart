@@ -21,10 +21,12 @@ Future<void> main() async {
   };
 
   await runZonedGuarded(() async {
+    final settings = await AppSettingsController.load();
+
     runApp(
       AppDependencies(
-        child: ChangeNotifierProvider(
-          create: (_) => AppSettingsController(),
+        child: ChangeNotifierProvider.value(
+          value: settings,
           child: const AulaRaizApp(),
         ),
       ),

@@ -1,0 +1,105 @@
+name: Setup hotfix consistency polish
+
+on:
+  push:
+    branches: [fix/setup-flow-stability]
+    paths:
+      - '.github/workflows/setup-hotfix-polish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/setup-flow-stability
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - name: Align setup labels, CCT-state consistency and regression finder
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected text not found in {path}: {old!r}')
+              file.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace(
+              'lib/l10n/app_es.arb',
+              '"state": "Entidad (opcional)"',
+              '"state": "Entidad federativa"',
+          )
+          replace(
+              'lib/l10n/app_es.arb',
+              '"municipality": "Municipio (opcional)"',
+              '"municipality": "Municipio"',
+          )
+          replace(
+              'lib/l10n/app_en.arb',
+              '"state": "State (optional)"',
+              '"state": "State"',
+          )
+          replace(
+              'lib/l10n/app_en.arb',
+              '"municipality": "Municipality (optional)"',
+              '"municipality": "Municipality"',
+          )
+          replace(
+              'test/setup_flow_regression_test.dart',
+              "find.widgetWithText(TextFormField, 'CCT')",
+              "find.widgetWithText(TextFormField, 'CCT (opcional)')",
+          )
+
+          screen = Path('lib/features/school_setup/presentation/school_setup_screen.dart')
+          text = screen.read_text(encoding='utf-8')
+          old = '''  MexicoStateOption? get _selectedState =>
+      _stateCode == null ? null : MexicoGeographyCatalog.byCode(_stateCode!);
+'''
+          new = '''  MexicoStateOption? get _selectedState =>
+      _stateCode == null ? null : MexicoGeographyCatalog.byCode(_stateCode!);
+
+  MexicoStateOption? get _stateFromCct {
+    final normalized = _cctController.text.trim().toUpperCase();
+    if (normalized.length < 2) return null;
+    return MexicoGeographyCatalog.byCode(normalized.substring(0, 2));
+  }
+'''
+          if old not in text:
+              raise SystemExit('Expected selected-state getter not found')
+          text = text.replace(old, new, 1)
+          old = '''                          onChanged: controller.isSaving
+                              ? null
+                              : (value) {'''
+          new = '''                          onChanged:
+                              controller.isSaving || _stateFromCct != null
+                              ? null
+                              : (value) {'''
+          if old not in text:
+              raise SystemExit('Expected state dropdown onChanged not found')
+          text = text.replace(old, new, 1)
+          old = '''    final candidate = MexicoGeographyCatalog.byCode(normalized.substring(0, 2));
+    if (candidate == null || candidate.code == _stateCode) return;
+'''
+          new = '''    final candidate = _stateFromCct;
+    if (candidate == null || candidate.code == _stateCode) return;
+'''
+          if old not in text:
+              raise SystemExit('Expected CCT candidate lookup not found')
+          screen.write_text(text.replace(old, new, 1), encoding='utf-8')
+      - run: dart format lib/features/school_setup/presentation/school_setup_screen.dart test/setup_flow_regression_test.dart
+      - name: Commit consistency fixes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/l10n/app_es.arb lib/l10n/app_en.arb lib/features/school_setup/presentation/school_setup_screen.dart test/setup_flow_regression_test.dart
+          git commit -m 'fix: keep setup catalogs and labels consistent'
+          git push origin HEAD:fix/setup-flow-stability

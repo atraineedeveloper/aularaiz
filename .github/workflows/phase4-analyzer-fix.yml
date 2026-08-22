@@ -1,0 +1,89 @@
+name: Phase 4 analyzer fixes
+
+on:
+  push:
+    branches: [feat/daily-teacher-work]
+    paths:
+      - '.github/workflows/phase4-analyzer-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/daily-teacher-work
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - name: Apply analyzer fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected text not found in {path}')
+              file.write_text(text.replace(old, new))
+
+          replace(
+              'lib/data/repositories/drift_attendance_repository.dart',
+              "import 'package:aularaiz/domain/attendance/attendance_entry.dart';",
+              "import 'package:aularaiz/domain/attendance/attendance_entry.dart' as domain;",
+          )
+          replace(
+              'lib/data/repositories/drift_attendance_repository.dart',
+              '          AttendanceEntry(studentId: row.studentId, status: row.status),',
+              '          domain.AttendanceEntry(studentId: row.studentId, status: row.status),',
+          )
+          replace(
+              'lib/features/attendance/presentation/attendance_controller.dart',
+              '''  void markAllPresent() {\n    var next = _attendance;\n    if (next == null || next.entries.isEmpty) return;\n    for (final studentId in next.entries.keys) {\n      next = next.withStatus(studentId, AttendanceStatus.present);\n    }''',
+              '''  void markAllPresent() {\n    final attendance = _attendance;\n    if (attendance == null || attendance.entries.isEmpty) return;\n    var next = attendance;\n    for (final studentId in attendance.entries.keys) {\n      next = next.withStatus(studentId, AttendanceStatus.present);\n    }''',
+          )
+          replace(
+              'lib/features/attendance/presentation/attendance_screen.dart',
+              "    return '${localizations.formatMonthYear(month)}';",
+              '    return localizations.formatMonthYear(month);',
+          )
+          controller = Path('lib/features/projects/presentation/projects_controller.dart')
+          text = controller.read_text()
+          export = "export 'package:aularaiz/features/projects/presentation/projects_localization.dart';\n\n"
+          if not text.startswith(export):
+              raise SystemExit('Expected projects_controller export not found')
+          text = text[len(export):]
+          marker = "import 'package:flutter/foundation.dart';\n"
+          if marker not in text:
+              raise SystemExit('Expected projects_controller import marker not found')
+          controller.write_text(text.replace(marker, marker + "\nexport 'package:aularaiz/features/projects/presentation/projects_localization.dart';\n", 1))
+
+          replace(
+              'lib/features/projects/presentation/projects_screen.dart',
+              "import 'package:aularaiz/domain/education/primary_grade.dart';\n",
+              "import 'package:aularaiz/domain/education/primary_grade.dart';\nimport 'package:aularaiz/domain/project/activity.dart';\n",
+          )
+          replace(
+              'lib/features/projects/presentation/projects_screen.dart',
+              '  final List<dynamic> activities;',
+              '  final List<Activity> activities;',
+          )
+          replace(
+              'lib/features/projects/presentation/projects_screen.dart',
+              '                  title: Text(activity.title as String),',
+              '                  title: Text(activity.title),',
+          )
+      - run: dart format lib/data/repositories/drift_attendance_repository.dart lib/features/attendance/presentation/attendance_controller.dart lib/features/attendance/presentation/attendance_screen.dart lib/features/projects/presentation/projects_controller.dart lib/features/projects/presentation/projects_screen.dart
+      - name: Commit fixes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/data/repositories/drift_attendance_repository.dart lib/features/attendance/presentation/attendance_controller.dart lib/features/attendance/presentation/attendance_screen.dart lib/features/projects/presentation/projects_controller.dart lib/features/projects/presentation/projects_screen.dart
+          git commit -m 'fix: resolve Phase 4 analyzer findings'
+          git push origin HEAD:feat/daily-teacher-work

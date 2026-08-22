@@ -1,6 +1,12 @@
+import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/student/create_student_in_group.dart';
+import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
+import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
+import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -98,7 +104,10 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                 for (final group in controller.groups)
                                   SizedBox(
                                     width: width,
-                                    child: _GroupCard(group: group),
+                                    child: _GroupCard(
+                                      group: group,
+                                      onTap: () => _openGroup(group),
+                                    ),
                                   ),
                               ],
                             ),
@@ -124,6 +133,27 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       name: draft.name,
       grades: draft.grades,
       shift: draft.shift,
+    );
+  }
+
+  Future<void> _openGroup(TeachingGroup group) async {
+    final studentRepository = context.read<StudentRepository>();
+    final enrollmentRepository = context.read<EnrollmentRepository>();
+    final createStudentInGroup = context.read<CreateStudentInGroup>();
+    final reactivateStudentInGroup = context.read<ReactivateStudentInGroup>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => StudentRosterController(
+            studentRepository: studentRepository,
+            enrollmentRepository: enrollmentRepository,
+            createStudentInGroup: createStudentInGroup,
+            reactivateStudentInGroup: reactivateStudentInGroup,
+          ),
+          child: StudentRosterScreen(group: group),
+        ),
+      ),
     );
   }
 }
@@ -160,9 +190,10 @@ class _EmptyGroups extends StatelessWidget {
 }
 
 class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.group});
+  const _GroupCard({required this.group, required this.onTap});
 
   final TeachingGroup group;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -172,36 +203,43 @@ class _GroupCard extends StatelessWidget {
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    group.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      group.name,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
-                ),
-                Chip(label: Text(group.isMultigrade ? l10n.multigrade : l10n.unigrade)),
+                  Chip(
+                    label: Text(
+                      group.isMultigrade ? l10n.multigrade : l10n.unigrade,
+                    ),
+                  ),
+                ],
+              ),
+              if (group.shift != null) ...[
+                const SizedBox(height: 8),
+                Text('${l10n.shift}: ${group.shift}'),
               ],
-            ),
-            if (group.shift != null) ...[
-              const SizedBox(height: 8),
-              Text('${l10n.shift}: ${group.shift}'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final grade in grades)
+                    Chip(label: Text(_gradeLabel(grade, l10n))),
+                ],
+              ),
             ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final grade in grades)
-                  Chip(label: Text(_gradeLabel(grade, l10n))),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -258,7 +296,10 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   decoration: InputDecoration(labelText: l10n.shift),
                 ),
                 const SizedBox(height: 20),
-                Text(l10n.grades, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l10n.grades,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -285,7 +326,9 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   const SizedBox(height: 8),
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
               ],
@@ -298,10 +341,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(l10n.create),
-        ),
+        FilledButton(onPressed: _submit, child: Text(l10n.create)),
       ],
     );
   }

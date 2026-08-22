@@ -22,4 +22,13 @@ class TeachingGroups extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+
+  @override
+  List<String> get customConstraints => <String>[
+    'CHECK ((schedule_start_minutes IS NULL AND schedule_end_minutes IS NULL) '
+        'OR (schedule_start_minutes IS NOT NULL AND schedule_end_minutes IS NOT NULL '
+        'AND schedule_start_minutes >= 0 AND schedule_start_minutes < 1440 '
+        'AND schedule_end_minutes > schedule_start_minutes '
+        'AND schedule_end_minutes < 1440))',
+  ];
 }

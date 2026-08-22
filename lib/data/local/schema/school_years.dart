@@ -9,4 +9,9 @@ class SchoolYears extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+
+  @override
+  List<String> get customConstraints => <String>[
+    'CHECK (ends_on >= starts_on)',
+  ];
 }

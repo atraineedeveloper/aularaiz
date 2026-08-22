@@ -1,3 +1,4 @@
+import 'package:aularaiz/data/local/schema/group_grades.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/data/local/schema/teaching_groups.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
@@ -23,4 +24,12 @@ class Enrollments extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+
+  @override
+  List<String> get customConstraints => <String>[
+    'FOREIGN KEY (group_id, grade) '
+        'REFERENCES group_grades (group_id, grade)',
+    'CHECK (list_number > 0)',
+    'CHECK (ends_on IS NULL OR ends_on >= starts_on)',
+  ];
 }

@@ -1,5 +1,4 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
-import 'package:aularaiz/data/local/schema/activity_grades.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';

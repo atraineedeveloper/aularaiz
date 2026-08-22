@@ -1,5 +1,4 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
-import 'package:aularaiz/data/local/schema/activity_roster.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';

@@ -1,3 +1,5 @@
+export 'package:aularaiz/features/projects/presentation/projects_localization.dart';
+
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/project/create_activity.dart';

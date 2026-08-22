@@ -48,23 +48,19 @@ class SettingsScreen extends StatelessWidget {
                   icon: Icons.palette_outlined,
                   title: l10n.colorPalette,
                   subtitle: l10n.paletteDescription,
-                  child: Column(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      _PaletteTile(
-                        palette: AppPalette.government2024,
-                        title: l10n.palette2024,
-                        selected: settings.palette == AppPalette.government2024,
-                        onTap: () =>
-                            settings.setPalette(AppPalette.government2024),
-                      ),
-                      const SizedBox(height: 12),
-                      _PaletteTile(
-                        palette: AppPalette.government2018,
-                        title: l10n.palette2018,
-                        selected: settings.palette == AppPalette.government2018,
-                        onTap: () =>
-                            settings.setPalette(AppPalette.government2018),
-                      ),
+                      for (final color in AppPalette.swatches)
+                        Container(
+                          width: 42,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: color,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -173,69 +169,6 @@ class _SettingsSection extends StatelessWidget {
             const SizedBox(height: 20),
             child,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PaletteTile extends StatelessWidget {
-  const _PaletteTile({
-    required this.palette,
-    required this.title,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppPalette palette;
-  final String title;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: selected ? scheme.primaryContainer : Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      children: [
-                        for (final color in palette.swatches)
-                          Container(
-                            width: 34,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: color,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                selected ? Icons.check_circle_rounded : Icons.circle_outlined,
-                color: selected ? scheme.primary : scheme.outline,
-              ),
-            ],
-          ),
         ),
       ),
     );

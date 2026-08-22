@@ -1,0 +1,52 @@
+name: Phase 5 neutral copy
+
+on:
+  push:
+    branches: [feat/formative-evaluation]
+    paths:
+      - '.github/workflows/phase5-neutral-copy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/formative-evaluation
+      - name: Remove administration labels from localization
+        shell: python
+        run: |
+          from pathlib import Path
+
+          es = Path('lib/l10n/app_es.arb')
+          text = es.read_text(encoding='utf-8')
+          text = text.replace('"colorPalette": "Paleta de color"', '"colorPalette": "Colores de AulaRaíz"')
+          text = text.replace('"@colorPalette": {"description": "Sección para seleccionar paleta visual"}', '"@colorPalette": {"description": "Sección de identidad cromática de AulaRaíz"}')
+          text = text.replace('"paletteDescription": "Paletas inspiradas en las identidades gráficas del Gobierno de México, sin logotipos ni afiliación institucional."', '"paletteDescription": "Identidad cromática de AulaRaíz."')
+          text = text.replace('"@paletteDescription": {"description": "Aclaración sobre las paletas institucionales"}', '"@paletteDescription": {"description": "Descripción de los colores del producto"}')
+          for line in [
+              '  "palette2024": "México 2024–2030",\n',
+              '  "@palette2024": {"description": "Nombre de la paleta inspirada en la administración 2024-2030"},\n',
+              '  "palette2018": "México 2018–2024",\n',
+              '  "@palette2018": {"description": "Nombre de la paleta inspirada en la administración 2018-2024"},\n',
+          ]:
+              text = text.replace(line, '')
+          es.write_text(text, encoding='utf-8')
+
+          en = Path('lib/l10n/app_en.arb')
+          text = en.read_text(encoding='utf-8')
+          text = text.replace('"colorPalette": "Color palette"', '"colorPalette": "AulaRaíz colors"')
+          text = text.replace('"paletteDescription": "Palettes inspired by the visual identities of the Government of Mexico, without logos or institutional affiliation."', '"paletteDescription": "AulaRaíz product color identity."')
+          text = text.replace('  "palette2024": "Mexico 2024–2030",\n', '')
+          text = text.replace('  "palette2018": "Mexico 2018–2024",\n', '')
+          en.write_text(text, encoding='utf-8')
+      - name: Commit neutral product copy
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/l10n/app_es.arb lib/l10n/app_en.arb
+          git commit -m 'ux: neutralize AulaRaiz color identity copy'
+          git push origin HEAD:feat/formative-evaluation

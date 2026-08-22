@@ -14,6 +14,7 @@ class Enrollments extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
+  late final grade = integer()();
   late final startsOn = dateTime()();
   late final endsOn = dateTime().nullable()();
 

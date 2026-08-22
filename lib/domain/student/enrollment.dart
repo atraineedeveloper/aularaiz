@@ -1,8 +1,11 @@
+import 'package:aularaiz/domain/education/primary_grade.dart';
+
 final class Enrollment {
   Enrollment({
     required this.id,
     required this.studentId,
     required this.groupId,
+    required this.grade,
     required this.startsOn,
     this.endsOn,
   }) {
@@ -31,6 +34,7 @@ final class Enrollment {
   final String id;
   final String studentId;
   final String groupId;
+  final PrimaryGrade grade;
   final DateTime startsOn;
   final DateTime? endsOn;
 
@@ -38,5 +42,15 @@ final class Enrollment {
     if (date.isBefore(startsOn)) return false;
     final end = endsOn;
     return end == null || !date.isAfter(end);
+  }
+
+  bool overlaps(Enrollment other) {
+    final end = endsOn;
+    if (end != null && end.isBefore(other.startsOn)) return false;
+
+    final otherEnd = other.endsOn;
+    if (otherEnd != null && otherEnd.isBefore(startsOn)) return false;
+
+    return true;
   }
 }

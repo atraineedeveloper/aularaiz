@@ -48,4 +48,6 @@ final class TeachingGroup {
 
   Set<NemPhase> get phases =>
       Set<NemPhase>.unmodifiable(grades.map((grade) => grade.phase));
+
+  bool acceptsGrade(PrimaryGrade grade) => grades.contains(grade);
 }

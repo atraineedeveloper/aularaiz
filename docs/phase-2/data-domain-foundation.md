@@ -15,7 +15,7 @@ The initial slice models:
 - schools;
 - teaching groups, including multigrade groups;
 - students with data minimization by default;
-- historical group enrollments.
+- historical group enrollments, including the grade a student attends inside the group.
 
 Attendance, projects, evaluation and student records will be added only after this base is stable.
 
@@ -33,11 +33,13 @@ This mapping is represented as domain code instead of UI text so it can be reuse
 
 A group owns a non-empty set of primary grades. A group is multigrade when that set contains more than one grade. The model does not force all grades in a group to belong to the same NEM phase.
 
+Each enrollment records the student's grade within that group. This is required to resolve the student's NEM phase correctly in a multigrade classroom.
+
 ### Historical rosters
 
-A student is not modeled with a mutable `currentGroupId`. Membership is represented by an `Enrollment` with start/end dates. This preserves historical rosters for attendance, evaluation and reporting.
+A student is not modeled with a mutable `currentGroupId`. Membership is represented by an `Enrollment` with start/end dates and the grade attended during that membership. This preserves historical rosters for attendance, evaluation and reporting.
 
-Overlap prevention and cross-entity integrity belong in the repository/use-case layer and will be covered when persistence is introduced.
+Enrollment policy rejects a grade that the group does not offer, dates outside the school year and overlapping memberships for the same student. Inclusive boundary dates are treated as overlapping, so a transfer must close on the day before the new membership starts.
 
 ### Privacy baseline
 
@@ -51,13 +53,4 @@ CURP, birth date, address, family contacts, medical data and other sensitive fie
 
 ## Persistence plan
 
-Drift remains the persistence choice. The next slice will add the SQLite boundary and schema v1 for these entities, with foreign keys enabled and migration tests. Drift's generated database code will not be introduced until the schema and code-generation workflow are validated.
-
-## Definition of done for this slice
-
-- domain entities compile without Flutter UI dependencies;
-- invalid date ranges and empty required values are rejected;
-- NEM grade/phase mapping has unit tests;
-- multigrade behavior has unit tests;
-- enrollment history semantics have unit tests;
-- CI remains green.
+Drift remains the persistence choice. Schema v1 mirrors these entities and stores the enrollment grade explicitly. The next persistence slice will introduce the generated database class, foreign-key activation, schema snapshots and repositories after the declarations are stable.

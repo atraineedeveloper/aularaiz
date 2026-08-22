@@ -10,10 +10,36 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
   final AppDatabase database;
 
   @override
-  Future<bool> hasInitialSetup() async {
-    final school = await (database.select(database.schools)..limit(1)).getSingleOrNull();
-    final schoolYear = await (database.select(database.schoolYears)..limit(1)).getSingleOrNull();
-    return school != null && schoolYear != null;
+  Future<bool> hasInitialSetup() async => (await loadInitialSetup()) != null;
+
+  @override
+  Future<InitialSchoolSetup?> loadInitialSetup() async {
+    final schoolRow = await (database.select(database.schools)..limit(1)).getSingleOrNull();
+    final yearRows = await (database.select(database.schoolYears)
+          ..orderBy([(table) => OrderingTerm.desc(table.startsOn)])
+          ..limit(1))
+        .get();
+
+    if (schoolRow == null || yearRows.isEmpty) return null;
+    final schoolYearRow = yearRows.single;
+
+    return (
+      school: School(
+        id: schoolRow.id,
+        name: schoolRow.name,
+        cct: schoolRow.cct,
+        organization: schoolRow.organization,
+        state: schoolRow.state,
+        municipality: schoolRow.municipality,
+        locality: schoolRow.locality,
+      ),
+      schoolYear: SchoolYear(
+        id: schoolYearRow.id,
+        label: schoolYearRow.label,
+        startsOn: schoolYearRow.startsOn,
+        endsOn: schoolYearRow.endsOn,
+      ),
+    );
   }
 
   @override

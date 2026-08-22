@@ -1,4 +1,7 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
+// Drift resolves ActivityGrades from the composite foreign key in customConstraints.
+// ignore: unused_import
+import 'package:aularaiz/data/local/schema/activity_grades.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';

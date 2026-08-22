@@ -28,6 +28,20 @@ Invoke-Flutter create `
   --project-name=aularaiz `
   .
 
+# Older bootstrap runs used Flutter's default counter template, which can
+# leave an untracked test/widget_test.dart that references MyApp. Remove only
+# that generated sample; never delete a tracked project test.
+$sampleTest = 'test/widget_test.dart'
+if (Test-Path $sampleTest) {
+  $trackedSampleTest = & git ls-files -- $sampleTest
+  $isDefaultSample = Select-String -Path $sampleTest -Pattern 'MyApp' -Quiet
+
+  if (-not $trackedSampleTest -and $isDefaultSample) {
+    Write-Host 'Removing stale generated Flutter sample test.'
+    Remove-Item $sampleTest -Force
+  }
+}
+
 Invoke-Flutter pub get
 Invoke-Flutter gen-l10n
 Invoke-Flutter analyze

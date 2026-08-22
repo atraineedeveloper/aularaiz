@@ -16,7 +16,9 @@ final class SchoolYear {
       );
     }
     if (endsOn.isBefore(startsOn)) {
-      throw ArgumentError('School year end date cannot precede its start date.');
+      throw ArgumentError(
+        'School year end date cannot precede its start date.',
+      );
     }
   }
 

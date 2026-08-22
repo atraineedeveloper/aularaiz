@@ -46,7 +46,6 @@ final class TeachingGroup {
 
   bool get isMultigrade => grades.length > 1;
 
-  Set<NemPhase> get phases => Set<NemPhase>.unmodifiable(
-        grades.map((grade) => grade.phase),
-      );
+  Set<NemPhase> get phases =>
+      Set<NemPhase>.unmodifiable(grades.map((grade) => grade.phase));
 }

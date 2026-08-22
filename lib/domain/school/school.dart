@@ -7,7 +7,11 @@ final class School {
       throw ArgumentError.value(name, 'name', 'School name cannot be empty.');
     }
     if (cct != null && cct!.trim().isEmpty) {
-      throw ArgumentError.value(cct, 'cct', 'CCT cannot be blank when present.');
+      throw ArgumentError.value(
+        cct,
+        'cct',
+        'CCT cannot be blank when present.',
+      );
     }
   }
 

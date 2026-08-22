@@ -3,34 +3,32 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
-  static ThemeData light(AppPalette palette) =>
-      _base(Brightness.light, palette);
+  static ThemeData light() => _base(Brightness.light);
 
-  static ThemeData dark(AppPalette palette) => _base(Brightness.dark, palette);
+  static ThemeData dark() => _base(Brightness.dark);
 
-  static ThemeData highContrastLight(AppPalette palette) =>
-      _base(Brightness.light, palette, contrastLevel: 1);
+  static ThemeData highContrastLight() =>
+      _base(Brightness.light, contrastLevel: 1);
 
-  static ThemeData highContrastDark(AppPalette palette) =>
-      _base(Brightness.dark, palette, contrastLevel: 1);
+  static ThemeData highContrastDark() =>
+      _base(Brightness.dark, contrastLevel: 1);
 
   static ThemeData _base(
-    Brightness brightness,
-    AppPalette palette, {
+    Brightness brightness, {
     double contrastLevel = 0,
   }) {
     final generated = ColorScheme.fromSeed(
-      seedColor: palette.primary,
+      seedColor: AppPalette.primary,
       brightness: brightness,
       contrastLevel: contrastLevel,
     );
     final scheme = generated.copyWith(
-      primary: palette.primary,
+      primary: AppPalette.primary,
       onPrimary: Colors.white,
-      secondary: palette.secondary,
+      secondary: AppPalette.secondary,
       onSecondary: Colors.white,
-      tertiary: palette.tertiary,
-      surfaceTint: palette.primary,
+      tertiary: AppPalette.tertiary,
+      surfaceTint: AppPalette.primary,
     );
 
     final base = ThemeData(
@@ -105,7 +103,7 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: palette.primary,
+        backgroundColor: AppPalette.primary,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),

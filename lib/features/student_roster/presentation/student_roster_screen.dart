@@ -1,5 +1,12 @@
+import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/student_record_repository.dart';
+import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
+import 'package:aularaiz/application/student_record/save_student_record.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/features/student_record/presentation/student_record_controller.dart';
+import 'package:aularaiz/features/student_record/presentation/student_record_localization.dart';
+import 'package:aularaiz/features/student_record/presentation/student_record_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -105,6 +112,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                         itemBuilder: (context, index) {
                           return _StudentTile(
                             entry: entries[index],
+                            onRecord: () => _openRecord(context, entries[index]),
                             onEdit: () => _editStudent(context, entries[index]),
                             onDeactivate: () =>
                                 _deactivate(context, entries[index]),
@@ -135,6 +143,30 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       birthDate: draft.birthDate,
       grade: draft.grade,
       listNumber: draft.listNumber,
+    );
+  }
+
+  Future<void> _openRecord(
+    BuildContext context,
+    StudentRosterEntry entry,
+  ) async {
+    final recordRepository = context.read<StudentRecordRepository>();
+    final evaluationRepository = context.read<EvaluationRepository>();
+    final saveStudentRecord = context.read<SaveStudentRecord>();
+    final addStudentRecordEntry = context.read<AddStudentRecordEntry>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => StudentRecordController(
+            recordRepository: recordRepository,
+            evaluationRepository: evaluationRepository,
+            saveStudentRecord: saveStudentRecord,
+            addStudentRecordEntry: addStudentRecordEntry,
+          ),
+          child: StudentRecordScreen(student: entry.student),
+        ),
+      ),
     );
   }
 
@@ -212,12 +244,14 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
 class _StudentTile extends StatelessWidget {
   const _StudentTile({
     required this.entry,
+    required this.onRecord,
     required this.onEdit,
     required this.onDeactivate,
     required this.onReactivate,
   });
 
   final StudentRosterEntry entry;
+  final VoidCallback onRecord;
   final VoidCallback onEdit;
   final VoidCallback onDeactivate;
   final VoidCallback onReactivate;
@@ -241,6 +275,8 @@ class _StudentTile extends StatelessWidget {
         trailing: PopupMenuButton<_StudentAction>(
           onSelected: (action) {
             switch (action) {
+              case _StudentAction.record:
+                onRecord();
               case _StudentAction.edit:
                 onEdit();
               case _StudentAction.deactivate:
@@ -250,6 +286,10 @@ class _StudentTile extends StatelessWidget {
             }
           },
           itemBuilder: (context) => [
+            PopupMenuItem(
+              value: _StudentAction.record,
+              child: Text(l10n.studentRecordTitle),
+            ),
             PopupMenuItem(
               value: _StudentAction.edit,
               child: Text(l10n.editStudent),
@@ -271,7 +311,7 @@ class _StudentTile extends StatelessWidget {
   }
 }
 
-enum _StudentAction { edit, deactivate, reactivate }
+enum _StudentAction { record, edit, deactivate, reactivate }
 
 class _StudentDialog extends StatefulWidget {
   const _StudentDialog({

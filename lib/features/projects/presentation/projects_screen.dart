@@ -1,3 +1,6 @@
+import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
@@ -5,6 +8,9 @@ import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/features/evaluation/presentation/activity_evaluation_controller.dart';
+import 'package:aularaiz/features/evaluation/presentation/activity_evaluation_screen.dart';
+import 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -94,6 +100,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 onAddActivity: () {
                                   _createActivity(context, project);
                                 },
+                                onEvaluateActivity: (activity) {
+                                  _openEvaluation(context, activity);
+                                },
                               ),
                               const SizedBox(height: 14),
                             ],
@@ -133,6 +142,28 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       targetGrades: draft.targetGrades,
     );
   }
+
+  Future<void> _openEvaluation(
+    BuildContext context,
+    Activity activity,
+  ) async {
+    final evaluationRepository = context.read<EvaluationRepository>();
+    final studentRepository = context.read<StudentRepository>();
+    final saveActivityEvaluation = context.read<SaveActivityEvaluation>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ActivityEvaluationController(
+            evaluationRepository: evaluationRepository,
+            studentRepository: studentRepository,
+            saveActivityEvaluation: saveActivityEvaluation,
+          ),
+          child: ActivityEvaluationScreen(activity: activity),
+        ),
+      ),
+    );
+  }
 }
 
 class _ProjectCard extends StatelessWidget {
@@ -142,6 +173,7 @@ class _ProjectCard extends StatelessWidget {
     required this.isSaving,
     required this.onLifecycleChanged,
     required this.onAddActivity,
+    required this.onEvaluateActivity,
   });
 
   final Project project;
@@ -149,6 +181,7 @@ class _ProjectCard extends StatelessWidget {
   final bool isSaving;
   final ValueChanged<ProjectLifecycle> onLifecycleChanged;
   final VoidCallback onAddActivity;
+  final ValueChanged<Activity> onEvaluateActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +268,11 @@ class _ProjectCard extends StatelessWidget {
                   title: Text(activity.title),
                   subtitle: Text(
                     l10n.activityRosterCount(activity.roster.length),
+                  ),
+                  trailing: IconButton(
+                    tooltip: l10n.formativeEvaluation,
+                    onPressed: () => onEvaluateActivity(activity),
+                    icon: const Icon(Icons.fact_check_outlined),
                   ),
                 ),
           ],

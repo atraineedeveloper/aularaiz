@@ -24,7 +24,9 @@ final class CreateTeachingGroup {
   }) async {
     final existing = await _repository.listForSchoolYear(schoolYearId);
     final normalizedName = name.trim().toLowerCase();
-    if (existing.any((group) => group.name.trim().toLowerCase() == normalizedName)) {
+    if (existing.any(
+      (group) => group.name.trim().toLowerCase() == normalizedName,
+    )) {
       throw StateError('A group with the same name already exists.');
     }
 

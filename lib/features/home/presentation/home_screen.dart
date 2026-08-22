@@ -54,9 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (snapshot.data != true) {
           return ChangeNotifierProvider(
-            create: (context) => SchoolSetupController(
-              context.read<CreateInitialSchoolSetup>(),
-            ),
+            create: (context) =>
+                SchoolSetupController(context.read<CreateInitialSchoolSetup>()),
             child: SchoolSetupScreen(onCompleted: _refreshSetupState),
           );
         }

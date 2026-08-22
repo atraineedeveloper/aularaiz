@@ -22,7 +22,8 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(
-            create: (_) => AppSettingsController()..setLocale(const Locale('es')),
+            create: (_) =>
+                AppSettingsController()..setLocale(const Locale('es')),
           ),
           Provider<SchoolSetupRepository>.value(value: setupRepository),
           Provider<CreateInitialSchoolSetup>(

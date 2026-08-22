@@ -14,11 +14,14 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
 
   @override
   Future<InitialSchoolSetup?> loadInitialSetup() async {
-    final schoolRow = await (database.select(database.schools)..limit(1)).getSingleOrNull();
-    final yearRows = await (database.select(database.schoolYears)
-          ..orderBy([(table) => OrderingTerm.desc(table.startsOn)])
-          ..limit(1))
-        .get();
+    final schoolRow = await (database.select(
+      database.schools,
+    )..limit(1)).getSingleOrNull();
+    final yearRows =
+        await (database.select(database.schoolYears)
+              ..orderBy([(table) => OrderingTerm.desc(table.startsOn)])
+              ..limit(1))
+            .get();
 
     if (schoolRow == null || yearRows.isEmpty) return null;
     final schoolYearRow = yearRows.single;
@@ -48,26 +51,30 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
     required SchoolYear schoolYear,
   }) async {
     await database.transaction(() async {
-      await database.into(database.schools).insert(
-        SchoolsCompanion(
-          id: Value(school.id),
-          name: Value(school.name),
-          cct: Value(school.cct),
-          organization: Value(school.organization),
-          state: Value(school.state),
-          municipality: Value(school.municipality),
-          locality: Value(school.locality),
-        ),
-      );
+      await database
+          .into(database.schools)
+          .insert(
+            SchoolsCompanion(
+              id: Value(school.id),
+              name: Value(school.name),
+              cct: Value(school.cct),
+              organization: Value(school.organization),
+              state: Value(school.state),
+              municipality: Value(school.municipality),
+              locality: Value(school.locality),
+            ),
+          );
 
-      await database.into(database.schoolYears).insert(
-        SchoolYearsCompanion(
-          id: Value(schoolYear.id),
-          label: Value(schoolYear.label),
-          startsOn: Value(schoolYear.startsOn),
-          endsOn: Value(schoolYear.endsOn),
-        ),
-      );
+      await database
+          .into(database.schoolYears)
+          .insert(
+            SchoolYearsCompanion(
+              id: Value(schoolYear.id),
+              label: Value(schoolYear.label),
+              startsOn: Value(schoolYear.startsOn),
+              endsOn: Value(schoolYear.endsOn),
+            ),
+          );
     });
   }
 }

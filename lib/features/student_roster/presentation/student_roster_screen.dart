@@ -103,14 +103,10 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                           return _StudentTile(
                             entry: entries[index],
                             onEdit: () => _editStudent(context, entries[index]),
-                            onDeactivate: () => _deactivate(
-                              context,
-                              entries[index],
-                            ),
-                            onReactivate: () => _reactivate(
-                              context,
-                              entries[index],
-                            ),
+                            onDeactivate: () =>
+                                _deactivate(context, entries[index]),
+                            onReactivate: () =>
+                                _reactivate(context, entries[index]),
                           );
                         },
                       ),
@@ -145,11 +141,8 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
   ) async {
     final draft = await showDialog<_StudentDraft>(
       context: context,
-      builder: (context) => _StudentDialog(
-        group: widget.group,
-        entry: entry,
-        identityOnly: true,
-      ),
+      builder: (context) =>
+          _StudentDialog(group: widget.group, entry: entry, identityOnly: true),
     );
     if (draft == null || !mounted) return;
 
@@ -200,10 +193,8 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
   ) async {
     final draft = await showDialog<_EnrollmentDraft>(
       context: context,
-      builder: (context) => _ReactivateDialog(
-        group: widget.group,
-        entry: entry,
-      ),
+      builder: (context) =>
+          _ReactivateDialog(group: widget.group, entry: entry),
     );
     if (draft == null || !mounted) return;
 
@@ -310,7 +301,9 @@ class _StudentDialogState extends State<_StudentDialog> {
     final entry = widget.entry;
     final grades = widget.group.grades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));
-    _givenNamesController = TextEditingController(text: entry?.student.givenNames);
+    _givenNamesController = TextEditingController(
+      text: entry?.student.givenNames,
+    );
     _firstSurnameController = TextEditingController(
       text: entry?.student.firstSurname,
     );
@@ -383,9 +376,8 @@ class _StudentDialogState extends State<_StudentDialog> {
                       child: Text(
                         _birthDate == null
                             ? l10n.birthDateOptional
-                            : MaterialLocalizations.of(
-                                context,
-                              ).formatMediumDate(_birthDate!),
+                            : MaterialLocalizations.of(context)
+                                  .formatMediumDate(_birthDate!),
                       ),
                     ),
                   ),

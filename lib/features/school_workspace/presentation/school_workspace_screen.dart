@@ -41,9 +41,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     }
 
     if (setup == null) {
-      return Scaffold(
-        body: Center(child: Text(l10n.setupSaveError)),
-      );
+      return Scaffold(body: Center(child: Text(l10n.setupSaveError)));
     }
 
     return Scaffold(

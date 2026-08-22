@@ -45,9 +45,6 @@ final class CreateInitialSchoolSetup {
       endsOn: endsOn,
     );
 
-    await _repository.saveInitialSetup(
-      school: school,
-      schoolYear: schoolYear,
-    );
+    await _repository.saveInitialSetup(school: school, schoolYear: schoolYear);
   }
 }

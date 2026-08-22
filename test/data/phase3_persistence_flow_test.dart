@@ -19,7 +19,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('Phase 3 setup, group and roster survive a database reopen', () async {
     final directory = await Directory.systemTemp.createTemp('aularaiz-phase3-');
-    final file = File('${directory.path}${Platform.pathSeparator}phase3.sqlite');
+    final file = File(
+      '${directory.path}${Platform.pathSeparator}phase3.sqlite',
+    );
 
     try {
       final ids = _SequenceIdGenerator();
@@ -47,16 +49,17 @@ void main() {
       final setup = await setupRepository.loadInitialSetup();
       expect(setup, isNotNull);
 
-      final group = await CreateTeachingGroup(
-        repository: groupRepository,
-        idGenerator: ids,
-      )(
-        schoolId: setup!.school.id,
-        schoolYearId: setup.schoolYear.id,
-        name: '1.º y 2.º A',
-        grades: <PrimaryGrade>{PrimaryGrade.first, PrimaryGrade.second},
-        shift: 'Matutino',
-      );
+      final group =
+          await CreateTeachingGroup(
+            repository: groupRepository,
+            idGenerator: ids,
+          )(
+            schoolId: setup!.school.id,
+            schoolYearId: setup.schoolYear.id,
+            name: '1.º y 2.º A',
+            grades: <PrimaryGrade>{PrimaryGrade.first, PrimaryGrade.second},
+            shift: 'Matutino',
+          );
 
       final createStudent = CreateStudentInGroup(
         teachingGroupRepository: groupRepository,

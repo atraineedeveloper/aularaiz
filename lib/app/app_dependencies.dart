@@ -36,34 +36,28 @@ class AppDependencies extends StatelessWidget {
         ),
         Provider<IdGenerator>(create: (_) => UuidIdGenerator()),
         Provider<SchoolSetupRepository>(
-          create: (context) => DriftSchoolSetupRepository(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftSchoolSetupRepository(context.read<AppDatabase>()),
         ),
         Provider<SchoolYearRepository>(
-          create: (context) => DriftSchoolYearRepository(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftSchoolYearRepository(context.read<AppDatabase>()),
         ),
         Provider<TeachingGroupRepository>(
-          create: (context) => DriftTeachingGroupRepository(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftTeachingGroupRepository(context.read<AppDatabase>()),
         ),
         Provider<StudentRepository>(
-          create: (context) => DriftStudentRepository(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftStudentRepository(context.read<AppDatabase>()),
         ),
         Provider<EnrollmentRepository>(
-          create: (context) => DriftEnrollmentRepository(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftEnrollmentRepository(context.read<AppDatabase>()),
         ),
         Provider<StudentEnrollmentWriter>(
-          create: (context) => DriftStudentEnrollmentWriter(
-            context.read<AppDatabase>(),
-          ),
+          create: (context) =>
+              DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
         ),
         Provider<CreateInitialSchoolSetup>(
           create: (context) => CreateInitialSchoolSetup(

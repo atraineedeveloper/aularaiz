@@ -77,7 +77,9 @@ final class CreateStudentInGroup {
       listNumber: listNumber,
       startsOn: schoolYear.startsOn,
     );
-    final groupEnrollments = await _enrollmentRepository.findByGroupId(group.id);
+    final groupEnrollments = await _enrollmentRepository.findByGroupId(
+      group.id,
+    );
     final violations = EnrollmentPolicy.validate(
       candidate: enrollment,
       group: group,

@@ -21,21 +21,25 @@ final class DriftStudentRepository implements StudentRepository {
   Future<List<Student>> listAll() async {
     final rows = await database.select(database.students).get();
     final students = rows.map(_toDomain).toList(growable: false);
-    students.sort((left, right) => left.displayName.compareTo(right.displayName));
+    students.sort(
+      (left, right) => left.displayName.compareTo(right.displayName),
+    );
     return students;
   }
 
   @override
   Future<void> save(Student student) async {
-    await database.into(database.students).insertOnConflictUpdate(
-      StudentsCompanion(
-        id: Value(student.id),
-        givenNames: Value(student.givenNames),
-        firstSurname: Value(student.firstSurname),
-        secondSurname: Value(student.secondSurname),
-        birthDate: Value(student.birthDate),
-      ),
-    );
+    await database
+        .into(database.students)
+        .insertOnConflictUpdate(
+          StudentsCompanion(
+            id: Value(student.id),
+            givenNames: Value(student.givenNames),
+            firstSurname: Value(student.firstSurname),
+            secondSurname: Value(student.secondSurname),
+            birthDate: Value(student.birthDate),
+          ),
+        );
   }
 
   Student _toDomain(StudentRow row) {

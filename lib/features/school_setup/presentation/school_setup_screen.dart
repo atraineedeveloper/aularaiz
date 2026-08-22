@@ -255,9 +255,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   }
 
   Future<void> _submit() async {
-    final datesValid = _startsOn != null &&
-        _endsOn != null &&
-        !_endsOn!.isBefore(_startsOn!);
+    final datesValid =
+        _startsOn != null && _endsOn != null && !_endsOn!.isBefore(_startsOn!);
     setState(() => _showDateError = !datesValid);
 
     if (!_formKey.currentState!.validate() || !datesValid) return;

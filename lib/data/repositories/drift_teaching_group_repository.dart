@@ -21,9 +21,9 @@ final class DriftTeachingGroupRepository implements TeachingGroupRepository {
 
   @override
   Future<List<TeachingGroup>> listForSchoolYear(String schoolYearId) async {
-    final rows = await (database.select(database.teachingGroups)
-          ..where((table) => table.schoolYearId.equals(schoolYearId)))
-        .get();
+    final rows = await (database.select(
+      database.teachingGroups,
+    )..where((table) => table.schoolYearId.equals(schoolYearId))).get();
     final groups = <TeachingGroup>[];
 
     for (final row in rows) {
@@ -37,31 +37,33 @@ final class DriftTeachingGroupRepository implements TeachingGroupRepository {
   @override
   Future<void> save(TeachingGroup group) async {
     await database.transaction(() async {
-      await database.into(database.teachingGroups).insertOnConflictUpdate(
-        TeachingGroupsCompanion(
-          id: Value(group.id),
-          schoolId: Value(group.schoolId),
-          schoolYearId: Value(group.schoolYearId),
-          name: Value(group.name),
-          shift: Value(group.shift),
-          scheduleStartMinutes: Value(group.schedule?.startsAtMinutes),
-          scheduleEndMinutes: Value(group.schedule?.endsAtMinutes),
-        ),
-      );
+      await database
+          .into(database.teachingGroups)
+          .insertOnConflictUpdate(
+            TeachingGroupsCompanion(
+              id: Value(group.id),
+              schoolId: Value(group.schoolId),
+              schoolYearId: Value(group.schoolYearId),
+              name: Value(group.name),
+              shift: Value(group.shift),
+              scheduleStartMinutes: Value(group.schedule?.startsAtMinutes),
+              scheduleEndMinutes: Value(group.schedule?.endsAtMinutes),
+            ),
+          );
 
-      final existingRows = await (database.select(database.groupGrades)
-            ..where((table) => table.groupId.equals(group.id)))
-          .get();
+      final existingRows = await (database.select(
+        database.groupGrades,
+      )..where((table) => table.groupId.equals(group.id))).get();
       final existingGrades = existingRows.map((row) => row.grade).toSet();
       final removedGrades = existingGrades.difference(group.grades);
       final addedGrades = group.grades.difference(existingGrades);
 
       for (final grade in removedGrades) {
-        await (database.delete(database.groupGrades)
-              ..where(
-                (table) =>
-                    table.groupId.equals(group.id) & table.grade.equalsValue(grade),
-              ))
+        await (database.delete(database.groupGrades)..where(
+              (table) =>
+                  table.groupId.equals(group.id) &
+                  table.grade.equalsValue(grade),
+            ))
             .go();
       }
 
@@ -69,10 +71,7 @@ final class DriftTeachingGroupRepository implements TeachingGroupRepository {
         for (final grade in addedGrades) {
           batch.insert(
             database.groupGrades,
-            GroupGradesCompanion(
-              groupId: Value(group.id),
-              grade: Value(grade),
-            ),
+            GroupGradesCompanion(groupId: Value(group.id), grade: Value(grade)),
           );
         }
       });

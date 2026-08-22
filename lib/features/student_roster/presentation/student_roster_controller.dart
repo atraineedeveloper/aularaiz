@@ -49,10 +49,12 @@ final class StudentRosterController extends ChangeNotifier {
   List<StudentRosterEntry> get entries {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return _allEntries;
-    return _allEntries.where((entry) {
-      return entry.student.displayName.toLowerCase().contains(query) ||
-          entry.enrollment.listNumber.toString() == query;
-    }).toList(growable: false);
+    return _allEntries
+        .where((entry) {
+          return entry.student.displayName.toLowerCase().contains(query) ||
+              entry.enrollment.listNumber.toString() == query;
+        })
+        .toList(growable: false);
   }
 
   void setQuery(String query) {
@@ -207,13 +209,14 @@ final class StudentRosterController extends ChangeNotifier {
     for (final enrollment in latestByStudent.values) {
       final student = await _studentRepository.findById(enrollment.studentId);
       if (student != null) {
-        entries.add(StudentRosterEntry(student: student, enrollment: enrollment));
+        entries.add(
+          StudentRosterEntry(student: student, enrollment: enrollment),
+        );
       }
     }
     entries.sort(
-      (left, right) => left.enrollment.listNumber.compareTo(
-        right.enrollment.listNumber,
-      ),
+      (left, right) =>
+          left.enrollment.listNumber.compareTo(right.enrollment.listNumber),
     );
     _allEntries = List.unmodifiable(entries);
   }

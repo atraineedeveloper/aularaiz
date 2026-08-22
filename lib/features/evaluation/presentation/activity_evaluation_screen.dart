@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -20,6 +22,7 @@ class ActivityEvaluationScreen extends StatefulWidget {
 }
 
 class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
+  final _searchController = TextEditingController();
   bool _loadStarted = false;
 
   @override
@@ -34,9 +37,16 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<ActivityEvaluationController>();
+    final visibleEntries = controller.visibleEntries;
 
     return PopScope(
       canPop: !controller.hasUnsavedChanges,
@@ -51,7 +61,9 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.keyS, control: true): () {
-            if (!controller.isSaving) controller.saveAll();
+            if (!controller.isSaving) {
+              unawaited(controller.saveAll());
+            }
           },
         },
         child: Focus(
@@ -72,7 +84,9 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
                 Tooltip(
                   message: l10n.evaluationShortcut,
                   child: FilledButton.icon(
-                    onPressed: controller.isSaving ? null : controller.saveAll,
+                    onPressed: controller.isSaving
+                        ? null
+                        : () => unawaited(controller.saveAll()),
                     icon: controller.isSaving
                         ? const SizedBox.square(
                             dimension: 18,
@@ -89,7 +103,13 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
               child: controller.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : controller.entries.isEmpty
-                  ? Center(child: Text(l10n.noEvaluationRoster))
+                  ? Center(
+                      child: Text(
+                        controller.error == null
+                            ? l10n.noEvaluationRoster
+                            : l10n.evaluationLoadError,
+                      ),
+                    )
                   : ListView(
                       padding: const EdgeInsets.all(20),
                       children: [
@@ -99,7 +119,11 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _EvaluationToolbar(controller: controller),
+                                _EvaluationToolbar(
+                                  controller: controller,
+                                  activity: widget.activity,
+                                  searchController: _searchController,
+                                ),
                                 if (controller.error != null) ...[
                                   const SizedBox(height: 12),
                                   Text(
@@ -112,10 +136,18 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
                                   ),
                                 ],
                                 const SizedBox(height: 16),
-                                for (final entry in controller.entries) ...[
-                                  _EvaluationCard(entry: entry),
-                                  const SizedBox(height: 12),
-                                ],
+                                if (visibleEntries.isEmpty)
+                                  Card(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(24),
+                                      child: Text(l10n.noFilteredStudents),
+                                    ),
+                                  )
+                                else
+                                  for (final entry in visibleEntries) ...[
+                                    _EvaluationCard(entry: entry),
+                                    const SizedBox(height: 12),
+                                  ],
                               ],
                             ),
                           ),
@@ -153,47 +185,121 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
 }
 
 class _EvaluationToolbar extends StatelessWidget {
-  const _EvaluationToolbar({required this.controller});
+  const _EvaluationToolbar({
+    required this.controller,
+    required this.activity,
+    required this.searchController,
+  });
 
   final ActivityEvaluationController controller;
+  final Activity activity;
+  final TextEditingController searchController;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final grades = activity.targetGrades.toList()
+      ..sort((left, right) => left.number.compareTo(right.number));
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.evidenceSummary,
-              style: Theme.of(context).textTheme.titleMedium,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  l10n.evidenceSummary,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                Chip(
+                  avatar: const Icon(Icons.fact_check_outlined, size: 18),
+                  label: Text(
+                    '${l10n.evaluatedCount}: ${controller.evaluatedCount}',
+                  ),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.schedule_outlined, size: 18),
+                  label: Text(
+                    '${l10n.pendingCount}: ${controller.pendingCount}',
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: controller.isSaving
+                      ? null
+                      : controller.markAllDelivered,
+                  icon: Icon(Icons.done_all_rounded, color: scheme.secondary),
+                  label: Text(l10n.markAllDelivered),
+                ),
+                Text(
+                  l10n.evaluationShortcut,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ),
-            Chip(
-              avatar: const Icon(Icons.fact_check_outlined, size: 18),
-              label: Text(
-                '${l10n.evaluatedCount}: ${controller.evaluatedCount}',
-              ),
-            ),
-            Chip(
-              avatar: const Icon(Icons.schedule_outlined, size: 18),
-              label: Text('${l10n.pendingCount}: ${controller.pendingCount}'),
-            ),
-            OutlinedButton.icon(
-              onPressed: controller.isSaving
-                  ? null
-                  : controller.markAllDelivered,
-              icon: Icon(Icons.done_all_rounded, color: scheme.secondary),
-              label: Text(l10n.markAllDelivered),
-            ),
-            Text(
-              l10n.evaluationShortcut,
-              style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                SizedBox(
+                  width: 280,
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: controller.setQuery,
+                    decoration: InputDecoration(
+                      labelText: l10n.evaluationSearch,
+                      prefixIcon: const Icon(Icons.search_rounded),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 210,
+                  child: DropdownButtonFormField<PrimaryGrade>(
+                    initialValue: controller.gradeFilter,
+                    hint: Text(l10n.allGrades),
+                    decoration: InputDecoration(labelText: l10n.grade),
+                    items: [
+                      for (final grade in grades)
+                        DropdownMenuItem(
+                          value: grade,
+                          child: Text(_gradeLabel(grade, l10n)),
+                        ),
+                    ],
+                    onChanged: controller.setGradeFilter,
+                  ),
+                ),
+                SizedBox(
+                  width: 230,
+                  child: DropdownButtonFormField<DeliveryStatus>(
+                    initialValue: controller.deliveryFilter,
+                    hint: Text(l10n.allDeliveryStates),
+                    decoration: InputDecoration(labelText: l10n.delivery),
+                    items: [
+                      for (final status in DeliveryStatus.values)
+                        DropdownMenuItem(
+                          value: status,
+                          child: Text(l10n.deliveryStatusLabel(status)),
+                        ),
+                    ],
+                    onChanged: controller.setDeliveryFilter,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    searchController.clear();
+                    controller.clearFilters();
+                  },
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: Text(l10n.clearFilters),
+                ),
+              ],
             ),
           ],
         ),
@@ -355,13 +461,16 @@ class _AchievementDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return DropdownButtonFormField<AchievementLevel>(
+    return DropdownButtonFormField<AchievementLevel?>(
       initialValue: entry.achievement,
       decoration: InputDecoration(labelText: l10n.achievement),
-      hint: Text(l10n.noAchievementYet),
       items: [
+        DropdownMenuItem<AchievementLevel?>(
+          value: null,
+          child: Text(l10n.noAchievementYet),
+        ),
         for (final level in AchievementLevel.values)
-          DropdownMenuItem(
+          DropdownMenuItem<AchievementLevel?>(
             value: level,
             child: Text(l10n.achievementLabel(level)),
           ),

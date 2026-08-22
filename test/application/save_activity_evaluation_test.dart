@@ -47,16 +47,19 @@ void main() {
     expect(evaluationRepository.saved, same(evaluation));
   });
 
-  test('rejects evaluation for a student outside the historical roster', () async {
-    final evaluation = ActivityEvaluation(
-      activityId: 'activity-1',
-      studentId: 'student-2',
-      deliveryStatus: DeliveryStatus.pending,
-    );
+  test(
+    'rejects evaluation for a student outside the historical roster',
+    () async {
+      final evaluation = ActivityEvaluation(
+        activityId: 'activity-1',
+        studentId: 'student-2',
+        deliveryStatus: DeliveryStatus.pending,
+      );
 
-    await expectLater(useCase(evaluation), throwsA(isA<StateError>()));
-    expect(evaluationRepository.saved, isNull);
-  });
+      await expectLater(useCase(evaluation), throwsA(isA<StateError>()));
+      expect(evaluationRepository.saved, isNull);
+    },
+  );
 }
 
 final class _ActivityRepository implements ActivityRepository {
@@ -65,7 +68,8 @@ final class _ActivityRepository implements ActivityRepository {
   final Activity activity;
 
   @override
-  Future<Activity?> findById(String id) async => id == activity.id ? activity : null;
+  Future<Activity?> findById(String id) async =>
+      id == activity.id ? activity : null;
 
   @override
   Future<List<Activity>> listForProject(String projectId) async =>

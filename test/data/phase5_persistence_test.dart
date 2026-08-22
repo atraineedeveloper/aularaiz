@@ -86,41 +86,44 @@ void main() {
     expect(restored?.observation, 'Explica el procedimiento con apoyo.');
   });
 
-  test('student profile and chronological entries round-trip through SQLite', () async {
-    await recordRepository.save(
-      StudentRecord(
-        studentId: 'student-1',
-        strengths: 'Participa y comunica sus ideas.',
-        difficulties: 'Requiere más tiempo en problemas de varios pasos.',
-        supports: 'Apoyos visuales y modelado inicial.',
-      ),
-    );
-    await recordRepository.addEntry(
-      StudentRecordEntry(
-        id: 'entry-1',
-        studentId: 'student-1',
-        kind: StudentRecordEntryKind.observation,
-        occurredAt: DateTime.utc(2026, 9, 10, 14),
-        text: 'Resolvió una tarea con menor nivel de andamiaje.',
-      ),
-    );
-    await recordRepository.addEntry(
-      StudentRecordEntry(
-        id: 'entry-2',
-        studentId: 'student-1',
-        kind: StudentRecordEntryKind.familyAgreement,
-        occurredAt: DateTime.utc(2026, 9, 11, 14),
-        text: 'Se acordó reforzar lectura breve en casa.',
-      ),
-    );
+  test(
+    'student profile and chronological entries round-trip through SQLite',
+    () async {
+      await recordRepository.save(
+        StudentRecord(
+          studentId: 'student-1',
+          strengths: 'Participa y comunica sus ideas.',
+          difficulties: 'Requiere más tiempo en problemas de varios pasos.',
+          supports: 'Apoyos visuales y modelado inicial.',
+        ),
+      );
+      await recordRepository.addEntry(
+        StudentRecordEntry(
+          id: 'entry-1',
+          studentId: 'student-1',
+          kind: StudentRecordEntryKind.observation,
+          occurredAt: DateTime.utc(2026, 9, 10, 14),
+          text: 'Resolvió una tarea con menor nivel de andamiaje.',
+        ),
+      );
+      await recordRepository.addEntry(
+        StudentRecordEntry(
+          id: 'entry-2',
+          studentId: 'student-1',
+          kind: StudentRecordEntryKind.familyAgreement,
+          occurredAt: DateTime.utc(2026, 9, 11, 14),
+          text: 'Se acordó reforzar lectura breve en casa.',
+        ),
+      );
 
-    final restored = await recordRepository.load('student-1');
-    final entries = await recordRepository.listEntries('student-1');
+      final restored = await recordRepository.load('student-1');
+      final entries = await recordRepository.listEntries('student-1');
 
-    expect(restored?.strengths, 'Participa y comunica sus ideas.');
-    expect(restored?.supports, 'Apoyos visuales y modelado inicial.');
-    expect(entries, hasLength(2));
-    expect(entries.first.kind, StudentRecordEntryKind.familyAgreement);
-    expect(entries.last.kind, StudentRecordEntryKind.observation);
-  });
+      expect(restored?.strengths, 'Participa y comunica sus ideas.');
+      expect(restored?.supports, 'Apoyos visuales y modelado inicial.');
+      expect(entries, hasLength(2));
+      expect(entries.first.kind, StudentRecordEntryKind.familyAgreement);
+      expect(entries.last.kind, StudentRecordEntryKind.observation);
+    },
+  );
 }

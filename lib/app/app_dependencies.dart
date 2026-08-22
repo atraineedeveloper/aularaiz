@@ -1,11 +1,20 @@
+import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
+import 'package:aularaiz/application/contracts/school_year_repository.dart';
+import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
+import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
+import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
+import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
+import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -29,8 +38,28 @@ class AppDependencies extends StatelessWidget {
             context.read<AppDatabase>(),
           ),
         ),
+        Provider<SchoolYearRepository>(
+          create: (context) => DriftSchoolYearRepository(
+            context.read<AppDatabase>(),
+          ),
+        ),
         Provider<TeachingGroupRepository>(
           create: (context) => DriftTeachingGroupRepository(
+            context.read<AppDatabase>(),
+          ),
+        ),
+        Provider<StudentRepository>(
+          create: (context) => DriftStudentRepository(
+            context.read<AppDatabase>(),
+          ),
+        ),
+        Provider<EnrollmentRepository>(
+          create: (context) => DriftEnrollmentRepository(
+            context.read<AppDatabase>(),
+          ),
+        ),
+        Provider<StudentEnrollmentWriter>(
+          create: (context) => DriftStudentEnrollmentWriter(
             context.read<AppDatabase>(),
           ),
         ),
@@ -43,6 +72,15 @@ class AppDependencies extends StatelessWidget {
         Provider<CreateTeachingGroup>(
           create: (context) => CreateTeachingGroup(
             repository: context.read<TeachingGroupRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<CreateStudentInGroup>(
+          create: (context) => CreateStudentInGroup(
+            teachingGroupRepository: context.read<TeachingGroupRepository>(),
+            schoolYearRepository: context.read<SchoolYearRepository>(),
+            enrollmentRepository: context.read<EnrollmentRepository>(),
+            writer: context.read<StudentEnrollmentWriter>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

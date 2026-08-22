@@ -1,3 +1,5 @@
+import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
@@ -12,6 +14,7 @@ import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
@@ -55,6 +58,10 @@ class AppDependencies extends StatelessWidget {
           create: (context) =>
               DriftEnrollmentRepository(context.read<AppDatabase>()),
         ),
+        Provider<AttendanceRepository>(
+          create: (context) =>
+              DriftAttendanceRepository(context.read<AppDatabase>()),
+        ),
         Provider<StudentEnrollmentWriter>(
           create: (context) =>
               DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
@@ -91,6 +98,13 @@ class AppDependencies extends StatelessWidget {
         Provider<ReactivateStudentInGroup>(
           create: (context) => ReactivateStudentInGroup(
             enrollStudent: context.read<EnrollStudent>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<BuildDailyAttendance>(
+          create: (context) => BuildDailyAttendance(
+            attendanceRepository: context.read<AttendanceRepository>(),
+            enrollmentRepository: context.read<EnrollmentRepository>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

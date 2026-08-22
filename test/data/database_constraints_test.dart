@@ -23,14 +23,16 @@ void main() {
 
   test('school year chronology is enforced by SQLite', () async {
     await expectLater(
-      database.into(database.schoolYears).insert(
-        SchoolYearsCompanion(
-          id: const Value('year-invalid'),
-          label: const Value('Inválido'),
-          startsOn: Value(DateTime(2027, 7, 15)),
-          endsOn: Value(DateTime(2026, 8, 31)),
-        ),
-      ),
+      database
+          .into(database.schoolYears)
+          .insert(
+            SchoolYearsCompanion(
+              id: const Value('year-invalid'),
+              label: const Value('Inválido'),
+              startsOn: Value(DateTime(2027, 7, 15)),
+              endsOn: Value(DateTime(2026, 8, 31)),
+            ),
+          ),
       throwsA(isA<Exception>()),
     );
   });
@@ -80,64 +82,75 @@ void main() {
     }
   });
 
-  test('enrollment persistence enforces grade, list number and dates', () async {
-    await _seedGroupAndStudent(database);
+  test(
+    'enrollment persistence enforces grade, list number and dates',
+    () async {
+      await _seedGroupAndStudent(database);
 
-    await expectLater(
-      database.into(database.enrollments).insert(
-        EnrollmentsCompanion(
-          id: const Value('enrollment-grade'),
-          studentId: const Value('student-1'),
-          groupId: const Value('group-1'),
-          grade: const Value(PrimaryGrade.second),
-          listNumber: const Value(1),
-          startsOn: Value(DateTime(2026, 8, 31)),
-        ),
-      ),
-      throwsA(isA<Exception>()),
-    );
+      await expectLater(
+        database
+            .into(database.enrollments)
+            .insert(
+              EnrollmentsCompanion(
+                id: const Value('enrollment-grade'),
+                studentId: const Value('student-1'),
+                groupId: const Value('group-1'),
+                grade: const Value(PrimaryGrade.second),
+                listNumber: const Value(1),
+                startsOn: Value(DateTime(2026, 8, 31)),
+              ),
+            ),
+        throwsA(isA<Exception>()),
+      );
 
-    await expectLater(
-      database.into(database.enrollments).insert(
-        EnrollmentsCompanion(
-          id: const Value('enrollment-list'),
-          studentId: const Value('student-1'),
-          groupId: const Value('group-1'),
-          grade: const Value(PrimaryGrade.first),
-          listNumber: const Value(0),
-          startsOn: Value(DateTime(2026, 8, 31)),
-        ),
-      ),
-      throwsA(isA<Exception>()),
-    );
+      await expectLater(
+        database
+            .into(database.enrollments)
+            .insert(
+              EnrollmentsCompanion(
+                id: const Value('enrollment-list'),
+                studentId: const Value('student-1'),
+                groupId: const Value('group-1'),
+                grade: const Value(PrimaryGrade.first),
+                listNumber: const Value(0),
+                startsOn: Value(DateTime(2026, 8, 31)),
+              ),
+            ),
+        throwsA(isA<Exception>()),
+      );
 
-    await expectLater(
-      database.into(database.enrollments).insert(
-        EnrollmentsCompanion(
-          id: const Value('enrollment-dates'),
-          studentId: const Value('student-1'),
-          groupId: const Value('group-1'),
-          grade: const Value(PrimaryGrade.first),
-          listNumber: const Value(1),
-          startsOn: Value(DateTime(2026, 9, 2)),
-          endsOn: Value(DateTime(2026, 9, 1)),
-        ),
-      ),
-      throwsA(isA<Exception>()),
-    );
-  });
+      await expectLater(
+        database
+            .into(database.enrollments)
+            .insert(
+              EnrollmentsCompanion(
+                id: const Value('enrollment-dates'),
+                studentId: const Value('student-1'),
+                groupId: const Value('group-1'),
+                grade: const Value(PrimaryGrade.first),
+                listNumber: const Value(1),
+                startsOn: Value(DateTime(2026, 9, 2)),
+                endsOn: Value(DateTime(2026, 9, 1)),
+              ),
+            ),
+        throwsA(isA<Exception>()),
+      );
+    },
+  );
 
   test('activity roster must stay inside the activity grade scope', () async {
     await _seedActivityContext(database);
 
     await expectLater(
-      database.into(database.activityRoster).insert(
-        const ActivityRosterCompanion(
-          activityId: Value('activity-1'),
-          studentId: Value('student-1'),
-          grade: Value(PrimaryGrade.second),
-        ),
-      ),
+      database
+          .into(database.activityRoster)
+          .insert(
+            const ActivityRosterCompanion(
+              activityId: Value('activity-1'),
+              studentId: Value('student-1'),
+              grade: Value(PrimaryGrade.second),
+            ),
+          ),
       throwsA(isA<Exception>()),
     );
   });
@@ -146,107 +159,129 @@ void main() {
     await _seedActivityContext(database);
 
     await expectLater(
-      database.into(database.activityEvaluations).insert(
-        const ActivityEvaluationsCompanion(
-          activityId: Value('activity-1'),
-          studentId: Value('student-1'),
-          deliveryStatus: Value(DeliveryStatus.pending),
-        ),
-      ),
+      database
+          .into(database.activityEvaluations)
+          .insert(
+            const ActivityEvaluationsCompanion(
+              activityId: Value('activity-1'),
+              studentId: Value('student-1'),
+              deliveryStatus: Value(DeliveryStatus.pending),
+            ),
+          ),
       throwsA(isA<Exception>()),
     );
   });
 
   test('achievement cannot be persisted for non-delivered work', () async {
     await _seedActivityContext(database);
-    await database.into(database.activityRoster).insert(
-      const ActivityRosterCompanion(
-        activityId: Value('activity-1'),
-        studentId: Value('student-1'),
-        grade: Value(PrimaryGrade.first),
-      ),
-    );
+    await database
+        .into(database.activityRoster)
+        .insert(
+          const ActivityRosterCompanion(
+            activityId: Value('activity-1'),
+            studentId: Value('student-1'),
+            grade: Value(PrimaryGrade.first),
+          ),
+        );
 
     await expectLater(
-      database.into(database.activityEvaluations).insert(
-        const ActivityEvaluationsCompanion(
-          activityId: Value('activity-1'),
-          studentId: Value('student-1'),
-          deliveryStatus: Value(DeliveryStatus.notDelivered),
-          achievement: Value(AchievementLevel.mastered),
-        ),
-      ),
+      database
+          .into(database.activityEvaluations)
+          .insert(
+            const ActivityEvaluationsCompanion(
+              activityId: Value('activity-1'),
+              studentId: Value('student-1'),
+              deliveryStatus: Value(DeliveryStatus.notDelivered),
+              achievement: Value(AchievementLevel.mastered),
+            ),
+          ),
       throwsA(isA<Exception>()),
     );
   });
 }
 
 Future<void> _seedSchoolYear(AppDatabase database) async {
-  await database.into(database.schools).insert(
-    const SchoolsCompanion(
-      id: Value('school-1'),
-      name: Value('Escuela de prueba'),
-      organization: Value(SchoolOrganization.complete),
-    ),
-  );
-  await database.into(database.schoolYears).insert(
-    SchoolYearsCompanion(
-      id: const Value('year-1'),
-      label: const Value('2026-2027'),
-      startsOn: Value(DateTime(2026, 8, 31)),
-      endsOn: Value(DateTime(2027, 7, 15)),
-    ),
-  );
+  await database
+      .into(database.schools)
+      .insert(
+        const SchoolsCompanion(
+          id: Value('school-1'),
+          name: Value('Escuela de prueba'),
+          organization: Value(SchoolOrganization.complete),
+        ),
+      );
+  await database
+      .into(database.schoolYears)
+      .insert(
+        SchoolYearsCompanion(
+          id: const Value('year-1'),
+          label: const Value('2026-2027'),
+          startsOn: Value(DateTime(2026, 8, 31)),
+          endsOn: Value(DateTime(2027, 7, 15)),
+        ),
+      );
 }
 
 Future<void> _seedGroupAndStudent(AppDatabase database) async {
   await _seedSchoolYear(database);
-  await database.into(database.teachingGroups).insert(
-    const TeachingGroupsCompanion(
-      id: Value('group-1'),
-      schoolId: Value('school-1'),
-      schoolYearId: Value('year-1'),
-      name: Value('1.º A'),
-    ),
-  );
-  await database.into(database.groupGrades).insert(
-    const GroupGradesCompanion(
-      groupId: Value('group-1'),
-      grade: Value(PrimaryGrade.first),
-    ),
-  );
-  await database.into(database.students).insert(
-    const StudentsCompanion(
-      id: Value('student-1'),
-      givenNames: Value('Alumno'),
-      firstSurname: Value('Demo'),
-    ),
-  );
+  await database
+      .into(database.teachingGroups)
+      .insert(
+        const TeachingGroupsCompanion(
+          id: Value('group-1'),
+          schoolId: Value('school-1'),
+          schoolYearId: Value('year-1'),
+          name: Value('1.º A'),
+        ),
+      );
+  await database
+      .into(database.groupGrades)
+      .insert(
+        const GroupGradesCompanion(
+          groupId: Value('group-1'),
+          grade: Value(PrimaryGrade.first),
+        ),
+      );
+  await database
+      .into(database.students)
+      .insert(
+        const StudentsCompanion(
+          id: Value('student-1'),
+          givenNames: Value('Alumno'),
+          firstSurname: Value('Demo'),
+        ),
+      );
 }
 
 Future<void> _seedActivityContext(AppDatabase database) async {
   await _seedGroupAndStudent(database);
-  await database.into(database.projects).insert(
-    const ProjectsCompanion(
-      id: Value('project-1'),
-      groupId: Value('group-1'),
-      title: Value('Proyecto de prueba'),
-      lifecycle: Value(ProjectLifecycle.inProgress),
-      methodology: Value(ProjectMethodology.communityProjects),
-      formativeField: Value(FormativeField.humanAndCommunity),
-    ),
-  );
-  await database.into(database.activities).insert(
-    const ActivitiesCompanion(
-      id: Value('activity-1'),
-      projectId: Value('project-1'),
-      title: Value('Actividad de prueba'),
-    ),
-  );
-  await database.into(database.activityGrades).insert(
-    const ActivityGradesCompanion(
-      activityId: Value('activity-1'),
-      grade: Value(PrimaryGrade.first),
-    ),
-  );
+  await database
+      .into(database.projects)
+      .insert(
+        const ProjectsCompanion(
+          id: Value('project-1'),
+          groupId: Value('group-1'),
+          title: Value('Proyecto de prueba'),
+          lifecycle: Value(ProjectLifecycle.inProgress),
+          methodology: Value(ProjectMethodology.communityProjects),
+          formativeField: Value(FormativeField.humanAndCommunity),
+        ),
+      );
+  await database
+      .into(database.activities)
+      .insert(
+        const ActivitiesCompanion(
+          id: Value('activity-1'),
+          projectId: Value('project-1'),
+          title: Value('Actividad de prueba'),
+        ),
+      );
+  await database
+      .into(database.activityGrades)
+      .insert(
+        const ActivityGradesCompanion(
+          activityId: Value('activity-1'),
+          grade: Value(PrimaryGrade.first),
+        ),
+      );
 }

@@ -15,6 +15,8 @@ linter:
     cancel_subscriptions: true
     close_sinks: true
     directives_ordering: true
+    # Named public constructors intentionally inject dependencies into private fields.
+    prefer_initializing_formals: false
     prefer_final_locals: true
     sort_constructors_first: true
     unawaited_futures: true

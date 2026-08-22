@@ -229,6 +229,15 @@ final class _FakeStudentRepository implements StudentRepository {
     final value = student;
     return value?.id == id ? value : null;
   }
+
+  @override
+  Future<List<Student>> listAll() async {
+    final value = student;
+    return value == null ? const <Student>[] : <Student>[value];
+  }
+
+  @override
+  Future<void> save(Student student) async {}
 }
 
 final class _FakeTeachingGroupRepository implements TeachingGroupRepository {
@@ -241,4 +250,15 @@ final class _FakeTeachingGroupRepository implements TeachingGroupRepository {
     final value = group;
     return value?.id == id ? value : null;
   }
+
+  @override
+  Future<List<TeachingGroup>> listForSchoolYear(String schoolYearId) async {
+    final value = group;
+    return value?.schoolYearId == schoolYearId
+        ? <TeachingGroup>[value!]
+        : const <TeachingGroup>[];
+  }
+
+  @override
+  Future<void> save(TeachingGroup group) async {}
 }

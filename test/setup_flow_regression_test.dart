@@ -65,7 +65,10 @@ void main() {
       await tester.tap(find.text('Balancán').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Guardar y continuar'));
+      final submit = find.text('Guardar y continuar');
+      await tester.ensureVisible(submit);
+      await tester.pumpAndSettle();
+      await tester.tap(submit);
       await tester.pump();
       expect(tester.takeException(), isNull);
 

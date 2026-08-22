@@ -1,0 +1,34 @@
+name: Phase 5 test formatter
+
+on:
+  push:
+    branches: [feat/formative-evaluation]
+    paths:
+      - '.github/workflows/phase5-test-format.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/formative-evaluation
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: dart format test/application/save_activity_evaluation_test.dart test/data/phase5_persistence_test.dart
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- test/application/save_activity_evaluation_test.dart test/data/phase5_persistence_test.dart; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add test/application/save_activity_evaluation_test.dart test/data/phase5_persistence_test.dart
+          git commit -m 'style: format Phase 5 tests'
+          git push origin HEAD:feat/formative-evaluation

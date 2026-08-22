@@ -1,5 +1,6 @@
 import 'package:aularaiz/domain/education/nem_phase.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/school/class_schedule.dart';
 
 final class TeachingGroup {
   TeachingGroup({
@@ -8,7 +9,10 @@ final class TeachingGroup {
     required this.schoolYearId,
     required this.name,
     required Set<PrimaryGrade> grades,
-  }) : grades = Set<PrimaryGrade>.unmodifiable(grades) {
+    String? shift,
+    this.schedule,
+  }) : grades = Set<PrimaryGrade>.unmodifiable(grades),
+       shift = _normalizeOptionalText(shift) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'Group id cannot be empty.');
     }
@@ -43,6 +47,8 @@ final class TeachingGroup {
   final String schoolYearId;
   final String name;
   final Set<PrimaryGrade> grades;
+  final String? shift;
+  final ClassSchedule? schedule;
 
   bool get isMultigrade => grades.length > 1;
 
@@ -50,4 +56,9 @@ final class TeachingGroup {
       Set<NemPhase>.unmodifiable(grades.map((grade) => grade.phase));
 
   bool acceptsGrade(PrimaryGrade grade) => grades.contains(grade);
+
+  static String? _normalizeOptionalText(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
 }

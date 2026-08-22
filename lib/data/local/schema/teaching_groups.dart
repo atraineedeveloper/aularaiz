@@ -15,6 +15,9 @@ class TeachingGroups extends Table {
     onDelete: KeyAction.restrict,
   )();
   late final name = text()();
+  late final shift = text().nullable()();
+  late final scheduleStartMinutes = integer().nullable()();
+  late final scheduleEndMinutes = integer().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

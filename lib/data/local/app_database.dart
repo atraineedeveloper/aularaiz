@@ -8,6 +8,7 @@ import 'package:aularaiz/domain/evaluation/delivery_status.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
+import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:drift/drift.dart';
 

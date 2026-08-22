@@ -35,19 +35,30 @@ part 'app_database.g.dart';
   ],
 )
 final class AppDatabase extends _$AppDatabase {
-  AppDatabase._(super.executor);
+  AppDatabase._(super.executor, {this.storageProfile});
 
   factory AppDatabase.production() {
-    return AppDatabase._(openAulaRaizConnection(StorageProfile.production));
+    return AppDatabase._(
+      openAulaRaizConnection(StorageProfile.production),
+      storageProfile: StorageProfile.production,
+    );
   }
 
   factory AppDatabase.demo() {
-    return AppDatabase._(openAulaRaizConnection(StorageProfile.demo));
+    return AppDatabase._(
+      openAulaRaizConnection(StorageProfile.demo),
+      storageProfile: StorageProfile.demo,
+    );
   }
 
-  factory AppDatabase.forTesting(QueryExecutor executor) {
-    return AppDatabase._(executor);
+  factory AppDatabase.forTesting(
+    QueryExecutor executor, {
+    StorageProfile? storageProfile,
+  }) {
+    return AppDatabase._(executor, storageProfile: storageProfile);
   }
+
+  final StorageProfile? storageProfile;
 
   @override
   int get schemaVersion => 1;

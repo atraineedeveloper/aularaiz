@@ -22,8 +22,10 @@ extension ProjectsLocalization on AppLocalizations {
       ? 'No activities have been created yet.'
       : 'Aún no se han creado actividades.';
   String get addActivity => _english ? 'Add activity' : 'Agregar actividad';
-  String get activityTitle => _english ? 'Activity title' : 'Título de la actividad';
-  String get activityGradeScope => _english ? 'Applicable grades' : 'Grados a los que aplica';
+  String get activityTitle =>
+      _english ? 'Activity title' : 'Título de la actividad';
+  String get activityGradeScope =>
+      _english ? 'Applicable grades' : 'Grados a los que aplica';
   String get activityRosterSnapshotHelp => _english
       ? 'The activity freezes today’s applicable student roster so later enrollment changes do not alter its history.'
       : 'La actividad congela el roster de alumnos aplicable hoy para que cambios posteriores de matrícula no alteren su historial.';
@@ -33,16 +35,19 @@ extension ProjectsLocalization on AppLocalizations {
       ? '$count students in historical roster'
       : '$count alumnos en el roster histórico';
 
-  String get methodologyUnspecified => _english ? 'Unspecified' : 'Sin especificar';
+  String get methodologyUnspecified =>
+      _english ? 'Unspecified' : 'Sin especificar';
   String get methodologyCommunityProjects =>
       _english ? 'Community projects' : 'Proyectos comunitarios';
-  String get methodologyInquirySteam => _english ? 'STEAM inquiry' : 'Indagación STEAM';
+  String get methodologyInquirySteam =>
+      _english ? 'STEAM inquiry' : 'Indagación STEAM';
   String get methodologyProblemBased =>
       _english ? 'Problem-based learning' : 'Aprendizaje basado en problemas';
   String get methodologyServiceLearning =>
       _english ? 'Service learning' : 'Aprendizaje servicio';
 
-  String get formativeFieldUnspecified => _english ? 'Unspecified' : 'Sin especificar';
+  String get formativeFieldUnspecified =>
+      _english ? 'Unspecified' : 'Sin especificar';
   String get formativeFieldLanguages => _english ? 'Languages' : 'Lenguajes';
   String get formativeFieldScientificThought => _english
       ? 'Knowledge and scientific thought'

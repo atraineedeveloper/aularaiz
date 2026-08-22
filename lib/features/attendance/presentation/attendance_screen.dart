@@ -54,7 +54,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             ),
             bottom: TabBar(
               tabs: [
-                Tab(icon: const Icon(Icons.today_rounded), text: l10n.dailyAttendance),
+                Tab(
+                  icon: const Icon(Icons.today_rounded),
+                  text: l10n.dailyAttendance,
+                ),
                 Tab(
                   icon: const Icon(Icons.calendar_month_rounded),
                   text: l10n.monthlyAttendance,
@@ -137,7 +140,8 @@ class _DailyAttendanceView extends StatelessWidget {
                           onPressed: () => _pickDate(context),
                           icon: const Icon(Icons.event_rounded),
                           label: Text(
-                            MaterialLocalizations.of(context).formatFullDate(date),
+                            MaterialLocalizations.of(context)
+                                .formatFullDate(date),
                           ),
                         ),
                         Wrap(
@@ -152,13 +156,16 @@ class _DailyAttendanceView extends StatelessWidget {
                               label: Text(l10n.markAllPresent),
                             ),
                             FilledButton.icon(
-                              onPressed: controller.isSaving || !controller.isDirty
+                              onPressed:
+                                  controller.isSaving || !controller.isDirty
                                   ? null
                                   : () => controller.save(),
                               icon: controller.isSaving
                                   ? const SizedBox.square(
                                       dimension: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : const Icon(Icons.save_rounded),
                               label: Text(l10n.saveAttendance),
@@ -238,7 +245,11 @@ class _Metrics extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final values = <(AttendanceStatus, String, IconData)>[
-      (AttendanceStatus.present, l10n.present, Icons.check_circle_outline_rounded),
+      (
+        AttendanceStatus.present,
+        l10n.present,
+        Icons.check_circle_outline_rounded,
+      ),
       (AttendanceStatus.absent, l10n.absent, Icons.cancel_outlined),
       (AttendanceStatus.late, l10n.late, Icons.schedule_rounded),
       (

@@ -182,7 +182,8 @@ final class AttendanceController extends ChangeNotifier {
       if (student == null) continue;
       final matching = enrollments.where(
         (enrollment) =>
-            enrollment.studentId == entry.studentId && enrollment.isActiveOn(date),
+            enrollment.studentId == entry.studentId &&
+            enrollment.isActiveOn(date),
       );
       final listNumber = matching.isEmpty ? 9999 : matching.first.listNumber;
       rows.add(

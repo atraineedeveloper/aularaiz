@@ -37,37 +37,37 @@ void main() {
     expect(result.statusFor('active'), AttendanceStatus.present);
   });
 
-  test('saved historical attendance is returned without rebuilding roster', () async {
-    final saved = DailyAttendance(
-      id: 'saved-day',
-      groupId: 'group-1',
-      date: DateTime(2026, 8, 20),
-      entries: [
-        AttendanceEntry(
-          studentId: 'historical-student',
-          status: AttendanceStatus.absent,
-        ),
-      ],
-    );
-    final attendanceRepository = _MemoryAttendanceRepository(saved: saved);
-    final useCase = BuildDailyAttendance(
-      attendanceRepository: attendanceRepository,
-      enrollmentRepository: _MemoryEnrollmentRepository(const []),
-      idGenerator: _FixedIdGenerator(),
-    );
+  test(
+    'saved historical attendance is returned without rebuilding roster',
+    () async {
+      final saved = DailyAttendance(
+        id: 'saved-day',
+        groupId: 'group-1',
+        date: DateTime(2026, 8, 20),
+        entries: [
+          AttendanceEntry(
+            studentId: 'historical-student',
+            status: AttendanceStatus.absent,
+          ),
+        ],
+      );
+      final attendanceRepository = _MemoryAttendanceRepository(saved: saved);
+      final useCase = BuildDailyAttendance(
+        attendanceRepository: attendanceRepository,
+        enrollmentRepository: _MemoryEnrollmentRepository(const []),
+        idGenerator: _FixedIdGenerator(),
+      );
 
-    final result = await useCase(
-      groupId: 'group-1',
-      date: DateTime(2026, 8, 20),
-    );
+      final result = await useCase(
+        groupId: 'group-1',
+        date: DateTime(2026, 8, 20),
+      );
 
-    expect(result.id, 'saved-day');
-    expect(result.entries.keys, <String>{'historical-student'});
-    expect(
-      result.statusFor('historical-student'),
-      AttendanceStatus.absent,
-    );
-  });
+      expect(result.id, 'saved-day');
+      expect(result.entries.keys, <String>{'historical-student'});
+      expect(result.statusFor('historical-student'), AttendanceStatus.absent);
+    },
+  );
 }
 
 Enrollment _enrollment(

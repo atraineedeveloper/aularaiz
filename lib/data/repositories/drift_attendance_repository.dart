@@ -15,13 +15,15 @@ final class DriftAttendanceRepository implements AttendanceRepository {
     DateTime date,
   ) async {
     final normalized = DateTime(date.year, date.month, date.day);
-    final day = await (database.select(database.attendanceDays)
-          ..where(
-            (table) =>
-                table.groupId.equals(groupId) & table.date.equals(normalized),
-          )
-          ..limit(1))
-        .getSingleOrNull();
+    final day =
+        await (database.select(database.attendanceDays)
+              ..where(
+                (table) =>
+                    table.groupId.equals(groupId) &
+                    table.date.equals(normalized),
+              )
+              ..limit(1))
+            .getSingleOrNull();
     if (day == null) return null;
 
     return _loadDay(day.id, day.groupId, day.date);
@@ -34,15 +36,16 @@ final class DriftAttendanceRepository implements AttendanceRepository {
   ) async {
     final start = DateTime(month.year, month.month);
     final end = DateTime(month.year, month.month + 1);
-    final days = await (database.select(database.attendanceDays)
-          ..where(
-            (table) =>
-                table.groupId.equals(groupId) &
-                table.date.isBiggerOrEqualValue(start) &
-                table.date.isSmallerThanValue(end),
-          )
-          ..orderBy([(table) => OrderingTerm.asc(table.date)]))
-        .get();
+    final days =
+        await (database.select(database.attendanceDays)
+              ..where(
+                (table) =>
+                    table.groupId.equals(groupId) &
+                    table.date.isBiggerOrEqualValue(start) &
+                    table.date.isSmallerThanValue(end),
+              )
+              ..orderBy([(table) => OrderingTerm.asc(table.date)]))
+            .get();
 
     final result = <DailyAttendance>[];
     for (final day in days) {
@@ -54,7 +57,9 @@ final class DriftAttendanceRepository implements AttendanceRepository {
   @override
   Future<void> save(DailyAttendance attendance) async {
     await database.transaction(() async {
-      await database.into(database.attendanceDays).insertOnConflictUpdate(
+      await database
+          .into(database.attendanceDays)
+          .insertOnConflictUpdate(
             AttendanceDaysCompanion(
               id: Value(attendance.id),
               groupId: Value(attendance.groupId),
@@ -62,11 +67,9 @@ final class DriftAttendanceRepository implements AttendanceRepository {
             ),
           );
 
-      await (database.delete(database.attendanceEntries)
-            ..where(
-              (table) => table.attendanceDayId.equals(attendance.id),
-            ))
-          .go();
+      await (database.delete(
+        database.attendanceEntries,
+      )..where((table) => table.attendanceDayId.equals(attendance.id))).go();
 
       await database.batch((batch) {
         for (final entry in attendance.entries.values) {
@@ -88,9 +91,9 @@ final class DriftAttendanceRepository implements AttendanceRepository {
     String groupId,
     DateTime date,
   ) async {
-    final rows = await (database.select(database.attendanceEntries)
-          ..where((table) => table.attendanceDayId.equals(id)))
-        .get();
+    final rows = await (database.select(
+      database.attendanceEntries,
+    )..where((table) => table.attendanceDayId.equals(id))).get();
     return DailyAttendance(
       id: id,
       groupId: groupId,

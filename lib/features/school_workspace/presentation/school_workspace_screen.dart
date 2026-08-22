@@ -124,7 +124,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                     child: _GroupCard(
                                       group: group,
                                       onStudents: () => _openStudents(group),
-                                      onAttendance: () => _openAttendance(group),
+                                      onAttendance: () =>
+                                          _openAttendance(group),
                                       onProjects: () => _openProjects(group),
                                     ),
                                   ),

@@ -11,19 +11,21 @@ final class DriftActivityRepository implements ActivityRepository {
 
   @override
   Future<Activity?> findById(String id) async {
-    final row = await (database.select(database.activities)
-          ..where((table) => table.id.equals(id))
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (database.select(database.activities)
+              ..where((table) => table.id.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
     return row == null ? null : _toDomain(row);
   }
 
   @override
   Future<List<Activity>> listForProject(String projectId) async {
-    final rows = await (database.select(database.activities)
-          ..where((table) => table.projectId.equals(projectId))
-          ..orderBy([(table) => OrderingTerm.asc(table.title)]))
-        .get();
+    final rows =
+        await (database.select(database.activities)
+              ..where((table) => table.projectId.equals(projectId))
+              ..orderBy([(table) => OrderingTerm.asc(table.title)]))
+            .get();
     final result = <Activity>[];
     for (final row in rows) {
       result.add(await _toDomain(row));
@@ -34,19 +36,21 @@ final class DriftActivityRepository implements ActivityRepository {
   @override
   Future<void> save(Activity activity) async {
     await database.transaction(() async {
-      await database.into(database.activities).insertOnConflictUpdate(
+      await database
+          .into(database.activities)
+          .insertOnConflictUpdate(
             ActivitiesCompanion(
               id: Value(activity.id),
               projectId: Value(activity.projectId),
               title: Value(activity.title),
             ),
           );
-      await (database.delete(database.activityRoster)
-            ..where((table) => table.activityId.equals(activity.id)))
-          .go();
-      await (database.delete(database.activityGrades)
-            ..where((table) => table.activityId.equals(activity.id)))
-          .go();
+      await (database.delete(
+        database.activityRoster,
+      )..where((table) => table.activityId.equals(activity.id))).go();
+      await (database.delete(
+        database.activityGrades,
+      )..where((table) => table.activityId.equals(activity.id))).go();
       await database.batch((batch) {
         for (final grade in activity.targetGrades) {
           batch.insert(
@@ -74,12 +78,12 @@ final class DriftActivityRepository implements ActivityRepository {
   }
 
   Future<Activity> _toDomain(ActivityRow row) async {
-    final grades = await (database.select(database.activityGrades)
-          ..where((table) => table.activityId.equals(row.id)))
-        .get();
-    final roster = await (database.select(database.activityRoster)
-          ..where((table) => table.activityId.equals(row.id)))
-        .get();
+    final grades = await (database.select(
+      database.activityGrades,
+    )..where((table) => table.activityId.equals(row.id))).get();
+    final roster = await (database.select(
+      database.activityRoster,
+    )..where((table) => table.activityId.equals(row.id))).get();
     return Activity(
       id: row.id,
       projectId: row.projectId,

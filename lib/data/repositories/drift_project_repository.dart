@@ -10,19 +10,21 @@ final class DriftProjectRepository implements ProjectRepository {
 
   @override
   Future<Project?> findById(String id) async {
-    final row = await (database.select(database.projects)
-          ..where((table) => table.id.equals(id))
-          ..limit(1))
-        .getSingleOrNull();
+    final row =
+        await (database.select(database.projects)
+              ..where((table) => table.id.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
     return row == null ? null : _toDomain(row);
   }
 
   @override
   Future<List<Project>> listForGroup(String groupId) async {
-    final rows = await (database.select(database.projects)
-          ..where((table) => table.groupId.equals(groupId))
-          ..orderBy([(table) => OrderingTerm.asc(table.title)]))
-        .get();
+    final rows =
+        await (database.select(database.projects)
+              ..where((table) => table.groupId.equals(groupId))
+              ..orderBy([(table) => OrderingTerm.asc(table.title)]))
+            .get();
     final result = <Project>[];
     for (final row in rows) {
       result.add(await _toDomain(row));
@@ -33,7 +35,9 @@ final class DriftProjectRepository implements ProjectRepository {
   @override
   Future<void> save(Project project) async {
     await database.transaction(() async {
-      await database.into(database.projects).insertOnConflictUpdate(
+      await database
+          .into(database.projects)
+          .insertOnConflictUpdate(
             ProjectsCompanion(
               id: Value(project.id),
               groupId: Value(project.groupId),
@@ -43,9 +47,9 @@ final class DriftProjectRepository implements ProjectRepository {
               formativeField: Value(project.formativeField),
             ),
           );
-      await (database.delete(database.projectGrades)
-            ..where((table) => table.projectId.equals(project.id)))
-          .go();
+      await (database.delete(
+        database.projectGrades,
+      )..where((table) => table.projectId.equals(project.id))).go();
       await database.batch((batch) {
         for (final grade in project.targetGrades) {
           batch.insert(
@@ -61,9 +65,9 @@ final class DriftProjectRepository implements ProjectRepository {
   }
 
   Future<Project> _toDomain(ProjectRow row) async {
-    final grades = await (database.select(database.projectGrades)
-          ..where((table) => table.projectId.equals(row.id)))
-        .get();
+    final grades = await (database.select(
+      database.projectGrades,
+    )..where((table) => table.projectId.equals(row.id))).get();
     return Project(
       id: row.id,
       groupId: row.groupId,

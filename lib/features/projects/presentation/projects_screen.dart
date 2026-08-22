@@ -80,7 +80,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             for (final project in controller.projects) ...[
                               _ProjectCard(
                                 project: project,
-                                activities: controller.activitiesFor(project.id),
+                                activities: controller.activitiesFor(
+                                  project.id,
+                                ),
                                 isSaving: controller.isSaving,
                                 onLifecycleChanged: (lifecycle) {
                                   controller.setLifecycle(project, lifecycle);
@@ -354,7 +356,9 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                         selected: _grades.contains(grade),
                         onSelected: (selected) {
                           setState(() {
-                            selected ? _grades.add(grade) : _grades.remove(grade);
+                            selected
+                                ? _grades.add(grade)
+                                : _grades.remove(grade);
                             _gradesError = false;
                           });
                         },
@@ -525,14 +529,15 @@ final class _ActivityDraft {
   final Set<PrimaryGrade> targetGrades;
 }
 
-String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) => switch (grade) {
-  PrimaryGrade.first => l10n.grade1,
-  PrimaryGrade.second => l10n.grade2,
-  PrimaryGrade.third => l10n.grade3,
-  PrimaryGrade.fourth => l10n.grade4,
-  PrimaryGrade.fifth => l10n.grade5,
-  PrimaryGrade.sixth => l10n.grade6,
-};
+String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) =>
+    switch (grade) {
+      PrimaryGrade.first => l10n.grade1,
+      PrimaryGrade.second => l10n.grade2,
+      PrimaryGrade.third => l10n.grade3,
+      PrimaryGrade.fourth => l10n.grade4,
+      PrimaryGrade.fifth => l10n.grade5,
+      PrimaryGrade.sixth => l10n.grade6,
+    };
 
 String _methodologyLabel(
   ProjectMethodology methodology,
@@ -545,11 +550,13 @@ String _methodologyLabel(
   ProjectMethodology.serviceLearning => l10n.methodologyServiceLearning,
 };
 
-String _fieldLabel(FormativeField field, AppLocalizations l10n) => switch (field) {
-  FormativeField.unspecified => l10n.formativeFieldUnspecified,
-  FormativeField.languages => l10n.formativeFieldLanguages,
-  FormativeField.knowledgeAndScientificThought =>
-    l10n.formativeFieldScientificThought,
-  FormativeField.ethicsNatureAndSocieties => l10n.formativeFieldEthicsNature,
-  FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
-};
+String _fieldLabel(FormativeField field, AppLocalizations l10n) =>
+    switch (field) {
+      FormativeField.unspecified => l10n.formativeFieldUnspecified,
+      FormativeField.languages => l10n.formativeFieldLanguages,
+      FormativeField.knowledgeAndScientificThought =>
+        l10n.formativeFieldScientificThought,
+      FormativeField.ethicsNatureAndSocieties =>
+        l10n.formativeFieldEthicsNature,
+      FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
+    };

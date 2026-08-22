@@ -13,44 +13,47 @@ import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('activity snapshots active students inside selected grade scope', () async {
-    final project = Project(
-      id: 'project-1',
-      groupId: 'group-1',
-      title: 'Comunidad y agua',
-      lifecycle: ProjectLifecycle.inProgress,
-      methodology: ProjectMethodology.communityProjects,
-      formativeField: FormativeField.ethicsNatureAndSocieties,
-      targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
-    );
-    final activityRepository = _MemoryActivityRepository();
-    final useCase = CreateActivity(
-      activityRepository: activityRepository,
-      projectRepository: _MemoryProjectRepository(project),
-      enrollmentRepository: _MemoryEnrollmentRepository([
-        _enrollment('first-active', PrimaryGrade.first),
-        _enrollment('second-active', PrimaryGrade.second),
-        _enrollment('third-active', PrimaryGrade.third),
-        _enrollment(
-          'first-ended',
-          PrimaryGrade.first,
-          endsOn: DateTime(2026, 8, 10),
-        ),
-      ]),
-      idGenerator: _FixedIdGenerator(),
-    );
+  test(
+    'activity snapshots active students inside selected grade scope',
+    () async {
+      final project = Project(
+        id: 'project-1',
+        groupId: 'group-1',
+        title: 'Comunidad y agua',
+        lifecycle: ProjectLifecycle.inProgress,
+        methodology: ProjectMethodology.communityProjects,
+        formativeField: FormativeField.ethicsNatureAndSocieties,
+        targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
+      );
+      final activityRepository = _MemoryActivityRepository();
+      final useCase = CreateActivity(
+        activityRepository: activityRepository,
+        projectRepository: _MemoryProjectRepository(project),
+        enrollmentRepository: _MemoryEnrollmentRepository([
+          _enrollment('first-active', PrimaryGrade.first),
+          _enrollment('second-active', PrimaryGrade.second),
+          _enrollment('third-active', PrimaryGrade.third),
+          _enrollment(
+            'first-ended',
+            PrimaryGrade.first,
+            endsOn: DateTime(2026, 8, 10),
+          ),
+        ]),
+        idGenerator: _FixedIdGenerator(),
+      );
 
-    final activity = await useCase(
-      projectId: project.id,
-      title: 'Mapa de fuentes de agua',
-      targetGrades: {PrimaryGrade.first},
-      rosterDate: DateTime(2026, 8, 22),
-    );
+      final activity = await useCase(
+        projectId: project.id,
+        title: 'Mapa de fuentes de agua',
+        targetGrades: {PrimaryGrade.first},
+        rosterDate: DateTime(2026, 8, 22),
+      );
 
-    expect(activity.roster.keys, <String>{'first-active'});
-    expect(activity.roster['first-active']?.grade, PrimaryGrade.first);
-    expect(activityRepository.saved?.roster.keys, <String>{'first-active'});
-  });
+      expect(activity.roster.keys, <String>{'first-active'});
+      expect(activity.roster['first-active']?.grade, PrimaryGrade.first);
+      expect(activityRepository.saved?.roster.keys, <String>{'first-active'});
+    },
+  );
 
   test('activity rejects grades outside project scope', () async {
     final project = Project(
@@ -108,7 +111,8 @@ final class _MemoryProjectRepository implements ProjectRepository {
   final Project project;
 
   @override
-  Future<Project?> findById(String id) async => id == project.id ? project : null;
+  Future<Project?> findById(String id) async =>
+      id == project.id ? project : null;
 
   @override
   Future<List<Project>> listForGroup(String groupId) async => [project];

@@ -1,4 +1,5 @@
 export 'activities.dart';
+export 'activity_evaluations.dart';
 export 'activity_grades.dart';
 export 'activity_roster.dart';
 export 'attendance_days.dart';

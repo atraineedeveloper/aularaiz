@@ -1,6 +1,6 @@
 # Phase 2 — Data and domain foundation
 
-**Status:** complete, pending final CI and merge
+**Status:** complete
 
 ## Goal
 

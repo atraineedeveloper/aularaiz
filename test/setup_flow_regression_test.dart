@@ -13,69 +13,68 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('creating a school opens workspace without framework exceptions', (
-    tester,
-  ) async {
-    final setupRepository = _MemorySchoolSetupRepository();
-    final groupRepository = _MemoryTeachingGroupRepository();
-    final ids = _TestIdGenerator();
+  testWidgets(
+    'creating a school opens workspace without framework exceptions',
+    (tester) async {
+      final setupRepository = _MemorySchoolSetupRepository();
+      final groupRepository = _MemoryTeachingGroupRepository();
+      final ids = _TestIdGenerator();
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          Provider<SchoolSetupRepository>.value(value: setupRepository),
-          Provider<TeachingGroupRepository>.value(value: groupRepository),
-          Provider<CreateInitialSchoolSetup>(
-            create: (_) => CreateInitialSchoolSetup(
-              repository: setupRepository,
-              idGenerator: ids,
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            Provider<SchoolSetupRepository>.value(value: setupRepository),
+            Provider<TeachingGroupRepository>.value(value: groupRepository),
+            Provider<CreateInitialSchoolSetup>(
+              create: (_) => CreateInitialSchoolSetup(
+                repository: setupRepository,
+                idGenerator: ids,
+              ),
             ),
-          ),
-          Provider<CreateTeachingGroup>(
-            create: (_) => CreateTeachingGroup(
-              repository: groupRepository,
-              idGenerator: ids,
+            Provider<CreateTeachingGroup>(
+              create: (_) => CreateTeachingGroup(
+                repository: groupRepository,
+                idGenerator: ids,
+              ),
             ),
+          ],
+          child: MaterialApp(
+            locale: const Locale('es'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const HomeScreen(),
           ),
-        ],
-        child: MaterialApp(
-          locale: const Locale('es'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: const HomeScreen(),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'Nombre de la escuela'),
-      'Primaria de prueba',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextFormField, 'CCT'),
-      '27DPR1064V',
-    );
-    await tester.pump();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nombre de la escuela'),
+        'Primaria de prueba',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'CCT'),
+        '27DPR1064V',
+      );
+      await tester.pump();
 
-    final municipality = find.byKey(
-      const ValueKey('municipality-27-none'),
-    );
-    expect(municipality, findsOneWidget);
-    await tester.tap(municipality);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Balancán').last);
-    await tester.pumpAndSettle();
+      final municipality = find.byKey(const ValueKey('municipality-27-none'));
+      expect(municipality, findsOneWidget);
+      await tester.tap(municipality);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Balancán').last);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Guardar y continuar'));
-    await tester.pump();
-    expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Guardar y continuar'));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
 
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('Primaria de prueba'), findsOneWidget);
-    expect(find.text('Configura tu escuela'), findsNothing);
-  });
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Primaria de prueba'), findsOneWidget);
+      expect(find.text('Configura tu escuela'), findsNothing);
+    },
+  );
 }
 
 final class _MemorySchoolSetupRepository implements SchoolSetupRepository {
@@ -96,8 +95,7 @@ final class _MemorySchoolSetupRepository implements SchoolSetupRepository {
   }
 }
 
-final class _MemoryTeachingGroupRepository
-    implements TeachingGroupRepository {
+final class _MemoryTeachingGroupRepository implements TeachingGroupRepository {
   final List<TeachingGroup> _groups = [];
 
   @override

@@ -25,12 +25,10 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   String? _stateCode;
   String? _municipality;
 
-  SchoolYearPreset get _schoolYear =>
-      SchoolYearCatalog.currentBasicEducation();
+  SchoolYearPreset get _schoolYear => SchoolYearCatalog.currentBasicEducation();
 
-  MexicoStateOption? get _selectedState => _stateCode == null
-      ? null
-      : MexicoGeographyCatalog.byCode(_stateCode!);
+  MexicoStateOption? get _selectedState =>
+      _stateCode == null ? null : MexicoGeographyCatalog.byCode(_stateCode!);
 
   @override
   void dispose() {
@@ -117,8 +115,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                           isExpanded: true,
                           decoration: InputDecoration(labelText: l10n.state),
                           items: [
-                            for (final state
-                                in MexicoGeographyCatalog.states)
+                            for (final state in MexicoGeographyCatalog.states)
                               DropdownMenuItem(
                                 value: state.code,
                                 child: Text(state.name),
@@ -132,39 +129,36 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                                     _municipality = null;
                                   });
                                 },
-                          validator: (value) => value == null
-                              ? l10n.requiredField
-                              : null,
+                          validator: (value) =>
+                              value == null ? l10n.requiredField : null,
                         );
-                        final municipalityField =
-                            DropdownButtonFormField<String>(
-                              key: ValueKey(
-                                'municipality-${_stateCode ?? 'none'}-${_municipality ?? 'none'}',
+                        final municipalityField = DropdownButtonFormField<String>(
+                          key: ValueKey(
+                            'municipality-${_stateCode ?? 'none'}-${_municipality ?? 'none'}',
+                          ),
+                          initialValue: _municipality,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: l10n.municipality,
+                          ),
+                          items: [
+                            for (final municipality
+                                in selectedState?.municipalities ??
+                                    const <String>[])
+                              DropdownMenuItem(
+                                value: municipality,
+                                child: Text(municipality),
                               ),
-                              initialValue: _municipality,
-                              isExpanded: true,
-                              decoration: InputDecoration(
-                                labelText: l10n.municipality,
-                              ),
-                              items: [
-                                for (final municipality
-                                    in selectedState?.municipalities ??
-                                        const <String>[])
-                                  DropdownMenuItem(
-                                    value: municipality,
-                                    child: Text(municipality),
-                                  ),
-                              ],
-                              onChanged:
-                                  controller.isSaving || selectedState == null
-                                  ? null
-                                  : (value) {
-                                      setState(() => _municipality = value);
-                                    },
-                              validator: (value) => value == null
-                                  ? l10n.requiredField
-                                  : null,
-                            );
+                          ],
+                          onChanged:
+                              controller.isSaving || selectedState == null
+                              ? null
+                              : (value) {
+                                  setState(() => _municipality = value);
+                                },
+                          validator: (value) =>
+                              value == null ? l10n.requiredField : null,
+                        );
 
                         if (wide) {
                           return Row(
@@ -332,9 +326,7 @@ class _SchoolYearCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              '$startLabel: ${dates.formatMediumDate(schoolYear.startsOn)}',
-            ),
+            Text('$startLabel: ${dates.formatMediumDate(schoolYear.startsOn)}'),
             const SizedBox(height: 4),
             Text('$endLabel: ${dates.formatMediumDate(schoolYear.endsOn)}'),
           ],

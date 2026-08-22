@@ -1,5 +1,6 @@
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/data/local/schema/teaching_groups.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
 class Enrollments extends Table {
@@ -14,7 +15,7 @@ class Enrollments extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
-  late final grade = integer()();
+  late final grade = textEnum<PrimaryGrade>()();
   late final startsOn = dateTime()();
   late final endsOn = dateTime().nullable()();
 

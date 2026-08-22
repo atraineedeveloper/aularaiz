@@ -1,5 +1,7 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
+import 'package:aularaiz/domain/evaluation/achievement_level.dart';
+import 'package:aularaiz/domain/evaluation/delivery_status.dart';
 import 'package:drift/drift.dart';
 
 class ActivityEvaluations extends Table {
@@ -13,8 +15,8 @@ class ActivityEvaluations extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
-  late final deliveryStatus = integer()();
-  late final achievement = integer().nullable()();
+  late final deliveryStatus = textEnum<DeliveryStatus>()();
+  late final achievement = textEnum<AchievementLevel>().nullable()();
   late final observation = text().nullable()();
 
   @override

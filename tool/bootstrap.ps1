@@ -2,7 +2,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $flutter = Get-Command flutter -ErrorAction Stop
+$dart = Get-Command dart -ErrorAction Stop
 Write-Host "Using Flutter: $($flutter.Source)"
+Write-Host "Using Dart: $($dart.Source)"
 
 function Invoke-Flutter {
   param(
@@ -14,6 +16,19 @@ function Invoke-Flutter {
 
   if ($LASTEXITCODE -ne 0) {
     throw "flutter $($FlutterArgs -join ' ') failed with exit code $LASTEXITCODE."
+  }
+}
+
+function Invoke-Dart {
+  param(
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$DartArgs
+  )
+
+  & $dart.Source @DartArgs
+
+  if ($LASTEXITCODE -ne 0) {
+    throw "dart $($DartArgs -join ' ') failed with exit code $LASTEXITCODE."
   }
 }
 
@@ -43,8 +58,9 @@ if (Test-Path $sampleTest) {
 }
 
 Invoke-Flutter pub get
+Invoke-Dart run build_runner build --delete-conflicting-outputs
 Invoke-Flutter gen-l10n
 Invoke-Flutter analyze
 Invoke-Flutter test
 
-Write-Host 'AulaRaiz foundation is ready for local development.'
+Write-Host 'AulaRaiz data foundation is ready for local development.'

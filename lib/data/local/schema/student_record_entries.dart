@@ -1,4 +1,5 @@
 import 'package:aularaiz/data/local/schema/students.dart';
+import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:drift/drift.dart';
 
 class StudentRecordEntries extends Table {
@@ -8,7 +9,7 @@ class StudentRecordEntries extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
-  late final kind = integer()();
+  late final kind = textEnum<StudentRecordEntryKind>()();
   late final occurredAt = dateTime()();
   late final text = text()();
 

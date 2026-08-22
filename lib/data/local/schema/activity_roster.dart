@@ -1,5 +1,6 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
 class ActivityRoster extends Table {
@@ -13,7 +14,7 @@ class ActivityRoster extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
-  late final grade = integer()();
+  late final grade = textEnum<PrimaryGrade>()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{activityId, studentId};

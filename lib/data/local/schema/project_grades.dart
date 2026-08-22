@@ -1,4 +1,5 @@
 import 'package:aularaiz/data/local/schema/projects.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
 class ProjectGrades extends Table {
@@ -7,7 +8,7 @@ class ProjectGrades extends Table {
     #id,
     onDelete: KeyAction.cascade,
   )();
-  late final grade = integer()();
+  late final grade = textEnum<PrimaryGrade>()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{projectId, grade};

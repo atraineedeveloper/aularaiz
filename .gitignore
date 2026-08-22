@@ -6,7 +6,8 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 
-# Generated localization output
+# Generated Dart/localization output
+**/*.g.dart
 lib/l10n/generated/
 
 # IDE

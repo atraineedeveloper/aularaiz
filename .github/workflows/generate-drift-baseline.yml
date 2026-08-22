@@ -1,0 +1,38 @@
+name: Generate Drift schema baseline
+
+on:
+  push:
+    branches: [feat/data-domain-foundation]
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/data-domain-foundation
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run drift_dev make-migrations
+      - name: Commit generated Drift schema
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain -- drift_schemas)" ]; then
+            echo "No generated Drift schema changes."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add drift_schemas
+          git commit -m "chore: freeze Drift schema v1"
+          git push origin HEAD:feat/data-domain-foundation

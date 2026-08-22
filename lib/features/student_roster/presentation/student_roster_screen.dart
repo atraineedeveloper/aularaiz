@@ -458,16 +458,16 @@ class _StudentDialogState extends State<_StudentDialog> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(l10n.cancel),
-            content: Text(l10n.setupSubtitle),
+            title: Text(l10n.discardChangesTitle),
+            content: Text(l10n.discardChangesBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(l10n.back),
+                child: Text(l10n.keepEditing),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(l10n.cancel),
+                child: Text(l10n.discardChanges),
               ),
             ],
           ),

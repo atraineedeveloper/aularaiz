@@ -1,13 +1,19 @@
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/project/create_activity.dart';
+import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_screen.dart';
+import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
+import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
@@ -119,6 +125,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                       group: group,
                                       onStudents: () => _openStudents(group),
                                       onAttendance: () => _openAttendance(group),
+                                      onProjects: () => _openProjects(group),
                                     ),
                                   ),
                               ],
@@ -189,6 +196,27 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       ),
     );
   }
+
+  Future<void> _openProjects(TeachingGroup group) async {
+    final projectRepository = context.read<ProjectRepository>();
+    final activityRepository = context.read<ActivityRepository>();
+    final createProject = context.read<CreateProject>();
+    final createActivity = context.read<CreateActivity>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ProjectsController(
+            projectRepository: projectRepository,
+            activityRepository: activityRepository,
+            createProject: createProject,
+            createActivity: createActivity,
+          ),
+          child: ProjectsScreen(group: group),
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyGroups extends StatelessWidget {
@@ -227,11 +255,13 @@ class _GroupCard extends StatelessWidget {
     required this.group,
     required this.onStudents,
     required this.onAttendance,
+    required this.onProjects,
   });
 
   final TeachingGroup group;
   final VoidCallback onStudents;
   final VoidCallback onAttendance;
+  final VoidCallback onProjects;
 
   @override
   Widget build(BuildContext context) {
@@ -283,6 +313,11 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onAttendance,
                   icon: const Icon(Icons.fact_check_outlined),
                   label: Text(l10n.openAttendance),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onProjects,
+                  icon: const Icon(Icons.auto_awesome_motion_outlined),
+                  label: Text(l10n.openProjects),
                 ),
                 OutlinedButton.icon(
                   onPressed: onStudents,

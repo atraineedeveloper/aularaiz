@@ -6,20 +6,13 @@ abstract final class AppTheme {
   static ThemeData get light => _base(Brightness.light);
   static ThemeData get dark => _base(Brightness.dark);
 
-  static ThemeData get highContrastLight => _base(
-    Brightness.light,
-    contrastLevel: 1,
-  );
+  static ThemeData get highContrastLight =>
+      _base(Brightness.light, contrastLevel: 1);
 
-  static ThemeData get highContrastDark => _base(
-    Brightness.dark,
-    contrastLevel: 1,
-  );
+  static ThemeData get highContrastDark =>
+      _base(Brightness.dark, contrastLevel: 1);
 
-  static ThemeData _base(
-    Brightness brightness, {
-    double contrastLevel = 0,
-  }) {
+  static ThemeData _base(Brightness brightness, {double contrastLevel = 0}) {
     final scheme = ColorScheme.fromSeed(
       seedColor: _seed,
       brightness: brightness,

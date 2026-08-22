@@ -27,7 +27,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     super.didChangeDependencies();
     if (!_loadStarted) {
       _loadStarted = true;
-      context.read<ProjectsController>().load(widget.group);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<ProjectsController>().load(widget.group);
+      });
     }
   }
 

@@ -23,7 +23,10 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
     super.didChangeDependencies();
     if (!_loadStarted) {
       _loadStarted = true;
-      context.read<StudentRosterController>().load(widget.group);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<StudentRosterController>().load(widget.group);
+      });
     }
   }
 

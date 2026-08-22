@@ -15,10 +15,7 @@ void main() {
     title: 'Producto final',
     targetGrades: <PrimaryGrade>{PrimaryGrade.second},
     roster: <ActivityParticipant>[
-      ActivityParticipant(
-        studentId: 'student-1',
-        grade: PrimaryGrade.second,
-      ),
+      ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),
     ],
   );
 

@@ -43,9 +43,10 @@ final class ActivityEvaluation {
     return switch (deliveryStatus) {
       DeliveryStatus.pending => EvaluationState.pendingDeliveryDecision,
       DeliveryStatus.notDelivered => EvaluationState.notDelivered,
-      DeliveryStatus.delivered => achievement == null
-          ? EvaluationState.deliveredAwaitingEvaluation
-          : EvaluationState.deliveredAndEvaluated,
+      DeliveryStatus.delivered =>
+        achievement == null
+            ? EvaluationState.deliveredAwaitingEvaluation
+            : EvaluationState.deliveredAndEvaluated,
     };
   }
 

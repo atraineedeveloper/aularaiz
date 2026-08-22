@@ -49,10 +49,7 @@ void main() {
       title: 'Investigar',
       targetGrades: <PrimaryGrade>{PrimaryGrade.second},
       roster: <ActivityParticipant>[
-        ActivityParticipant(
-          studentId: 'student-1',
-          grade: PrimaryGrade.second,
-        ),
+        ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),
       ],
     );
     final invalid = Activity(
@@ -63,10 +60,7 @@ void main() {
       roster: const <ActivityParticipant>[],
     );
 
-    expect(
-      ActivityPolicy.validate(activity: valid, project: project),
-      isEmpty,
-    );
+    expect(ActivityPolicy.validate(activity: valid, project: project), isEmpty);
     expect(
       ActivityPolicy.validate(activity: invalid, project: project),
       contains(ActivityViolation.targetGradeOutsideProject),
@@ -80,14 +74,8 @@ void main() {
       title: 'Producto',
       targetGrades: <PrimaryGrade>{PrimaryGrade.second, PrimaryGrade.third},
       roster: <ActivityParticipant>[
-        ActivityParticipant(
-          studentId: 'student-1',
-          grade: PrimaryGrade.second,
-        ),
-        ActivityParticipant(
-          studentId: 'student-2',
-          grade: PrimaryGrade.third,
-        ),
+        ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),
+        ActivityParticipant(studentId: 'student-2', grade: PrimaryGrade.third),
       ],
     );
 

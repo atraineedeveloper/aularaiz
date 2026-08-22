@@ -1,0 +1,34 @@
+name: Setup hotfix formatter
+
+on:
+  push:
+    branches: [fix/setup-flow-stability]
+    paths:
+      - '.github/workflows/setup-hotfix-format.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/setup-flow-stability
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: dart format lib/features/school_setup/presentation/school_setup_screen.dart test/core/setup_catalogs_test.dart test/setup_flow_regression_test.dart
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- lib/features/school_setup/presentation/school_setup_screen.dart test/core/setup_catalogs_test.dart test/setup_flow_regression_test.dart; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib/features/school_setup/presentation/school_setup_screen.dart test/core/setup_catalogs_test.dart test/setup_flow_regression_test.dart
+          git commit -m 'style: apply setup hotfix formatting'
+          git push origin HEAD:fix/setup-flow-stability

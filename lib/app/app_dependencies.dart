@@ -2,29 +2,36 @@ import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
+import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
+import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
+import 'package:aularaiz/application/student_record/save_student_record.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/repositories/drift_activity_repository.dart';
 import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
+import 'package:aularaiz/data/repositories/drift_evaluation_repository.dart';
 import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
+import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:flutter/widgets.dart';
@@ -75,6 +82,14 @@ class AppDependencies extends StatelessWidget {
         Provider<ActivityRepository>(
           create: (context) =>
               DriftActivityRepository(context.read<AppDatabase>()),
+        ),
+        Provider<EvaluationRepository>(
+          create: (context) =>
+              DriftEvaluationRepository(context.read<AppDatabase>()),
+        ),
+        Provider<StudentRecordRepository>(
+          create: (context) =>
+              DriftStudentRecordRepository(context.read<AppDatabase>()),
         ),
         Provider<StudentEnrollmentWriter>(
           create: (context) =>
@@ -133,6 +148,25 @@ class AppDependencies extends StatelessWidget {
             activityRepository: context.read<ActivityRepository>(),
             projectRepository: context.read<ProjectRepository>(),
             enrollmentRepository: context.read<EnrollmentRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<SaveActivityEvaluation>(
+          create: (context) => SaveActivityEvaluation(
+            activityRepository: context.read<ActivityRepository>(),
+            evaluationRepository: context.read<EvaluationRepository>(),
+          ),
+        ),
+        Provider<SaveStudentRecord>(
+          create: (context) => SaveStudentRecord(
+            studentRepository: context.read<StudentRepository>(),
+            recordRepository: context.read<StudentRecordRepository>(),
+          ),
+        ),
+        Provider<AddStudentRecordEntry>(
+          create: (context) => AddStudentRecordEntry(
+            studentRepository: context.read<StudentRepository>(),
+            recordRepository: context.read<StudentRecordRepository>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

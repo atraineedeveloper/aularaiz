@@ -54,18 +54,16 @@ class SettingsScreen extends StatelessWidget {
                         palette: AppPalette.government2024,
                         title: l10n.palette2024,
                         selected: settings.palette == AppPalette.government2024,
-                        onTap: () => settings.setPalette(
-                          AppPalette.government2024,
-                        ),
+                        onTap: () =>
+                            settings.setPalette(AppPalette.government2024),
                       ),
                       const SizedBox(height: 12),
                       _PaletteTile(
                         palette: AppPalette.government2018,
                         title: l10n.palette2018,
                         selected: settings.palette == AppPalette.government2018,
-                        onTap: () => settings.setPalette(
-                          AppPalette.government2018,
-                        ),
+                        onTap: () =>
+                            settings.setPalette(AppPalette.government2018),
                       ),
                     ],
                   ),
@@ -156,7 +154,10 @@ class _SettingsSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -230,9 +231,7 @@ class _PaletteTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Icon(
-                selected
-                    ? Icons.check_circle_rounded
-                    : Icons.circle_outlined,
+                selected ? Icons.check_circle_rounded : Icons.circle_outlined,
                 color: selected ? scheme.primary : scheme.outline,
               ),
             ],

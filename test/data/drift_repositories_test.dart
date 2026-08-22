@@ -135,60 +135,74 @@ void main() {
 }
 
 Future<void> _seedSchoolContext(AppDatabase database) async {
-  await database.into(database.schools).insert(
-    const SchoolsCompanion(
-      id: Value('school-1'),
-      name: Value('Escuela Primaria'),
-      organization: Value(SchoolOrganization.complete),
-      state: Value('Tabasco'),
-      municipality: Value('Centro'),
-      locality: Value('Villahermosa'),
-    ),
-  );
-  await database.into(database.schoolYears).insert(
-    SchoolYearsCompanion(
-      id: const Value('year-1'),
-      label: const Value('2026-2027'),
-      startsOn: Value(DateTime(2026, 8, 31)),
-      endsOn: Value(DateTime(2027, 7, 15)),
-    ),
-  );
-  await database.into(database.teachingGroups).insert(
-    const TeachingGroupsCompanion(
-      id: Value('group-1'),
-      schoolId: Value('school-1'),
-      schoolYearId: Value('year-1'),
-      name: Value('1.º y 2.º A'),
-      shift: Value('Matutino'),
-      scheduleStartMinutes: Value(480),
-      scheduleEndMinutes: Value(780),
-    ),
-  );
-  await database.into(database.groupGrades).insert(
-    const GroupGradesCompanion(
-      groupId: Value('group-1'),
-      grade: Value(PrimaryGrade.first),
-    ),
-  );
-  await database.into(database.groupGrades).insert(
-    const GroupGradesCompanion(
-      groupId: Value('group-1'),
-      grade: Value(PrimaryGrade.second),
-    ),
-  );
-  await database.into(database.students).insert(
-    StudentsCompanion(
-      id: const Value('student-1'),
-      givenNames: const Value('Ana'),
-      firstSurname: const Value('Pérez'),
-      birthDate: Value(DateTime(2018, 9, 12)),
-    ),
-  );
-  await database.into(database.students).insert(
-    const StudentsCompanion(
-      id: Value('student-2'),
-      givenNames: Value('Luis'),
-      firstSurname: Value('Gómez'),
-    ),
-  );
+  await database
+      .into(database.schools)
+      .insert(
+        const SchoolsCompanion(
+          id: Value('school-1'),
+          name: Value('Escuela Primaria'),
+          organization: Value(SchoolOrganization.complete),
+          state: Value('Tabasco'),
+          municipality: Value('Centro'),
+          locality: Value('Villahermosa'),
+        ),
+      );
+  await database
+      .into(database.schoolYears)
+      .insert(
+        SchoolYearsCompanion(
+          id: const Value('year-1'),
+          label: const Value('2026-2027'),
+          startsOn: Value(DateTime(2026, 8, 31)),
+          endsOn: Value(DateTime(2027, 7, 15)),
+        ),
+      );
+  await database
+      .into(database.teachingGroups)
+      .insert(
+        const TeachingGroupsCompanion(
+          id: Value('group-1'),
+          schoolId: Value('school-1'),
+          schoolYearId: Value('year-1'),
+          name: Value('1.º y 2.º A'),
+          shift: Value('Matutino'),
+          scheduleStartMinutes: Value(480),
+          scheduleEndMinutes: Value(780),
+        ),
+      );
+  await database
+      .into(database.groupGrades)
+      .insert(
+        const GroupGradesCompanion(
+          groupId: Value('group-1'),
+          grade: Value(PrimaryGrade.first),
+        ),
+      );
+  await database
+      .into(database.groupGrades)
+      .insert(
+        const GroupGradesCompanion(
+          groupId: Value('group-1'),
+          grade: Value(PrimaryGrade.second),
+        ),
+      );
+  await database
+      .into(database.students)
+      .insert(
+        StudentsCompanion(
+          id: const Value('student-1'),
+          givenNames: const Value('Ana'),
+          firstSurname: const Value('Pérez'),
+          birthDate: Value(DateTime(2018, 9, 12)),
+        ),
+      );
+  await database
+      .into(database.students)
+      .insert(
+        const StudentsCompanion(
+          id: Value('student-2'),
+          givenNames: Value('Luis'),
+          firstSurname: Value('Gómez'),
+        ),
+      );
 }

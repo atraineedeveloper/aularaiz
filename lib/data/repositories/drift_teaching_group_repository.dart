@@ -42,9 +42,6 @@ final class DriftTeachingGroupRepository implements TeachingGroupRepository {
       );
     }
 
-    return ClassSchedule(
-      startsAtMinutes: startsAt,
-      endsAtMinutes: endsAt,
-    );
+    return ClassSchedule(startsAtMinutes: startsAt, endsAtMinutes: endsAt);
   }
 }

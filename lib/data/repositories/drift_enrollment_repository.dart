@@ -28,17 +28,19 @@ final class DriftEnrollmentRepository implements EnrollmentRepository {
 
   @override
   Future<void> save(Enrollment enrollment) async {
-    await database.into(database.enrollments).insertOnConflictUpdate(
-      EnrollmentsCompanion(
-        id: Value(enrollment.id),
-        studentId: Value(enrollment.studentId),
-        groupId: Value(enrollment.groupId),
-        grade: Value(enrollment.grade),
-        listNumber: Value(enrollment.listNumber),
-        startsOn: Value(enrollment.startsOn),
-        endsOn: Value(enrollment.endsOn),
-      ),
-    );
+    await database
+        .into(database.enrollments)
+        .insertOnConflictUpdate(
+          EnrollmentsCompanion(
+            id: Value(enrollment.id),
+            studentId: Value(enrollment.studentId),
+            groupId: Value(enrollment.groupId),
+            grade: Value(enrollment.grade),
+            listNumber: Value(enrollment.listNumber),
+            startsOn: Value(enrollment.startsOn),
+            endsOn: Value(enrollment.endsOn),
+          ),
+        );
   }
 
   Enrollment _toDomain(EnrollmentRow row) {

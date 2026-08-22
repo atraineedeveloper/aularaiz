@@ -1,3 +1,6 @@
+// Drift resolves GroupGrades from the composite foreign key in customConstraints.
+// ignore: unused_import
+import 'package:aularaiz/data/local/schema/group_grades.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
 import 'package:aularaiz/data/local/schema/teaching_groups.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';

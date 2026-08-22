@@ -41,16 +41,37 @@ final class ActivityEvaluationController extends ChangeNotifier {
 
   Activity? _activity;
   List<ActivityEvaluationEntry> _entries = const [];
+  PrimaryGrade? _gradeFilter;
+  DeliveryStatus? _deliveryFilter;
+  String _query = '';
   bool _isLoading = false;
   bool _isSaving = false;
   Object? _error;
 
   Activity? get activity => _activity;
   List<ActivityEvaluationEntry> get entries => _entries;
+  PrimaryGrade? get gradeFilter => _gradeFilter;
+  DeliveryStatus? get deliveryFilter => _deliveryFilter;
+  String get query => _query;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   Object? get error => _error;
   bool get hasUnsavedChanges => _entries.any((entry) => entry.dirty);
+
+  List<ActivityEvaluationEntry> get visibleEntries {
+    final normalizedQuery = _query.trim().toLowerCase();
+    return List<ActivityEvaluationEntry>.unmodifiable(
+      _entries.where((entry) {
+        if (_gradeFilter != null && entry.grade != _gradeFilter) return false;
+        if (_deliveryFilter != null &&
+            entry.deliveryStatus != _deliveryFilter) {
+          return false;
+        }
+        return normalizedQuery.isEmpty ||
+            entry.student.displayName.toLowerCase().contains(normalizedQuery);
+      }),
+    );
+  }
 
   int get evaluatedCount => _entries
       .where(
@@ -115,6 +136,34 @@ final class ActivityEvaluationController extends ChangeNotifier {
     }
   }
 
+  void setQuery(String value) {
+    if (_query == value) return;
+    _query = value;
+    notifyListeners();
+  }
+
+  void setGradeFilter(PrimaryGrade? value) {
+    if (_gradeFilter == value) return;
+    _gradeFilter = value;
+    notifyListeners();
+  }
+
+  void setDeliveryFilter(DeliveryStatus? value) {
+    if (_deliveryFilter == value) return;
+    _deliveryFilter = value;
+    notifyListeners();
+  }
+
+  void clearFilters() {
+    if (_gradeFilter == null && _deliveryFilter == null && _query.isEmpty) {
+      return;
+    }
+    _gradeFilter = null;
+    _deliveryFilter = null;
+    _query = '';
+    notifyListeners();
+  }
+
   void setDelivery(String studentId, DeliveryStatus status) {
     final entry = _entry(studentId);
     if (entry.deliveryStatus == status) return;
@@ -144,7 +193,7 @@ final class ActivityEvaluationController extends ChangeNotifier {
 
   void markAllDelivered() {
     var changed = false;
-    for (final entry in _entries) {
+    for (final entry in visibleEntries) {
       if (entry.deliveryStatus == DeliveryStatus.delivered) continue;
       entry.deliveryStatus = DeliveryStatus.delivered;
       entry.dirty = true;

@@ -337,7 +337,10 @@ class _StudentDialogState extends State<_StudentDialog> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop || !_dirty) return;
         final discard = await _confirmDiscard(context);
-        if (discard && context.mounted) Navigator.of(context).pop();
+        if (discard && context.mounted) {
+          _dirty = false;
+          Navigator.of(context).pop();
+        }
       },
       child: AlertDialog(
         title: Text(widget.entry == null ? l10n.addStudent : l10n.editStudent),
@@ -448,9 +451,15 @@ class _StudentDialogState extends State<_StudentDialog> {
   }
 
   Future<void> _cancel() async {
-    if (!_dirty || await _confirmDiscard(context)) {
-      if (mounted) Navigator.of(context).pop();
+    if (!_dirty) {
+      Navigator.of(context).pop();
+      return;
     }
+
+    final discard = await _confirmDiscard(context);
+    if (!mounted || !discard) return;
+    _dirty = false;
+    Navigator.of(context).pop();
   }
 
   Future<bool> _confirmDiscard(BuildContext context) async {

@@ -22,7 +22,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     super.didChangeDependencies();
     if (!_loadStarted) {
       _loadStarted = true;
-      context.read<AttendanceController>().load(widget.group);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<AttendanceController>().load(widget.group);
+      });
     }
   }
 

@@ -37,7 +37,10 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     super.didChangeDependencies();
     if (!_loadStarted) {
       _loadStarted = true;
-      context.read<SchoolWorkspaceController>().load();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<SchoolWorkspaceController>().load();
+      });
     }
   }
 

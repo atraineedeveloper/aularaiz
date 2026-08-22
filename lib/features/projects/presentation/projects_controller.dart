@@ -1,5 +1,3 @@
-export 'package:aularaiz/features/projects/presentation/projects_localization.dart';
-
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
@@ -12,6 +10,8 @@ import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:flutter/foundation.dart';
+
+export 'package:aularaiz/features/projects/presentation/projects_localization.dart';
 
 final class ProjectsController extends ChangeNotifier {
   ProjectsController({

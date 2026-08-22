@@ -1,4 +1,5 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
@@ -141,7 +142,7 @@ class _ProjectCard extends StatelessWidget {
   });
 
   final Project project;
-  final List<dynamic> activities;
+  final List<Activity> activities;
   final bool isSaving;
   final ValueChanged<ProjectLifecycle> onLifecycleChanged;
   final VoidCallback onAddActivity;
@@ -228,7 +229,7 @@ class _ProjectCard extends StatelessWidget {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.assignment_outlined),
-                  title: Text(activity.title as String),
+                  title: Text(activity.title),
                   subtitle: Text(
                     l10n.activityRosterCount(activity.roster.length),
                   ),

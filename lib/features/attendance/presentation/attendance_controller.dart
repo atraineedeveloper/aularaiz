@@ -112,9 +112,10 @@ final class AttendanceController extends ChangeNotifier {
   }
 
   void markAllPresent() {
-    var next = _attendance;
-    if (next == null || next.entries.isEmpty) return;
-    for (final studentId in next.entries.keys) {
+    final attendance = _attendance;
+    if (attendance == null || attendance.entries.isEmpty) return;
+    var next = attendance;
+    for (final studentId in attendance.entries.keys) {
       next = next.withStatus(studentId, AttendanceStatus.present);
     }
     _attendance = next;

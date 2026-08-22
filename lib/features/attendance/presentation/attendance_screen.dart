@@ -477,7 +477,7 @@ class _MonthlyAttendanceView extends StatelessWidget {
 
   String _monthLabel(BuildContext context, DateTime month) {
     final localizations = MaterialLocalizations.of(context);
-    return '${localizations.formatMonthYear(month)}';
+    return localizations.formatMonthYear(month);
   }
 
   String _statusCode(AttendanceStatus? status) {

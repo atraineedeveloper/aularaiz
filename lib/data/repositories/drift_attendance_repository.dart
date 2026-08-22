@@ -1,6 +1,6 @@
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
-import 'package:aularaiz/domain/attendance/attendance_entry.dart';
+import 'package:aularaiz/domain/attendance/attendance_entry.dart' as domain;
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:drift/drift.dart';
 
@@ -100,7 +100,7 @@ final class DriftAttendanceRepository implements AttendanceRepository {
       date: date,
       entries: [
         for (final row in rows)
-          AttendanceEntry(studentId: row.studentId, status: row.status),
+          domain.AttendanceEntry(studentId: row.studentId, status: row.status),
       ],
     );
   }

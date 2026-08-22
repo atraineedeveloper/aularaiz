@@ -2,7 +2,7 @@ import 'package:aularaiz/data/demo/demo_data_seeder.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 

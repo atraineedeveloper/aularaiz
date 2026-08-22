@@ -1,0 +1,34 @@
+name: Phase 5 formatter
+
+on:
+  push:
+    branches: [feat/formative-evaluation]
+    paths:
+      - '.github/workflows/phase5-format.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feat/formative-evaluation
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: dart format lib test integration_test
+      - name: Commit formatter output
+        run: |
+          if git diff --quiet -- lib test integration_test; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add lib test integration_test
+          git commit -m 'style: format Phase 5 implementation'
+          git push origin HEAD:feat/formative-evaluation

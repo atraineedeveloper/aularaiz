@@ -1,6 +1,8 @@
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
@@ -8,14 +10,18 @@ import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
+import 'package:aularaiz/application/project/create_activity.dart';
+import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/drift_activity_repository.dart';
 import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
+import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
@@ -62,6 +68,14 @@ class AppDependencies extends StatelessWidget {
           create: (context) =>
               DriftAttendanceRepository(context.read<AppDatabase>()),
         ),
+        Provider<ProjectRepository>(
+          create: (context) =>
+              DriftProjectRepository(context.read<AppDatabase>()),
+        ),
+        Provider<ActivityRepository>(
+          create: (context) =>
+              DriftActivityRepository(context.read<AppDatabase>()),
+        ),
         Provider<StudentEnrollmentWriter>(
           create: (context) =>
               DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
@@ -104,6 +118,20 @@ class AppDependencies extends StatelessWidget {
         Provider<BuildDailyAttendance>(
           create: (context) => BuildDailyAttendance(
             attendanceRepository: context.read<AttendanceRepository>(),
+            enrollmentRepository: context.read<EnrollmentRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<CreateProject>(
+          create: (context) => CreateProject(
+            repository: context.read<ProjectRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<CreateActivity>(
+          create: (context) => CreateActivity(
+            activityRepository: context.read<ActivityRepository>(),
+            projectRepository: context.read<ProjectRepository>(),
             enrollmentRepository: context.read<EnrollmentRepository>(),
             idGenerator: context.read<IdGenerator>(),
           ),

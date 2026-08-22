@@ -132,9 +132,10 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                                     child: Text(entry.text),
                                   ),
                                   trailing: Text(
-                                    MaterialLocalizations.of(
-                                      context,
-                                    ).formatMediumDate(entry.occurredAt.toLocal()),
+                                    MaterialLocalizations.of(context)
+                                        .formatMediumDate(
+                                          entry.occurredAt.toLocal(),
+                                        ),
                                   ),
                                 ),
                               ),
@@ -406,9 +407,8 @@ class _EntryDialogState extends State<_EntryDialog> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.of(context).pop(
-      _EntryDraft(kind: _kind, text: _textController.text),
-    );
+    Navigator.of(context)
+        .pop(_EntryDraft(kind: _kind, text: _textController.text));
   }
 }
 

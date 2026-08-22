@@ -9,11 +9,9 @@ extension StudentRecordLocalization on AppLocalizations {
   String get pedagogicalProfile =>
       _recordEnglish ? 'Pedagogical profile' : 'Perfil pedagógico';
   String get strengths => _recordEnglish ? 'Strengths' : 'Fortalezas';
-  String get difficulties =>
-      _recordEnglish ? 'Difficulties' : 'Dificultades';
+  String get difficulties => _recordEnglish ? 'Difficulties' : 'Dificultades';
   String get supports => _recordEnglish ? 'Supports' : 'Apoyos';
-  String get saveProfile =>
-      _recordEnglish ? 'Save profile' : 'Guardar perfil';
+  String get saveProfile => _recordEnglish ? 'Save profile' : 'Guardar perfil';
   String get profileSaveError => _recordEnglish
       ? 'The pedagogical profile could not be saved.'
       : 'No se pudo guardar el perfil pedagógico.';
@@ -28,9 +26,8 @@ extension StudentRecordLocalization on AppLocalizations {
       _recordEnglish ? 'Formative evidence' : 'Evidencias formativas';
   String get totalEvidence =>
       _recordEnglish ? 'Total evidence' : 'Evidencias totales';
-  String get requiresSupportEvidence => _recordEnglish
-      ? 'Requires support'
-      : 'Requiere apoyo';
+  String get requiresSupportEvidence =>
+      _recordEnglish ? 'Requires support' : 'Requiere apoyo';
   String get masteredEvidence => _recordEnglish ? 'Mastered' : 'Domina';
   String get addEntryError => _recordEnglish
       ? 'The entry could not be saved.'

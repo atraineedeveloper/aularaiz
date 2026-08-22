@@ -22,8 +22,7 @@ extension EvaluationLocalization on AppLocalizations {
       : 'Esta actividad no tiene alumnos en su roster histórico.';
   String get delivery => _evaluationEnglish ? 'Delivery' : 'Entrega';
   String get achievement => _evaluationEnglish ? 'Achievement' : 'Logro';
-  String get observation =>
-      _evaluationEnglish ? 'Observation' : 'Observación';
+  String get observation => _evaluationEnglish ? 'Observation' : 'Observación';
   String get noAchievementYet =>
       _evaluationEnglish ? 'Not evaluated yet' : 'Aún sin evaluar';
   String get evaluationShortcut =>
@@ -46,8 +45,7 @@ extension EvaluationLocalization on AppLocalizations {
       _evaluationEnglish ? 'Sufficient' : 'Suficiente',
     AchievementLevel.inProgress =>
       _evaluationEnglish ? 'In progress' : 'En proceso',
-    AchievementLevel.requiresSupport => _evaluationEnglish
-        ? 'Requires support'
-        : 'Requiere apoyo',
+    AchievementLevel.requiresSupport =>
+      _evaluationEnglish ? 'Requires support' : 'Requiere apoyo',
   };
 }

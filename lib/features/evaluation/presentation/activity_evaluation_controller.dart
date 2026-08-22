@@ -84,7 +84,9 @@ final class ActivityEvaluationController extends ChangeNotifier {
         });
       final loaded = <ActivityEvaluationEntry>[];
       for (final participant in participants) {
-        final student = await _studentRepository.findById(participant.studentId);
+        final student = await _studentRepository.findById(
+          participant.studentId,
+        );
         if (student == null) continue;
         final evaluation = byStudent[student.id];
         loaded.add(

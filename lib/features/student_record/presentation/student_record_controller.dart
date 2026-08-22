@@ -44,7 +44,9 @@ final class StudentRecordController extends ChangeNotifier {
 
   int get totalEvidence => _evaluations.length;
   int get masteredEvidence => _evaluations
-      .where((evaluation) => evaluation.achievement == AchievementLevel.mastered)
+      .where(
+        (evaluation) => evaluation.achievement == AchievementLevel.mastered,
+      )
       .length;
   int get requiresSupportEvidence => _evaluations
       .where(

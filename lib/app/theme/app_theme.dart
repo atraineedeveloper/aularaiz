@@ -13,10 +13,7 @@ abstract final class AppTheme {
   static ThemeData highContrastDark() =>
       _base(Brightness.dark, contrastLevel: 1);
 
-  static ThemeData _base(
-    Brightness brightness, {
-    double contrastLevel = 0,
-  }) {
+  static ThemeData _base(Brightness brightness, {double contrastLevel = 0}) {
     final generated = ColorScheme.fromSeed(
       seedColor: AppPalette.primary,
       brightness: brightness,

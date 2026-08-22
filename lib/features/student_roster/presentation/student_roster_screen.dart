@@ -112,7 +112,8 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                         itemBuilder: (context, index) {
                           return _StudentTile(
                             entry: entries[index],
-                            onRecord: () => _openRecord(context, entries[index]),
+                            onRecord: () =>
+                                _openRecord(context, entries[index]),
                             onEdit: () => _editStudent(context, entries[index]),
                             onDeactivate: () =>
                                 _deactivate(context, entries[index]),

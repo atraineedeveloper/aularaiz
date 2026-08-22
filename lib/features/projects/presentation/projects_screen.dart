@@ -143,10 +143,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     );
   }
 
-  Future<void> _openEvaluation(
-    BuildContext context,
-    Activity activity,
-  ) async {
+  Future<void> _openEvaluation(BuildContext context, Activity activity) async {
     final evaluationRepository = context.read<EvaluationRepository>();
     final studentRepository = context.read<StudentRepository>();
     final saveActivityEvaluation = context.read<SaveActivityEvaluation>();

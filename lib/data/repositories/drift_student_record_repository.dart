@@ -27,7 +27,9 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
 
   @override
   Future<void> save(StudentRecord record) async {
-    await database.into(database.studentRecords).insertOnConflictUpdate(
+    await database
+        .into(database.studentRecords)
+        .insertOnConflictUpdate(
           StudentRecordsCompanion(
             studentId: Value(record.studentId),
             strengths: Value(record.strengths),
@@ -62,7 +64,9 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
 
   @override
   Future<void> addEntry(StudentRecordEntry entry) async {
-    await database.into(database.studentRecordEntries).insert(
+    await database
+        .into(database.studentRecordEntries)
+        .insert(
           StudentRecordEntriesCompanion(
             id: Value(entry.id),
             studentId: Value(entry.studentId),

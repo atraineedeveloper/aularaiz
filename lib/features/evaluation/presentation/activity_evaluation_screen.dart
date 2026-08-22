@@ -105,9 +105,9 @@ class _ActivityEvaluationScreenState extends State<ActivityEvaluationScreen> {
                                   Text(
                                     l10n.evaluationSaveError,
                                     style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .error,
                                     ),
                                   ),
                                 ],
@@ -176,14 +176,18 @@ class _EvaluationToolbar extends StatelessWidget {
             ),
             Chip(
               avatar: const Icon(Icons.fact_check_outlined, size: 18),
-              label: Text('${l10n.evaluatedCount}: ${controller.evaluatedCount}'),
+              label: Text(
+                '${l10n.evaluatedCount}: ${controller.evaluatedCount}',
+              ),
             ),
             Chip(
               avatar: const Icon(Icons.schedule_outlined, size: 18),
               label: Text('${l10n.pendingCount}: ${controller.pendingCount}'),
             ),
             OutlinedButton.icon(
-              onPressed: controller.isSaving ? null : controller.markAllDelivered,
+              onPressed: controller.isSaving
+                  ? null
+                  : controller.markAllDelivered,
               icon: Icon(Icons.done_all_rounded, color: scheme.secondary),
               label: Text(l10n.markAllDelivered),
             ),

@@ -70,7 +70,7 @@ final class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async => migrator.createAll(),
     onUpgrade: (migrator, from, to) async {
-      if (from < 2) {
+      if (from < 2 && to >= 2) {
         await migrator.createTable(schoolContexts);
         await migrator.createTable(projectFormativeFields);
         await migrator.createTable(projectArticulatingAxes);
@@ -95,11 +95,11 @@ final class AppDatabase extends _$AppDatabase {
           FROM activities a INNER JOIN projects p ON p.id = a.project_id
         ''');
       }
-      if (from < 3) {
+      if (from < 3 && to >= 3) {
         await migrator.addColumn(activities, activities.identifier);
         await migrator.addColumn(activities, activities.occursOn);
       }
-      if (from < 4) {
+      if (from < 4 && to >= 4) {
         await migrator.addColumn(students, students.sex);
       }
     },

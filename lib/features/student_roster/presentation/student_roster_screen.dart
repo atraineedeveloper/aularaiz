@@ -133,7 +133,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                     ? const Center(child: CircularProgressIndicator())
                     : loadFailed
                     ? _RosterLoadFailure(
-                        message: l10n.studentRosterLoadError,
+                        message: l10n.studentLoadError,
                         retryLabel: l10n.retry,
                         onRetry: () => controller.load(widget.group),
                       )

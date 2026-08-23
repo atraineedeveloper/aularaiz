@@ -43,28 +43,22 @@ part 'app_database.g.dart';
 final class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor, {this.storageProfile});
 
-  factory AppDatabase.production() {
-    return AppDatabase(
-      openAulaRaizConnection(StorageProfile.production),
-      storageProfile: StorageProfile.production,
-    );
-  }
+  factory AppDatabase.production() => AppDatabase(
+    openAulaRaizConnection(StorageProfile.production),
+    storageProfile: StorageProfile.production,
+  );
 
-  factory AppDatabase.demo() {
-    return AppDatabase(
-      openAulaRaizConnection(StorageProfile.demo),
-      storageProfile: StorageProfile.demo,
-    );
-  }
+  factory AppDatabase.demo() => AppDatabase(
+    openAulaRaizConnection(StorageProfile.demo),
+    storageProfile: StorageProfile.demo,
+  );
 
   factory AppDatabase.forTesting(
     QueryExecutor executor, {
     StorageProfile? storageProfile,
-  }) {
-    return AppDatabase(executor, storageProfile: storageProfile);
-  }
+  }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   final StorageProfile? storageProfile;
 
@@ -73,51 +67,36 @@ final class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (migrator) async {
-      await migrator.createAll();
-    },
+    onCreate: (migrator) async => migrator.createAll(),
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
         await migrator.createTable(schoolContexts);
         await migrator.createTable(projectFormativeFields);
         await migrator.createTable(projectArticulatingAxes);
         await migrator.createTable(activityFormativeFields);
-
         await customStatement('''
           INSERT OR IGNORE INTO school_contexts (school_id, school_year_id)
           SELECT s.id,
                  COALESCE(
-                   (
-                     SELECT tg.school_year_id
-                     FROM teaching_groups tg
-                     WHERE tg.school_id = s.id
-                     LIMIT 1
-                   ),
-                   (
-                     SELECT sy.id
-                     FROM school_years sy
-                     ORDER BY sy.starts_on DESC
-                     LIMIT 1
-                   )
+                   (SELECT tg.school_year_id FROM teaching_groups tg WHERE tg.school_id = s.id LIMIT 1),
+                   (SELECT sy.id FROM school_years sy ORDER BY sy.starts_on DESC LIMIT 1)
                  )
           FROM schools s
           WHERE EXISTS (SELECT 1 FROM school_years)
         ''');
-
         await customStatement('''
-          INSERT OR IGNORE INTO project_formative_fields
-            (project_id, formative_field)
-          SELECT id, formative_field
-          FROM projects
+          INSERT OR IGNORE INTO project_formative_fields (project_id, formative_field)
+          SELECT id, formative_field FROM projects
         ''');
-
         await customStatement('''
-          INSERT OR IGNORE INTO activity_formative_fields
-            (activity_id, formative_field)
+          INSERT OR IGNORE INTO activity_formative_fields (activity_id, formative_field)
           SELECT a.id, p.formative_field
-          FROM activities a
-          INNER JOIN projects p ON p.id = a.project_id
+          FROM activities a INNER JOIN projects p ON p.id = a.project_id
         ''');
+      }
+      if (from < 3) {
+        await migrator.addColumn(activities, activities.identifier);
+        await migrator.addColumn(activities, activities.occursOn);
       }
     },
     beforeOpen: (details) async {

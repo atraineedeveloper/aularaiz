@@ -86,7 +86,9 @@ class SchoolSelectionScreen extends StatelessWidget {
                                 children: [
                                   Text(
                                     setup.school.name,
-                                    style: Theme.of(context).textTheme.titleLarge,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(

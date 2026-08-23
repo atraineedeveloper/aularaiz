@@ -63,5 +63,6 @@ final class Project {
     return grades.isNotEmpty && targetGrades.containsAll(grades);
   }
 
-  bool allowsActivityField(FormativeField field) => formativeFields.contains(field);
+  bool allowsActivityField(FormativeField field) =>
+      formativeFields.contains(field);
 }

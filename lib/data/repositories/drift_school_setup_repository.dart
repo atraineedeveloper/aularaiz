@@ -78,12 +78,14 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
             ),
           );
 
-      await database.into(database.schoolContexts).insert(
-        SchoolContextsCompanion(
-          schoolId: Value(school.id),
-          schoolYearId: Value(schoolYear.id),
-        ),
-      );
+      await database
+          .into(database.schoolContexts)
+          .insert(
+            SchoolContextsCompanion(
+              schoolId: Value(school.id),
+              schoolYearId: Value(schoolYear.id),
+            ),
+          );
     });
   }
 

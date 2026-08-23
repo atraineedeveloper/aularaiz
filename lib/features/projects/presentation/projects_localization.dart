@@ -59,9 +59,8 @@ extension ProjectsLocalization on AppLocalizations {
   String get methodologyProblemBased => _english
       ? 'Problem-Based Learning (PBL)'
       : 'Aprendizaje Basado en Problemas (ABP)';
-  String get methodologyServiceLearning => _english
-      ? 'Service Learning'
-      : 'Aprendizaje Servicio (AS)';
+  String get methodologyServiceLearning =>
+      _english ? 'Service Learning' : 'Aprendizaje Servicio (AS)';
 
   String get formativeFieldUnspecified =>
       _english ? 'Unspecified' : 'Sin especificar';
@@ -78,13 +77,11 @@ extension ProjectsLocalization on AppLocalizations {
   String get axisInclusion => _english ? 'Inclusion' : 'Inclusión';
   String get axisCriticalThinking =>
       _english ? 'Critical thinking' : 'Pensamiento crítico';
-  String get axisCriticalInterculturality => _english
-      ? 'Critical interculturality'
-      : 'Interculturalidad crítica';
+  String get axisCriticalInterculturality =>
+      _english ? 'Critical interculturality' : 'Interculturalidad crítica';
   String get axisGenderEquality =>
       _english ? 'Gender equality' : 'Igualdad de género';
-  String get axisHealthyLife =>
-      _english ? 'Healthy life' : 'Vida saludable';
+  String get axisHealthyLife => _english ? 'Healthy life' : 'Vida saludable';
   String get axisCulturesReadingWriting => _english
       ? 'Cultures through reading and writing'
       : 'Apropiación de las culturas a través de la lectura y la escritura';

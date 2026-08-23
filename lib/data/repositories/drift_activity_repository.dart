@@ -93,10 +93,11 @@ final class DriftActivityRepository implements ActivityRepository {
     final roster = await (database.select(
       database.activityRoster,
     )..where((table) => table.activityId.equals(row.id))).get();
-    final fieldRow = await (database.select(database.activityFormativeFields)
-          ..where((table) => table.activityId.equals(row.id))
-          ..limit(1))
-        .getSingleOrNull();
+    final fieldRow =
+        await (database.select(database.activityFormativeFields)
+              ..where((table) => table.activityId.equals(row.id))
+              ..limit(1))
+            .getSingleOrNull();
     final formativeField = fieldRow?.formativeField ?? await _legacyField(row);
     return Activity(
       id: row.id,

@@ -426,7 +426,9 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                         selected: _fields.contains(field),
                         onSelected: (selected) {
                           setState(() {
-                            selected ? _fields.add(field) : _fields.remove(field);
+                            selected
+                                ? _fields.add(field)
+                                : _fields.remove(field);
                             _fieldsError = false;
                           });
                         },
@@ -737,13 +739,15 @@ String _fieldLabel(FormativeField field, AppLocalizations l10n) =>
       FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
     };
 
-String _axisLabel(ArticulatingAxis axis, AppLocalizations l10n) => switch (axis) {
-  ArticulatingAxis.inclusion => l10n.axisInclusion,
-  ArticulatingAxis.criticalThinking => l10n.axisCriticalThinking,
-  ArticulatingAxis.criticalInterculturality => l10n.axisCriticalInterculturality,
-  ArticulatingAxis.genderEquality => l10n.axisGenderEquality,
-  ArticulatingAxis.healthyLife => l10n.axisHealthyLife,
-  ArticulatingAxis.culturesThroughReadingAndWriting =>
-    l10n.axisCulturesReadingWriting,
-  ArticulatingAxis.artsAndAestheticExperiences => l10n.axisArtsAesthetic,
-};
+String _axisLabel(ArticulatingAxis axis, AppLocalizations l10n) =>
+    switch (axis) {
+      ArticulatingAxis.inclusion => l10n.axisInclusion,
+      ArticulatingAxis.criticalThinking => l10n.axisCriticalThinking,
+      ArticulatingAxis.criticalInterculturality =>
+        l10n.axisCriticalInterculturality,
+      ArticulatingAxis.genderEquality => l10n.axisGenderEquality,
+      ArticulatingAxis.healthyLife => l10n.axisHealthyLife,
+      ArticulatingAxis.culturesThroughReadingAndWriting =>
+        l10n.axisCulturesReadingWriting,
+      ArticulatingAxis.artsAndAestheticExperiences => l10n.axisArtsAesthetic,
+    };

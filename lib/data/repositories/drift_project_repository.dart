@@ -52,12 +52,12 @@ final class DriftProjectRepository implements ProjectRepository {
       await (database.delete(
         database.projectGrades,
       )..where((table) => table.projectId.equals(project.id))).go();
-      await (database.delete(database.projectFormativeFields)
-            ..where((table) => table.projectId.equals(project.id)))
-          .go();
-      await (database.delete(database.projectArticulatingAxes)
-            ..where((table) => table.projectId.equals(project.id)))
-          .go();
+      await (database.delete(
+        database.projectFormativeFields,
+      )..where((table) => table.projectId.equals(project.id))).go();
+      await (database.delete(
+        database.projectArticulatingAxes,
+      )..where((table) => table.projectId.equals(project.id))).go();
       await database.batch((batch) {
         for (final grade in project.targetGrades) {
           batch.insert(
@@ -110,9 +110,7 @@ final class DriftProjectRepository implements ProjectRepository {
       lifecycle: row.lifecycle,
       methodology: row.methodology,
       formativeFields: fields,
-      articulatingAxes: {
-        for (final axis in axisRows) axis.articulatingAxis,
-      },
+      articulatingAxes: {for (final axis in axisRows) axis.articulatingAxis},
       targetGrades: {for (final grade in grades) grade.grade},
     );
   }

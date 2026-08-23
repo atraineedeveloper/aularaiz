@@ -48,8 +48,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
     final entries = controller.entries;
     final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
     final compact = MediaQuery.sizeOf(context).width < 480 || textScale >= 1.5;
-    final loadFailed =
-        controller.failureKind == StudentRosterFailureKind.load;
+    final loadFailed = controller.failureKind == StudentRosterFailureKind.load;
     final canMutate =
         !controller.isSaving && !controller.isLoading && !loadFailed;
 
@@ -84,7 +83,9 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: canMutate ? () => _importStudents(context) : null,
+                    onPressed: canMutate
+                        ? () => _importStudents(context)
+                        : null,
                     child: Text(
                       l10n.importStudentsTitle,
                       textAlign: TextAlign.center,
@@ -95,7 +96,9 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
-                    onPressed: canMutate ? () => _importStudents(context) : null,
+                    onPressed: canMutate
+                        ? () => _importStudents(context)
+                        : null,
                     icon: const Icon(Icons.upload_file_outlined),
                     label: Text(l10n.importStudentsTitle),
                   ),
@@ -120,7 +123,8 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                         ),
                 ),
               ),
-              if (controller.failureKind == StudentRosterFailureKind.mutation) ...[
+              if (controller.failureKind ==
+                  StudentRosterFailureKind.mutation) ...[
                 const SizedBox(height: 12),
                 Text(
                   l10n.studentSaveError,

@@ -7,6 +7,7 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
 import 'package:aularaiz/domain/student/student.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 
 sealed class CreateStudentInGroupResult {
   const CreateStudentInGroupResult();
@@ -49,6 +50,7 @@ final class CreateStudentInGroup {
     required String givenNames,
     required String firstSurname,
     String? secondSurname,
+    StudentSex? sex,
     DateTime? birthDate,
     required PrimaryGrade grade,
     required int listNumber,
@@ -67,6 +69,7 @@ final class CreateStudentInGroup {
       givenNames: givenNames,
       firstSurname: firstSurname,
       secondSurname: _optional(secondSurname),
+      sex: sex,
       birthDate: birthDate,
     );
     final enrollment = Enrollment(

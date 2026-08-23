@@ -68,6 +68,7 @@ final class ImportStudents {
         givenNames: row.draft.givenNames.trim(),
         firstSurname: row.draft.firstSurname.trim(),
         secondSurname: _optional(row.draft.secondSurname),
+        sex: row.sex,
         birthDate: row.birthDate,
       );
       final enrollment = Enrollment(

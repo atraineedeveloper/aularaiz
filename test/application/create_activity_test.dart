@@ -22,10 +22,6 @@ void main() {
         title: 'Comunidad y agua',
         lifecycle: ProjectLifecycle.inProgress,
         methodology: ProjectMethodology.communityProjects,
-        formativeFields: {
-          FormativeField.ethicsNatureAndSocieties,
-          FormativeField.languages,
-        },
         targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
       );
       final activityRepository = _MemoryActivityRepository();
@@ -50,10 +46,12 @@ void main() {
         title: 'Mapa de fuentes de agua',
         formativeField: FormativeField.ethicsNatureAndSocieties,
         targetGrades: {PrimaryGrade.first},
-        rosterDate: DateTime(2026, 8, 22),
+        occursOn: DateTime(2026, 8, 22),
       );
 
       expect(activity.formativeField, FormativeField.ethicsNatureAndSocieties);
+      expect(activity.occursOn, DateTime(2026, 8, 22));
+      expect(activity.identifier, 'A1');
       expect(activity.roster.keys, <String>{'first-active'});
       expect(activity.roster['first-active']?.grade, PrimaryGrade.first);
       expect(activityRepository.saved?.roster.keys, <String>{'first-active'});
@@ -69,7 +67,6 @@ void main() {
         title: 'Agua comunitaria',
         lifecycle: ProjectLifecycle.draft,
         methodology: ProjectMethodology.communityProjects,
-        formativeFields: {FormativeField.languages},
         targetGrades: {PrimaryGrade.first},
       );
       final activityRepository = _MemoryActivityRepository();
@@ -96,9 +93,10 @@ void main() {
         title: 'Actividad 1',
         formativeField: FormativeField.languages,
         targetGrades: {PrimaryGrade.first},
-        rosterDate: DateTime(2026, 8, 23),
+        occursOn: DateTime(2026, 8, 23),
       );
 
+      expect(activity.occursOn, DateTime(2026, 8, 23));
       expect(activity.roster.keys, <String>{'student-1', 'student-2'});
     },
   );
@@ -110,7 +108,6 @@ void main() {
       title: 'Proyecto',
       lifecycle: ProjectLifecycle.draft,
       methodology: ProjectMethodology.unspecified,
-      formativeFields: {FormativeField.languages},
       targetGrades: {PrimaryGrade.first},
     );
     final useCase = CreateActivity(
@@ -126,40 +123,41 @@ void main() {
         title: 'Fuera de alcance',
         formativeField: FormativeField.languages,
         targetGrades: {PrimaryGrade.second},
-        rosterDate: DateTime(2026, 8, 22),
+        occursOn: DateTime(2026, 8, 22),
       ),
       throwsArgumentError,
     );
   });
 
-  test('activity rejects a formative field outside project scope', () async {
-    final project = Project(
-      id: 'project-1',
-      groupId: 'group-1',
-      title: 'Proyecto',
-      lifecycle: ProjectLifecycle.draft,
-      methodology: ProjectMethodology.communityProjects,
-      formativeFields: {FormativeField.languages},
-      targetGrades: {PrimaryGrade.first},
-    );
-    final useCase = CreateActivity(
-      activityRepository: _MemoryActivityRepository(),
-      projectRepository: _MemoryProjectRepository(project),
-      enrollmentRepository: _MemoryEnrollmentRepository(const []),
-      idGenerator: _FixedIdGenerator(),
-    );
+  test(
+    'activity formative field is independent from project metadata',
+    () async {
+      final project = Project(
+        id: 'project-1',
+        groupId: 'group-1',
+        title: 'Proyecto',
+        lifecycle: ProjectLifecycle.draft,
+        methodology: ProjectMethodology.communityProjects,
+        targetGrades: {PrimaryGrade.first},
+      );
+      final useCase = CreateActivity(
+        activityRepository: _MemoryActivityRepository(),
+        projectRepository: _MemoryProjectRepository(project),
+        enrollmentRepository: _MemoryEnrollmentRepository(const []),
+        idGenerator: _FixedIdGenerator(),
+      );
 
-    expect(
-      () => useCase(
+      final activity = await useCase(
         projectId: project.id,
-        title: 'Fuera de campo',
+        title: 'Necesidad de la escuela',
         formativeField: FormativeField.humanAndCommunity,
         targetGrades: {PrimaryGrade.first},
-        rosterDate: DateTime(2026, 8, 22),
-      ),
-      throwsArgumentError,
-    );
-  });
+        occursOn: DateTime(2026, 9, 16),
+      );
+
+      expect(activity.formativeField, FormativeField.humanAndCommunity);
+    },
+  );
 }
 
 Enrollment _enrollment(

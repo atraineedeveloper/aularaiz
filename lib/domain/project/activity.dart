@@ -8,6 +8,8 @@ final class Activity {
     required this.projectId,
     required this.title,
     required this.formativeField,
+    this.identifier,
+    this.occursOn,
     required Set<PrimaryGrade> targetGrades,
     required Iterable<ActivityParticipant> roster,
   }) : targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades),
@@ -29,6 +31,13 @@ final class Activity {
         'Activity title cannot be empty.',
       );
     }
+    if (identifier != null && identifier!.trim().isEmpty) {
+      throw ArgumentError.value(
+        identifier,
+        'identifier',
+        'Activity identifier cannot be blank.',
+      );
+    }
     if (targetGrades.isEmpty) {
       throw ArgumentError.value(
         targetGrades,
@@ -42,8 +51,17 @@ final class Activity {
   final String projectId;
   final String title;
   final FormativeField formativeField;
+  final String? identifier;
+  final DateTime? occursOn;
   final Set<PrimaryGrade> targetGrades;
   final Map<String, ActivityParticipant> roster;
+
+  String get displayIdentifier {
+    final value = identifier?.trim();
+    if (value != null && value.isNotEmpty) return value;
+    final short = id.length <= 4 ? id : id.substring(0, 4);
+    return 'A-${short.toUpperCase()}';
+  }
 
   bool isApplicableTo(String studentId) => roster.containsKey(studentId);
 

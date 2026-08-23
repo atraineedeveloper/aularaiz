@@ -90,6 +90,7 @@ final class StudentImportParser {
             mapping,
             StudentImportField.secondSurname,
           ),
+          sexText: _mappedText(row, mapping, StudentImportField.sex),
           birthDateText: _mappedText(
             row,
             mapping,
@@ -199,6 +200,14 @@ const Map<StudentImportField, Set<String>> _aliases = {
     'apellido 2',
     'second surname',
     'surname 2',
+  },
+  StudentImportField.sex: {
+    'sexo',
+    'genero',
+    'sexo alumno',
+    'genero alumno',
+    'sex',
+    'gender',
   },
   StudentImportField.birthDate: {
     'fecha de nacimiento',

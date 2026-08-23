@@ -35,7 +35,6 @@ final class DriftProjectRepository implements ProjectRepository {
 
   @override
   Future<void> save(Project project) async {
-    final legacyField = _legacyField(project.formativeFields);
     await database.transaction(() async {
       await database
           .into(database.projects)
@@ -46,7 +45,7 @@ final class DriftProjectRepository implements ProjectRepository {
               title: Value(project.title),
               lifecycle: Value(project.lifecycle),
               methodology: Value(project.methodology),
-              formativeField: Value(legacyField),
+              formativeField: const Value(FormativeField.unspecified),
             ),
           );
       await (database.delete(
@@ -68,15 +67,6 @@ final class DriftProjectRepository implements ProjectRepository {
             ),
           );
         }
-        for (final field in project.formativeFields) {
-          batch.insert(
-            database.projectFormativeFields,
-            ProjectFormativeFieldsCompanion(
-              projectId: Value(project.id),
-              formativeField: Value(field),
-            ),
-          );
-        }
         for (final axis in project.articulatingAxes) {
           batch.insert(
             database.projectArticulatingAxes,
@@ -94,30 +84,17 @@ final class DriftProjectRepository implements ProjectRepository {
     final grades = await (database.select(
       database.projectGrades,
     )..where((table) => table.projectId.equals(row.id))).get();
-    final fieldRows = await (database.select(
-      database.projectFormativeFields,
-    )..where((table) => table.projectId.equals(row.id))).get();
-    final axisRows = await (database.select(
+    final axes = await (database.select(
       database.projectArticulatingAxes,
     )..where((table) => table.projectId.equals(row.id))).get();
-    final fields = fieldRows.isEmpty
-        ? <FormativeField>{row.formativeField}
-        : <FormativeField>{for (final field in fieldRows) field.formativeField};
     return Project(
       id: row.id,
       groupId: row.groupId,
       title: row.title,
       lifecycle: row.lifecycle,
       methodology: row.methodology,
-      formativeFields: fields,
-      articulatingAxes: {for (final axis in axisRows) axis.articulatingAxis},
+      articulatingAxes: {for (final axis in axes) axis.articulatingAxis},
       targetGrades: {for (final grade in grades) grade.grade},
     );
-  }
-
-  FormativeField _legacyField(Set<FormativeField> fields) {
-    final values = fields.toList()
-      ..sort((left, right) => left.index.compareTo(right.index));
-    return values.first;
   }
 }

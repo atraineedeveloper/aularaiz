@@ -23,6 +23,7 @@ final class DriftStudentEnrollmentWriter implements StudentEnrollmentWriter {
               givenNames: Value(student.givenNames),
               firstSurname: Value(student.firstSurname),
               secondSurname: Value(student.secondSurname),
+              sex: Value(student.sex),
               birthDate: Value(student.birthDate),
             ),
           );

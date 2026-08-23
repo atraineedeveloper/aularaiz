@@ -51,8 +51,8 @@ jobs:
           schema_dir="$(mktemp -d)"
           dart run drift_dev schema dump lib/data/local/app_database.dart "$schema_dir/"
           diff -u \
-            drift_schemas/app_database/drift_schema_v2.json \
-            "$schema_dir/drift_schema_v2.json"
+            drift_schemas/app_database/drift_schema_v4.json \
+            "$schema_dir/drift_schema_v4.json"
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

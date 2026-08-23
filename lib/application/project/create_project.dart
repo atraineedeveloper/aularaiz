@@ -2,7 +2,6 @@ import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
-import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
@@ -21,7 +20,6 @@ final class CreateProject {
     required String groupId,
     required String title,
     required ProjectMethodology methodology,
-    required Set<FormativeField> formativeFields,
     Set<ArticulatingAxis> articulatingAxes = const <ArticulatingAxis>{},
     required Set<PrimaryGrade> targetGrades,
   }) async {
@@ -31,7 +29,6 @@ final class CreateProject {
       title: title,
       lifecycle: ProjectLifecycle.draft,
       methodology: methodology,
-      formativeFields: formativeFields,
       articulatingAxes: articulatingAxes,
       targetGrades: targetGrades,
     );

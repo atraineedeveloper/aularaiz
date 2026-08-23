@@ -9,7 +9,9 @@ class Activities extends Table {
     #id,
     onDelete: KeyAction.restrict,
   )();
+  late final identifier = text().nullable()();
   late final title = text()();
+  late final occursOn = dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

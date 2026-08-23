@@ -25,7 +25,11 @@ final class DriftActivityRepository implements ActivityRepository {
     final rows =
         await (database.select(database.activities)
               ..where((table) => table.projectId.equals(projectId))
-              ..orderBy([(table) => OrderingTerm.asc(table.title)]))
+              ..orderBy([
+                (table) => OrderingTerm.asc(table.occursOn),
+                (table) => OrderingTerm.asc(table.identifier),
+                (table) => OrderingTerm.asc(table.title),
+              ]))
             .get();
     final result = <Activity>[];
     for (final row in rows) {
@@ -43,7 +47,9 @@ final class DriftActivityRepository implements ActivityRepository {
             ActivitiesCompanion(
               id: Value(activity.id),
               projectId: Value(activity.projectId),
+              identifier: Value(activity.identifier),
               title: Value(activity.title),
+              occursOn: Value(activity.occursOn),
             ),
           );
       await database
@@ -70,8 +76,6 @@ final class DriftActivityRepository implements ActivityRepository {
             ),
           );
         }
-      });
-      await database.batch((batch) {
         for (final participant in activity.roster.values) {
           batch.insert(
             database.activityRoster,
@@ -102,7 +106,9 @@ final class DriftActivityRepository implements ActivityRepository {
     return Activity(
       id: row.id,
       projectId: row.projectId,
+      identifier: row.identifier,
       title: row.title,
+      occursOn: row.occursOn,
       formativeField: formativeField,
       targetGrades: {for (final grade in grades) grade.grade},
       roster: [

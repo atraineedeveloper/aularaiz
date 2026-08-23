@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:aularaiz/application/reports/report_models.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 
@@ -79,6 +80,7 @@ final class GroupExportRenderer {
       final values = <Object?>[
         student.listNumber,
         student.displayName,
+        _sexLabel(student.sex),
         student.grade.number,
         student.attendance.present,
         student.attendance.absent,
@@ -119,6 +121,7 @@ final class GroupExportRenderer {
         ? <Object?>[
             'List number',
             'Student',
+            'Sex',
             'Grade',
             'Present',
             'Absent',
@@ -136,6 +139,7 @@ final class GroupExportRenderer {
         : <Object?>[
             'N. de lista',
             'Alumno',
+            'Sexo',
             'Grado',
             'Presentes',
             'Ausencias',
@@ -158,6 +162,14 @@ final class GroupExportRenderer {
       );
     }
     return headers;
+  }
+
+  String _sexLabel(StudentSex? sex) {
+    return switch (sex) {
+      StudentSex.male => english ? 'Male' : 'Masculino',
+      StudentSex.female => english ? 'Female' : 'Femenino',
+      null => '',
+    };
   }
 
   String _formulaSafe(String value) {

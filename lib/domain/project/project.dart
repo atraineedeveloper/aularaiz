@@ -1,6 +1,5 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
-import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 
@@ -11,11 +10,9 @@ final class Project {
     required this.title,
     required this.lifecycle,
     required this.methodology,
-    required Set<FormativeField> formativeFields,
     Set<ArticulatingAxis> articulatingAxes = const <ArticulatingAxis>{},
     required Set<PrimaryGrade> targetGrades,
-  }) : formativeFields = Set<FormativeField>.unmodifiable(formativeFields),
-       articulatingAxes = Set<ArticulatingAxis>.unmodifiable(articulatingAxes),
+  }) : articulatingAxes = Set<ArticulatingAxis>.unmodifiable(articulatingAxes),
        targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'Project id cannot be empty.');
@@ -34,13 +31,6 @@ final class Project {
         'Project title cannot be empty.',
       );
     }
-    if (formativeFields.isEmpty) {
-      throw ArgumentError.value(
-        formativeFields,
-        'formativeFields',
-        'Project must include at least one formative field.',
-      );
-    }
     if (targetGrades.isEmpty) {
       throw ArgumentError.value(
         targetGrades,
@@ -55,14 +45,10 @@ final class Project {
   final String title;
   final ProjectLifecycle lifecycle;
   final ProjectMethodology methodology;
-  final Set<FormativeField> formativeFields;
   final Set<ArticulatingAxis> articulatingAxes;
   final Set<PrimaryGrade> targetGrades;
 
   bool allowsActivityGrades(Set<PrimaryGrade> grades) {
     return grades.isNotEmpty && targetGrades.containsAll(grades);
   }
-
-  bool allowsActivityField(FormativeField field) =>
-      formativeFields.contains(field);
 }

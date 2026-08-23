@@ -208,10 +208,5 @@ const Map<StudentImportField, Set<String>> _aliases = {
     'birth date',
     'date of birth',
   },
-  StudentImportField.grade: {
-    'grado',
-    'grado escolar',
-    'grade',
-    'school grade',
-  },
+  StudentImportField.grade: {'grado', 'grado escolar', 'grade', 'school grade'},
 };

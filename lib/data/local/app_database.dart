@@ -11,6 +11,7 @@ import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:drift/drift.dart';
 
@@ -58,7 +59,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 3;
+  static const int currentSchemaVersion = 4;
 
   final StorageProfile? storageProfile;
 
@@ -97,6 +98,9 @@ final class AppDatabase extends _$AppDatabase {
       if (from < 3) {
         await migrator.addColumn(activities, activities.identifier);
         await migrator.addColumn(activities, activities.occursOn);
+      }
+      if (from < 4) {
+        await migrator.addColumn(students, students.sex);
       }
     },
     beforeOpen: (details) async {

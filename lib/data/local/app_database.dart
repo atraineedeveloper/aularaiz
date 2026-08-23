@@ -1,4 +1,5 @@
-import 'package:aularaiz/data/local/database_connection.dart';
+import 'package:aularaiz/data/local/database_connection_stub.dart'
+    if (dart.library.ui) 'package:aularaiz/data/local/database_connection.dart';
 import 'package:aularaiz/data/local/schema/schema.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
@@ -35,17 +36,17 @@ part 'app_database.g.dart';
   ],
 )
 final class AppDatabase extends _$AppDatabase {
-  AppDatabase._(super.executor, {this.storageProfile});
+  AppDatabase(super.executor, {this.storageProfile});
 
   factory AppDatabase.production() {
-    return AppDatabase._(
+    return AppDatabase(
       openAulaRaizConnection(StorageProfile.production),
       storageProfile: StorageProfile.production,
     );
   }
 
   factory AppDatabase.demo() {
-    return AppDatabase._(
+    return AppDatabase(
       openAulaRaizConnection(StorageProfile.demo),
       storageProfile: StorageProfile.demo,
     );
@@ -55,7 +56,7 @@ final class AppDatabase extends _$AppDatabase {
     QueryExecutor executor, {
     StorageProfile? storageProfile,
   }) {
-    return AppDatabase._(executor, storageProfile: storageProfile);
+    return AppDatabase(executor, storageProfile: storageProfile);
   }
 
   static const int currentSchemaVersion = 1;

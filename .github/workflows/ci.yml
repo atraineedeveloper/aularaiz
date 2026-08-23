@@ -33,10 +33,24 @@ jobs:
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |
-          dart format lib test integration_test
-          git diff --exit-code -- lib test integration_test
+          dart format bin lib test integration_test
+          git diff --exit-code -- bin lib test integration_test
       - run: flutter analyze
       - run: flutter test
+      - name: Validate automation CLI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart run bin/aularaiz_agent.dart --help > /tmp/aularaiz-agent-help.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/aularaiz-agent-help.json', encoding='utf-8') as handle:
+              payload = json.load(handle)
+          assert payload['schema'] == 'aularaiz.automation/v1'
+          assert payload['kind'] == 'help'
+          PY
+      - name: Validate standalone automation agent compilation
+        run: dart compile exe bin/aularaiz_agent.dart -o /tmp/aularaiz-agent
 
   android-build:
     runs-on: ubuntu-latest
@@ -69,6 +83,11 @@ jobs:
       - run: dart run build_runner build
       - run: flutter gen-l10n
       - run: flutter build windows --release
+      - name: Build standalone automation agent
+        shell: pwsh
+        run: |
+          dart compile exe bin/aularaiz_agent.dart -o build\windows\x64\runner\Release\aularaiz-agent.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Automation agent compilation failed.' }
       - name: Validate Windows installer build
         shell: pwsh
         run: |

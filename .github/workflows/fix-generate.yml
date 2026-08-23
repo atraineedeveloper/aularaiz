@@ -1,0 +1,39 @@
+name: Regenerate primary workflow artifacts
+
+on:
+  push:
+    branches: [fix/primary-teacher-workflow]
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: fix/primary-teacher-workflow
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: dart run drift_dev make-migrations
+      - run: flutter gen-l10n
+      - run: dart format bin lib test integration_test
+      - name: Commit generated artifacts and formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to regenerate."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: regenerate schema v2 artifacts"
+          git push origin HEAD:fix/primary-teacher-workflow

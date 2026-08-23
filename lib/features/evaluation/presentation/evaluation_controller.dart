@@ -1,4 +1,5 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
@@ -11,6 +12,7 @@ import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:flutter/foundation.dart';
 
@@ -84,12 +86,14 @@ final class EvaluationController extends ChangeNotifier {
     required StudentRepository studentRepository,
     required EvaluationRepository evaluationRepository,
     required SaveActivityEvaluation saveActivityEvaluation,
+    EnrollmentRepository? enrollmentRepository,
     String? initialActivityId,
   }) : _projectRepository = projectRepository,
        _activityRepository = activityRepository,
        _studentRepository = studentRepository,
        _evaluationRepository = evaluationRepository,
        _saveActivityEvaluation = saveActivityEvaluation,
+       _enrollmentRepository = enrollmentRepository,
        _initialActivityId = initialActivityId;
 
   final ProjectRepository _projectRepository;
@@ -97,6 +101,7 @@ final class EvaluationController extends ChangeNotifier {
   final StudentRepository _studentRepository;
   final EvaluationRepository _evaluationRepository;
   final SaveActivityEvaluation _saveActivityEvaluation;
+  final EnrollmentRepository? _enrollmentRepository;
   final String? _initialActivityId;
 
   TeachingGroup? _group;
@@ -258,10 +263,14 @@ final class EvaluationController extends ChangeNotifier {
   }
 
   Future<void> _loadSelectedRows() async {
-    final selected = _selected;
+    var selected = _selected;
     if (selected == null) {
       _rows = const [];
       return;
+    }
+
+    if (selected.activity.roster.isEmpty) {
+      selected = await _repairEmptyRoster(selected);
     }
 
     final evaluations = await _evaluationRepository.listForActivity(
@@ -295,5 +304,74 @@ final class EvaluationController extends ChangeNotifier {
       return leftName.compareTo(rightName);
     });
     _rows = List<EvaluationStudentRow>.unmodifiable(result);
+  }
+
+  Future<EvaluationActivityOption> _repairEmptyRoster(
+    EvaluationActivityOption option,
+  ) async {
+    final repository = _enrollmentRepository;
+    final group = _group;
+    if (repository == null || group == null) return option;
+
+    final enrollments = await repository.findByGroupId(group.id);
+    final eligible = enrollments
+        .where(
+          (enrollment) =>
+              option.activity.targetGrades.contains(enrollment.grade),
+        )
+        .toList();
+    if (eligible.isEmpty) return option;
+
+    final reference = _bestRosterDate(eligible);
+    final participants = <ActivityParticipant>[
+      for (final enrollment in eligible)
+        if (enrollment.isActiveOn(reference))
+          ActivityParticipant(
+            studentId: enrollment.studentId,
+            grade: enrollment.grade,
+          ),
+    ];
+    if (participants.isEmpty) return option;
+
+    final repaired = Activity(
+      id: option.activity.id,
+      projectId: option.activity.projectId,
+      title: option.activity.title,
+      formativeField: option.activity.formativeField,
+      targetGrades: option.activity.targetGrades,
+      roster: participants,
+    );
+    await _activityRepository.save(repaired);
+
+    final updated = EvaluationActivityOption(
+      project: option.project,
+      activity: repaired,
+    );
+    _selected = updated;
+    _options = List<EvaluationActivityOption>.unmodifiable([
+      for (final current in _options)
+        if (current.activity.id == repaired.id) updated else current,
+    ]);
+    return updated;
+  }
+
+  DateTime _bestRosterDate(List<Enrollment> eligible) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    if (eligible.any((enrollment) => enrollment.isActiveOn(today))) {
+      return today;
+    }
+
+    final upcoming =
+        eligible
+            .map((enrollment) => enrollment.startsOn)
+            .where((date) => date.isAfter(today))
+            .toList()
+          ..sort();
+    if (upcoming.isNotEmpty) return upcoming.first;
+
+    final starts = eligible.map((enrollment) => enrollment.startsOn).toList()
+      ..sort();
+    return starts.last;
   }
 }

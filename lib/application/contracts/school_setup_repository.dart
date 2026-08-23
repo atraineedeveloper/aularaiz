@@ -17,3 +17,17 @@ abstract interface class SchoolSetupRepository {
     required SchoolYear schoolYear,
   });
 }
+
+abstract interface class EditableSchoolSetupRepository {
+  Future<void> updateSchool(School school);
+}
+
+extension SchoolSetupRepositoryEditing on SchoolSetupRepository {
+  Future<void> updateSchool(School school) {
+    final repository = this;
+    if (repository is EditableSchoolSetupRepository) {
+      return repository.updateSchool(school);
+    }
+    throw UnsupportedError('This school repository does not support editing.');
+  }
+}

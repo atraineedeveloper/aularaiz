@@ -37,6 +37,7 @@ final class DriftStudentRepository implements StudentRepository {
             givenNames: Value(student.givenNames),
             firstSurname: Value(student.firstSurname),
             secondSurname: Value(student.secondSurname),
+            sex: Value(student.sex),
             birthDate: Value(student.birthDate),
           ),
         );
@@ -48,6 +49,7 @@ final class DriftStudentRepository implements StudentRepository {
       givenNames: row.givenNames,
       firstSurname: row.firstSurname,
       secondSurname: row.secondSurname,
+      sex: row.sex,
       birthDate: row.birthDate,
     );
   }

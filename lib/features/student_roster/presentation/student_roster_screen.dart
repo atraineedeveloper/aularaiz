@@ -1,5 +1,10 @@
+import 'package:aularaiz/application/student_import/import_students.dart';
+import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/features/student_import/presentation/student_import_controller.dart';
+import 'package:aularaiz/features/student_import/presentation/student_import_localization.dart';
+import 'package:aularaiz/features/student_import/presentation/student_import_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -58,6 +63,17 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
               Text(
                 l10n.studentsTitle,
                 style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: controller.isSaving
+                      ? null
+                      : () => _importStudents(context),
+                  icon: const Icon(Icons.upload_file_outlined),
+                  label: Text(l10n.importStudentsTitle),
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
@@ -136,6 +152,26 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       grade: draft.grade,
       listNumber: draft.listNumber,
     );
+  }
+
+  Future<void> _importStudents(BuildContext context) async {
+    final previewBuilder = context.read<StudentImportPreviewBuilder>();
+    final importStudents = context.read<ImportStudents>();
+    final imported = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => StudentImportController(
+            group: widget.group,
+            previewBuilder: previewBuilder,
+            importStudents: importStudents,
+          ),
+          child: const StudentImportScreen(),
+        ),
+      ),
+    );
+    if (imported == true && context.mounted) {
+      await context.read<StudentRosterController>().load(widget.group);
+    }
   }
 
   Future<void> _editStudent(

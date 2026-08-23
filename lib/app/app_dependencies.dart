@@ -6,6 +6,7 @@ import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
+import 'package:aularaiz/application/contracts/student_enrollment_batch_writer.dart';
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
@@ -19,6 +20,8 @@ import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/application/student_import/import_students.dart';
+import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
@@ -31,6 +34,7 @@ import 'package:aularaiz/data/repositories/drift_evaluation_repository.dart';
 import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
+import 'package:aularaiz/data/repositories/drift_student_enrollment_batch_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
@@ -97,6 +101,10 @@ class AppDependencies extends StatelessWidget {
           create: (context) =>
               DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
         ),
+        Provider<StudentEnrollmentBatchWriter>(
+          create: (context) =>
+              DriftStudentEnrollmentBatchWriter(context.read<AppDatabase>()),
+        ),
         Provider<ReportProjectionBuilder>(
           create: (context) => ReportProjectionBuilder(
             schoolSetupRepository: context.read<SchoolSetupRepository>(),
@@ -144,6 +152,21 @@ class AppDependencies extends StatelessWidget {
         Provider<ReactivateStudentInGroup>(
           create: (context) => ReactivateStudentInGroup(
             enrollStudent: context.read<EnrollStudent>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<StudentImportPreviewBuilder>(
+          create: (context) => StudentImportPreviewBuilder(
+            schoolYearRepository: context.read<SchoolYearRepository>(),
+            enrollmentRepository: context.read<EnrollmentRepository>(),
+            studentRepository: context.read<StudentRepository>(),
+          ),
+        ),
+        Provider<ImportStudents>(
+          create: (context) => ImportStudents(
+            previewBuilder: context.read<StudentImportPreviewBuilder>(),
+            schoolYearRepository: context.read<SchoolYearRepository>(),
+            batchWriter: context.read<StudentEnrollmentBatchWriter>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

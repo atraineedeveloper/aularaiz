@@ -103,17 +103,23 @@ final class StudentRecordController extends ChangeNotifier {
       for (final day in attendance) {
         final status = day.statusFor(student.id);
         if (status == null) continue;
-        attendanceEvidence.add(AttendanceEvidence(date: day.date, status: status));
+        attendanceEvidence.add(
+          AttendanceEvidence(date: day.date, status: status),
+        );
       }
       attendanceEvidence.sort((left, right) => right.date.compareTo(left.date));
       _attendanceEvidence = List<AttendanceEvidence>.unmodifiable(
         attendanceEvidence,
       );
 
-      final evaluations = await _evaluationRepository.listForStudent(student.id);
+      final evaluations = await _evaluationRepository.listForStudent(
+        student.id,
+      );
       final evaluationEvidence = <EvaluationEvidence>[];
       for (final evaluation in evaluations) {
-        final activity = await _activityRepository.findById(evaluation.activityId);
+        final activity = await _activityRepository.findById(
+          evaluation.activityId,
+        );
         if (activity == null) continue;
         evaluationEvidence.add(
           EvaluationEvidence(

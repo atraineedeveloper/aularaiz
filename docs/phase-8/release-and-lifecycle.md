@@ -62,8 +62,9 @@ Windows updates are user-initiated from Preferences. AulaRaíz:
 2. compares the release tag with the installed semantic version;
 3. accepts only the exact versioned Windows installer and checksum asset names;
 4. downloads the SHA-256 file and installer;
-5. verifies the installer bytes before launching it;
-6. opens the installer so the user remains in control of the update.
+5. verifies the installer bytes against the published SHA-256;
+6. verifies that Windows reports a valid Authenticode signature on the installer;
+7. opens the verified installer so the user remains in control of the update.
 
 Drafts and prereleases are ignored by the update parser. Android updates are distributed through Google Play rather than this Windows flow.
 

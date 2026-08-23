@@ -57,10 +57,22 @@ jobs:
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |
-          dart format lib test integration_test
-          git diff --exit-code -- lib test integration_test
+          dart format bin lib test integration_test
+          git diff --exit-code -- bin lib test integration_test
       - run: flutter analyze
       - run: flutter test
+      - name: Validate automation CLI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          dart run bin/aularaiz_agent.dart --help > /tmp/aularaiz-agent-help.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/aularaiz-agent-help.json', encoding='utf-8') as handle:
+              payload = json.load(handle)
+          assert payload['schema'] == 'aularaiz.automation/v1'
+          assert payload['kind'] == 'help'
+          PY
 
   android:
     runs-on: ubuntu-latest
@@ -130,6 +142,11 @@ jobs:
       - run: flutter gen-l10n
       - name: Build Windows release
         run: flutter build windows --release
+      - name: Build standalone automation agent
+        shell: pwsh
+        run: |
+          dart compile exe bin/aularaiz_agent.dart -o build\windows\x64\runner\Release\aularaiz-agent.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Automation agent compilation failed.' }
       - name: Require and import Windows signing certificate
         shell: pwsh
         env:
@@ -158,13 +175,19 @@ jobs:
             Select-Object -First 1
           if ($null -eq $signTool) { throw 'signtool.exe was not found.' }
           "SIGNTOOL_PATH=$($signTool.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-      - name: Sign Windows executable
+      - name: Sign Windows executables
         shell: pwsh
         env:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         run: |
-          & $env:SIGNTOOL_PATH sign /fd SHA256 /f $env:WINDOWS_PFX_PATH /p $env:WINDOWS_CERTIFICATE_PASSWORD /tr http://timestamp.digicert.com /td SHA256 build\windows\x64\runner\Release\aularaiz.exe
-          if ($LASTEXITCODE -ne 0) { throw 'Signing AulaRaíz executable failed.' }
+          $executables = @(
+            'build\windows\x64\runner\Release\aularaiz.exe',
+            'build\windows\x64\runner\Release\aularaiz-agent.exe'
+          )
+          foreach ($executable in $executables) {
+            & $env:SIGNTOOL_PATH sign /fd SHA256 /f $env:WINDOWS_PFX_PATH /p $env:WINDOWS_CERTIFICATE_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $executable
+            if ($LASTEXITCODE -ne 0) { throw "Signing failed: $executable" }
+          }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y

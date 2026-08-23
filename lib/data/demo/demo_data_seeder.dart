@@ -4,6 +4,7 @@ import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/project/articulating_axis.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
@@ -45,8 +46,11 @@ final class DemoDataSeeder {
     await database.delete(database.studentRecords).go();
     await database.delete(database.activityEvaluations).go();
     await database.delete(database.activityRoster).go();
+    await database.delete(database.activityFormativeFields).go();
     await database.delete(database.activityGrades).go();
     await database.delete(database.activities).go();
+    await database.delete(database.projectArticulatingAxes).go();
+    await database.delete(database.projectFormativeFields).go();
     await database.delete(database.projectGrades).go();
     await database.delete(database.projects).go();
     await database.delete(database.attendanceEntries).go();
@@ -55,6 +59,7 @@ final class DemoDataSeeder {
     await database.delete(database.students).go();
     await database.delete(database.groupGrades).go();
     await database.delete(database.teachingGroups).go();
+    await database.delete(database.schoolContexts).go();
     await database.delete(database.schoolYears).go();
     await database.delete(database.schools).go();
   }
@@ -78,8 +83,16 @@ final class DemoDataSeeder {
           SchoolYearsCompanion(
             id: const Value('demo-year-2026'),
             label: const Value('2026-2027'),
-            startsOn: Value(DateTime(2026, 8, 31)),
-            endsOn: Value(DateTime(2027, 7, 15)),
+            startsOn: Value(DateTime(2026, 8, 1)),
+            endsOn: Value(DateTime(2027, 7, 31)),
+          ),
+        );
+    await database
+        .into(database.schoolContexts)
+        .insert(
+          const SchoolContextsCompanion(
+            schoolId: Value('demo-school'),
+            schoolYearId: Value('demo-year-2026'),
           ),
         );
     await database
@@ -152,7 +165,7 @@ final class DemoDataSeeder {
             groupId: const Value('demo-group'),
             grade: const Value(PrimaryGrade.first),
             listNumber: const Value(1),
-            startsOn: Value(DateTime(2026, 8, 31)),
+            startsOn: Value(DateTime(2026, 8, 1)),
           ),
         );
     await database
@@ -164,7 +177,7 @@ final class DemoDataSeeder {
             groupId: const Value('demo-group'),
             grade: const Value(PrimaryGrade.second),
             listNumber: const Value(2),
-            startsOn: Value(DateTime(2026, 8, 31)),
+            startsOn: Value(DateTime(2026, 8, 1)),
           ),
         );
     await database
@@ -176,7 +189,7 @@ final class DemoDataSeeder {
             groupId: const Value('demo-group'),
             grade: const Value(PrimaryGrade.first),
             listNumber: const Value(3),
-            startsOn: Value(DateTime(2026, 8, 31)),
+            startsOn: Value(DateTime(2026, 8, 1)),
           ),
         );
 
@@ -230,6 +243,30 @@ final class DemoDataSeeder {
           ),
         );
     await database
+        .into(database.projectFormativeFields)
+        .insert(
+          const ProjectFormativeFieldsCompanion(
+            projectId: Value('demo-project-community'),
+            formativeField: Value(FormativeField.humanAndCommunity),
+          ),
+        );
+    await database
+        .into(database.projectFormativeFields)
+        .insert(
+          const ProjectFormativeFieldsCompanion(
+            projectId: Value('demo-project-community'),
+            formativeField: Value(FormativeField.languages),
+          ),
+        );
+    await database
+        .into(database.projectArticulatingAxes)
+        .insert(
+          const ProjectArticulatingAxesCompanion(
+            projectId: Value('demo-project-community'),
+            articulatingAxis: Value(ArticulatingAxis.criticalThinking),
+          ),
+        );
+    await database
         .into(database.projectGrades)
         .insert(
           const ProjectGradesCompanion(
@@ -252,6 +289,14 @@ final class DemoDataSeeder {
             id: Value('demo-activity-map'),
             projectId: Value('demo-project-community'),
             title: Value('Mapa de nuestra comunidad'),
+          ),
+        );
+    await database
+        .into(database.activityFormativeFields)
+        .insert(
+          const ActivityFormativeFieldsCompanion(
+            activityId: Value('demo-activity-map'),
+            formativeField: Value(FormativeField.humanAndCommunity),
           ),
         );
     await database

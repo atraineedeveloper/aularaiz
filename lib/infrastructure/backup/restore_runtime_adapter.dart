@@ -22,10 +22,7 @@ final class RestoreRuntimeAdapter {
     }
   }
 
-  Future<void> openAndMigrate(
-    File file,
-    StorageProfile profile,
-  ) async {
+  Future<void> openAndMigrate(File file, StorageProfile profile) async {
     final database = AppDatabase.forTesting(
       NativeDatabase(file),
       storageProfile: profile,

@@ -38,8 +38,11 @@ final class AulaRaizStorageLayout {
   File safetyRestoreFile(String requestId) =>
       _file('$_prefix.restore-$requestId.safety.sqlite');
 
-  File originalRestoreFile(String requestId) =>
-      _file('$_prefix.restore-$requestId.original.sqlite');
+  File applyRestoreTempFile(String requestId) =>
+      _file('$_prefix.restore-$requestId.apply.tmp.sqlite');
+
+  File rollbackRestoreTempFile(String requestId) =>
+      _file('$_prefix.restore-$requestId.rollback.tmp.sqlite');
 
   File sidecar(File database, String suffix) => File('${database.path}$suffix');
 

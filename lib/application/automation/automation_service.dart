@@ -151,8 +151,7 @@ final class AutomationService {
       recommendations.add(
         _recommendation(
           code: 'review-attendance-absences',
-          message:
-              'Revisar patrones de inasistencia y el contexto antes de definir apoyos.',
+          message: 'Revisar patrones de inasistencia y el contexto antes de definir apoyos.',
           metric: 'students_with_two_or_more_absences',
           threshold: 2,
           targets: absenceTargets,
@@ -163,8 +162,7 @@ final class AutomationService {
       recommendations.add(
         _recommendation(
           code: 'review-attendance-lateness',
-          message:
-              'Revisar retardos recurrentes y su contexto antes de tomar medidas.',
+          message: 'Revisar retardos recurrentes y su contexto antes de tomar medidas.',
           metric: 'students_with_two_or_more_lates',
           threshold: 2,
           targets: lateTargets,
@@ -175,8 +173,7 @@ final class AutomationService {
       recommendations.add(
         _recommendation(
           code: 'review-learning-support',
-          message:
-              'Revisar evidencias de aprendizaje marcadas como requiere apoyo y considerar ajustes pedagógicos.',
+          message: 'Revisar evidencias de aprendizaje marcadas como requiere apoyo y considerar ajustes pedagógicos.',
           metric: 'students_with_requires_support_evaluations',
           threshold: 1,
           targets: supportTargets,
@@ -187,8 +184,7 @@ final class AutomationService {
       recommendations.add(
         _recommendation(
           code: 'review-non-delivery',
-          message:
-              'Revisar actividades no entregadas distinguiéndolas del nivel de logro.',
+          message: 'Revisar actividades no entregadas distinguiéndolas del nivel de logro.',
           metric: 'students_with_not_delivered_activities',
           threshold: 1,
           targets: nonDeliveryTargets,
@@ -199,8 +195,7 @@ final class AutomationService {
       recommendations.add(
         _recommendation(
           code: 'review-pending-evaluations',
-          message:
-              'Revisar evaluaciones pendientes para mantener el seguimiento formativo al día.',
+          message: 'Revisar evaluaciones pendientes para mantener el seguimiento formativo al día.',
           metric: 'students_with_two_or_more_pending_evaluations',
           threshold: 2,
           targets: pendingTargets,
@@ -222,8 +217,7 @@ final class AutomationService {
               ),
             )
             .toList(growable: false),
-        'interpretation':
-            'Las recomendaciones son señales para revisión docente; no son diagnósticos ni decisiones automáticas.',
+        'interpretation': 'Las recomendaciones son señales para revisión docente; no son diagnósticos ni decisiones automáticas.',
       },
     );
   }
@@ -293,7 +287,11 @@ final class AutomationService {
 
   Future<TeachingGroup> _requireGroup(String groupId) async {
     if (groupId.trim().isEmpty) {
-      throw ArgumentError.value(groupId, 'groupId', 'Group id cannot be empty.');
+      throw ArgumentError.value(
+        groupId,
+        'groupId',
+        'Group id cannot be empty.',
+      );
     }
     final group = await _teachingGroupRepository.findById(groupId);
     if (group == null) throw StateError('Teaching group does not exist.');
@@ -405,10 +403,8 @@ Map<String, Object?> _personalTarget(StudentReportRow row) => <String, Object?>{
   'grade': row.grade.number,
 };
 
-Map<String, Object?> _personalStudentIdentity(Student student) => <String, Object?>{
-  'student_id': student.id,
-  'name': student.displayName,
-};
+Map<String, Object?> _personalStudentIdentity(Student student) =>
+    <String, Object?>{'student_id': student.id, 'name': student.displayName};
 
 DateTime _month(DateTime value) => DateTime(value.year, value.month);
 

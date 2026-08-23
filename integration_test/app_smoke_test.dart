@@ -51,6 +51,12 @@ final class _EmptySchoolSetupRepository implements SchoolSetupRepository {
   Future<InitialSchoolSetup?> loadInitialSetup() async => null;
 
   @override
+  Future<List<InitialSchoolSetup>> listSetups() async => const [];
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async => null;
+
+  @override
   Future<void> saveInitialSetup({
     required School school,
     required SchoolYear schoolYear,

@@ -100,10 +100,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
               const SizedBox(height: 18),
               Semantics(
                 liveRegion: true,
-                child: _StatusPanel(
-                  message: _status!,
-                  isError: _statusIsError,
-                ),
+                child: _StatusPanel(message: _status!, isError: _statusIsError),
               ),
             ],
             if (_selection != null && !_restorePrepared) ...[
@@ -257,8 +254,8 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
         RestoreProblem.invalidRequest ||
         RestoreProblem.missingRestoreArtifact ||
         RestoreProblem.stagedArtifactChanged => strings.invalidBackup,
-        RestoreProblem.applyFailed || RestoreProblem.rollbackFailed =>
-          strings.restoreError,
+        RestoreProblem.applyFailed ||
+        RestoreProblem.rollbackFailed => strings.restoreError,
       };
     }
     return strings.genericError;
@@ -311,10 +308,7 @@ class _BackupPreviewCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
-            _PreviewRow(
-              label: strings.createdLabel,
-              value: '$date · $time',
-            ),
+            _PreviewRow(label: strings.createdLabel, value: '$date · $time'),
             _PreviewRow(
               label: strings.schemaLabel,
               value: manifest.schemaVersion.toString(),
@@ -353,10 +347,7 @@ class _PreviewRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 130,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.labelLarge),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(value)),
@@ -423,11 +414,15 @@ class _StatusPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(
-              isError ? Icons.error_outline_rounded : Icons.info_outline_rounded,
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.info_outline_rounded,
               color: foreground,
             ),
             const SizedBox(width: 10),
-            Expanded(child: Text(message, style: TextStyle(color: foreground))),
+            Expanded(
+              child: Text(message, style: TextStyle(color: foreground)),
+            ),
           ],
         ),
       ),
@@ -445,9 +440,8 @@ final class _BackupRestoreStrings {
 
   final bool spanish;
 
-  String get title => spanish
-      ? 'Copia de seguridad y restauración'
-      : 'Backup and restore';
+  String get title =>
+      spanish ? 'Copia de seguridad y restauración' : 'Backup and restore';
   String get description => spanish
       ? 'Guarda una copia completa de AulaRaíz o prepara una restauración validada. La restauración se aplica al volver a abrir la app.'
       : 'Save a complete AulaRaíz backup or prepare a validated restore. The restore is applied when you reopen the app.';
@@ -465,15 +459,12 @@ final class _BackupRestoreStrings {
   String get backupReady => spanish
       ? 'La copia fue reconocida y es compatible. Se validará completamente al preparar la restauración.'
       : 'The backup was recognized and is compatible. It will be fully validated when the restore is prepared.';
-  String get previewTitle =>
-      spanish ? 'Copia reconocida' : 'Recognized backup';
+  String get previewTitle => spanish ? 'Copia reconocida' : 'Recognized backup';
   String get createdLabel => spanish ? 'Creada' : 'Created';
   String get schemaLabel => spanish ? 'Versión de datos' : 'Data version';
   String get profileLabel => spanish ? 'Perfil' : 'Profile';
-  String get productionProfile =>
-      spanish ? 'Datos principales' : 'Main data';
-  String get demoProfile =>
-      spanish ? 'Datos de demostración' : 'Demo data';
+  String get productionProfile => spanish ? 'Datos principales' : 'Main data';
+  String get demoProfile => spanish ? 'Datos de demostración' : 'Demo data';
   String get previewWarning => spanish
       ? 'Al preparar la restauración, AulaRaíz hará una validación SQLite completa. Solo entonces dejará la copia lista para el próximo arranque; los datos actuales todavía no se reemplazan.'
       : 'When preparing the restore, AulaRaíz performs a full SQLite validation. Only then is the backup staged for the next launch; current data is not replaced yet.';

@@ -122,7 +122,7 @@ Future<void> main(List<String> arguments) async {
     exitCode = 2;
   } on StateError catch (error) {
     _writeJson(
-      _errorEnvelope('data-state', '${error.message}'),
+      _errorEnvelope('data-state', error.message),
       pretty: pretty,
     );
     exitCode = 4;

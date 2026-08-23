@@ -97,10 +97,7 @@ final class BackupManifest {
 }
 
 final class BackupInspection {
-  const BackupInspection({
-    required this.manifest,
-    required this.databaseBytes,
-  });
+  const BackupInspection({required this.manifest, required this.databaseBytes});
 
   final BackupManifest manifest;
   final Uint8List databaseBytes;
@@ -272,7 +269,8 @@ final class AulaRaizBackupCodec {
   }
 
   void _validateSqlite(Uint8List bytes) {
-    if (bytes.length < _sqliteHeader.length || !_startsWith(bytes, _sqliteHeader)) {
+    if (bytes.length < _sqliteHeader.length ||
+        !_startsWith(bytes, _sqliteHeader)) {
       throw const BackupFormatException(
         BackupFormatProblem.invalidDatabase,
         'Backup payload is not a SQLite 3 database.',

@@ -90,12 +90,10 @@ class _SettingsSection extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.child,
-    this.subtitle,
   });
 
   final IconData icon;
   final String title;
-  final String? subtitle;
   final Widget child;
 
   @override
@@ -122,21 +120,9 @@ class _SettingsSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
               ],

@@ -9,8 +9,10 @@ La Fase 9 añade una interfaz de automatización local para AulaRaíz sin conver
 - **Datos minimizados por defecto:** ningún comando de grupo devuelve nombres o identificadores de alumnos salvo que se use `--include-personal-data`.
 - **Mutaciones en dry-run:** `student-note` sólo previsualiza la operación mientras no se indique `--apply`.
 - **Sin eco de texto sensible:** el contenido de una observación o acuerdo familiar nunca se reproduce en la salida JSON; sólo se informa su longitud.
+- **Entrada sensible por stdin:** `--text-stdin` evita colocar observaciones/acuerdos en la línea de comandos o en el historial del shell.
 - **Recomendaciones con evidencia:** cada sugerencia contiene una métrica y un umbral observable. Son señales para revisión docente, no diagnósticos ni decisiones automáticas.
 - **Sin SQL en comandos:** `bin/aularaiz_agent.dart` no conoce tablas ni sentencias SQL. La composición abre la base y entrega repositorios/casos de uso al servicio de automatización.
+- **Sin autorización implícita para IA remota:** poder obtener una proyección local no autoriza enviarla a ChatGPT, otra IA, telemetría o un servicio cloud. Cualquier integración remota requiere un diseño y consentimiento separados.
 
 ## Contrato de salida
 
@@ -79,27 +81,31 @@ La salida agregada informa cuántos alumnos activan cada señal. Los nombres/IDs
 
 ### Agregar una observación o acuerdo familiar
 
-Dry-run por defecto:
+Dry-run por defecto. Para texto sensible se recomienda stdin, de modo que el contenido no forme parte del historial de comandos:
 
 ```powershell
-.\tool\aularaiz-agent.ps1 student-note `
+$note = Read-Host "Texto de la observación"
+$note | .\tool\aularaiz-agent.ps1 student-note `
   --student student-id `
   --kind observation `
-  --text "Revisar avance lector" `
+  --text-stdin `
   --date 2026-09-05 `
   --pretty
 ```
 
-Para escribir realmente:
+Para escribir realmente se añade `--apply`:
 
 ```powershell
-.\tool\aularaiz-agent.ps1 student-note `
+$note = Read-Host "Texto de la observación"
+$note | .\tool\aularaiz-agent.ps1 student-note `
   --student student-id `
   --kind observation `
-  --text "Revisar avance lector" `
+  --text-stdin `
   --date 2026-09-05 `
   --apply
 ```
+
+También se admite `--text "..."` para automatizaciones controladas, pero puede quedar visible en el historial del shell o en información del proceso y no es la opción recomendada para contenido P3.
 
 Tipos admitidos: `observation` y `family-agreement`.
 
@@ -128,6 +134,8 @@ El ejecutable de producción `aularaiz-agent.exe` se compila como binario indepe
 | `student-note` | tipo, fecha, longitud del texto y estado dry-run/aplicado | `--include-personal-data` añade identidad del alumno; el texto nunca se devuelve | Sí, sólo con `--apply` |
 
 Ninguna proyección expone fecha de nacimiento, CCT, localidad, fortalezas, dificultades, apoyos, observaciones previas o acuerdos familiares existentes.
+
+La salida del agente sigue siendo información escolar local. `--include-personal-data` sólo amplía la proyección local; no constituye permiso para copiarla a una IA o servicio remoto.
 
 ## Integración y pruebas
 

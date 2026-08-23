@@ -81,7 +81,7 @@ Future<void> main(List<String> arguments) async {
           occurredAt: _parseDate(
             invocation.options['date'] ?? _todayLabel(DateTime.now()),
           ),
-          text: invocation.requireOption('text'),
+          text: await _resolveNoteText(invocation),
           apply: invocation.apply,
           privacy: privacy,
         ),
@@ -168,6 +168,7 @@ final class _Invocation {
       'include-personal-data',
       'pretty',
       'help',
+      'text-stdin',
     };
 
     String? command;
@@ -214,6 +215,7 @@ final class _Invocation {
   bool get includePersonalData => flags.contains('include-personal-data');
   bool get pretty => flags.contains('pretty');
   bool get help => flags.contains('help');
+  bool get textFromStdin => flags.contains('text-stdin');
   String? get databasePath => options['database'];
 
   StorageProfile get profile {
@@ -231,6 +233,22 @@ final class _Invocation {
     }
     return value;
   }
+}
+
+Future<String> _resolveNoteText(_Invocation invocation) async {
+  final inlineText = invocation.options['text'];
+  if (inlineText != null && invocation.textFromStdin) {
+    throw _UsageFailure('Usa --text o --text-stdin, pero no ambos.');
+  }
+  if (!invocation.textFromStdin) {
+    return invocation.requireOption('text');
+  }
+
+  final text = await utf8.decoder.bind(stdin).join();
+  if (text.trim().isEmpty) {
+    throw _UsageFailure('--text-stdin no recibió contenido.');
+  }
+  return text;
 }
 
 DateTime _parseMonth(String value) {
@@ -294,7 +312,11 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
       },
       <String, Object?>{
         'name': 'student-note',
-        'required': <String>['--student', '--kind', '--text'],
+        'required': <String>[
+          '--student',
+          '--kind',
+          '--text <value> | --text-stdin',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
     ],

@@ -34,6 +34,14 @@ final class RestoreStagingService {
 
   static int _sequence = 0;
 
+  Future<bool> hasPendingRequest() async {
+    final layout = await AulaRaizStorageLayout.resolve(
+      _profile,
+      directoryProvider: _directoryProvider,
+    );
+    return layout.restoreMarkerFile.exists();
+  }
+
   RestorePreview inspect(Uint8List backupBytes) {
     final inspection = _codec.inspect(backupBytes);
     _validateCompatibility(inspection.manifest);

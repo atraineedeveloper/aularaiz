@@ -36,73 +36,82 @@ void main() {
     );
   });
 
-  test('imports Masculino and Femenino into typed student sex values', () async {
-    final preview = await builder.build(
-      group: group,
-      sourceName: 'alumnos.csv',
-      sheetName: null,
-      drafts: const [
-        StudentImportDraft(
-          sourceRow: 2,
-          givenNames: 'Luis',
-          firstSurname: 'Pérez',
-          secondSurname: '',
-          sexText: 'Masculino',
-          birthDateText: '',
-          gradeText: '5',
-          listNumberText: '1',
-        ),
-        StudentImportDraft(
-          sourceRow: 3,
-          givenNames: 'Ana',
-          firstSurname: 'López',
-          secondSurname: '',
-          sexText: 'Femenino',
-          birthDateText: '',
-          gradeText: '5',
-          listNumberText: '2',
-        ),
-      ],
-    );
+  test(
+    'imports Masculino and Femenino into typed student sex values',
+    () async {
+      final preview = await builder.build(
+        group: group,
+        sourceName: 'alumnos.csv',
+        sheetName: null,
+        drafts: const [
+          StudentImportDraft(
+            sourceRow: 2,
+            givenNames: 'Luis',
+            firstSurname: 'Pérez',
+            secondSurname: '',
+            sexText: 'Masculino',
+            birthDateText: '',
+            gradeText: '5',
+            listNumberText: '1',
+          ),
+          StudentImportDraft(
+            sourceRow: 3,
+            givenNames: 'Ana',
+            firstSurname: 'López',
+            secondSurname: '',
+            sexText: 'Femenino',
+            birthDateText: '',
+            gradeText: '5',
+            listNumberText: '2',
+          ),
+        ],
+      );
 
-    expect(preview.canConfirm, isTrue);
-    expect(preview.rows[0].sex, StudentSex.male);
-    expect(preview.rows[1].sex, StudentSex.female);
-  });
+      expect(preview.canConfirm, isTrue);
+      expect(preview.rows[0].sex, StudentSex.male);
+      expect(preview.rows[1].sex, StudentSex.female);
+    },
+  );
 
-  test('blank sex remains compatible while invalid values are rejected', () async {
-    final preview = await builder.build(
-      group: group,
-      sourceName: 'alumnos.csv',
-      sheetName: null,
-      drafts: const [
-        StudentImportDraft(
-          sourceRow: 2,
-          givenNames: 'Luis',
-          firstSurname: 'Pérez',
-          secondSurname: '',
-          birthDateText: '',
-          gradeText: '5',
-          listNumberText: '1',
-        ),
-        StudentImportDraft(
-          sourceRow: 3,
-          givenNames: 'Ana',
-          firstSurname: 'López',
-          secondSurname: '',
-          sexText: 'desconocido',
-          birthDateText: '',
-          gradeText: '5',
-          listNumberText: '2',
-        ),
-      ],
-    );
+  test(
+    'blank sex remains compatible while invalid values are rejected',
+    () async {
+      final preview = await builder.build(
+        group: group,
+        sourceName: 'alumnos.csv',
+        sheetName: null,
+        drafts: const [
+          StudentImportDraft(
+            sourceRow: 2,
+            givenNames: 'Luis',
+            firstSurname: 'Pérez',
+            secondSurname: '',
+            birthDateText: '',
+            gradeText: '5',
+            listNumberText: '1',
+          ),
+          StudentImportDraft(
+            sourceRow: 3,
+            givenNames: 'Ana',
+            firstSurname: 'López',
+            secondSurname: '',
+            sexText: 'desconocido',
+            birthDateText: '',
+            gradeText: '5',
+            listNumberText: '2',
+          ),
+        ],
+      );
 
-    expect(preview.rows[0].sex, isNull);
-    expect(preview.rows[0].issues, isNot(contains(StudentImportIssue.invalidSex)));
-    expect(preview.rows[1].issues, contains(StudentImportIssue.invalidSex));
-    expect(preview.canConfirm, isFalse);
-  });
+      expect(preview.rows[0].sex, isNull);
+      expect(
+        preview.rows[0].issues,
+        isNot(contains(StudentImportIssue.invalidSex)),
+      );
+      expect(preview.rows[1].issues, contains(StudentImportIssue.invalidSex));
+      expect(preview.canConfirm, isFalse);
+    },
+  );
 }
 
 final class _SchoolYearRepository implements SchoolYearRepository {

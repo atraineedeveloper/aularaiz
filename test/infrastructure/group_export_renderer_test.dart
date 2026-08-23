@@ -50,23 +50,20 @@ void main() {
     );
   });
 
-  test(
-    'CSV neutralizes formula-like user text and exports sex without sensitive follow-up',
-    () {
-      const renderer = GroupExportRenderer(english: false);
-      final bytes = renderer.renderCsv(report, includeSensitiveFollowUp: false);
-      final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
-      final rows = const CsvDecoder(fieldDelimiter: ';').convert(text);
+  test('CSV neutralizes formula-like user text and exports sex without sensitive follow-up', () {
+    const renderer = GroupExportRenderer(english: false);
+    final bytes = renderer.renderCsv(report, includeSensitiveFollowUp: false);
+    final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
+    final rows = const CsvDecoder(fieldDelimiter: ';').convert(text);
 
-      expect(rows, hasLength(2));
-      expect(rows.first, hasLength(16));
-      expect(rows.first, contains('Sexo'));
-      expect(rows.first, isNot(contains('Fortalezas')));
-      expect(rows[1][0], '7');
-      expect(rows[1][1], "'=HYPERLINK(\"https://example.com\")");
-      expect(rows[1][2], 'Femenino');
-    },
-  );
+    expect(rows, hasLength(2));
+    expect(rows.first, hasLength(16));
+    expect(rows.first, contains('Sexo'));
+    expect(rows.first, isNot(contains('Fortalezas')));
+    expect(rows[1][0], '7');
+    expect(rows[1][1], "'=HYPERLINK(\"https://example.com\")");
+    expect(rows[1][2], 'Femenino');
+  });
 
   test('CSV includes sensitive columns only after explicit opt-in', () {
     const renderer = GroupExportRenderer(english: false);

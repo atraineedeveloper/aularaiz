@@ -14,6 +14,8 @@ final class BackupSelection {
 }
 
 abstract interface class BackupRestoreGateway {
+  Future<bool> hasPendingRestore();
+
   Future<bool> exportBackup();
 
   Future<BackupSelection?> selectBackup();
@@ -33,6 +35,11 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   final CreateBackup _createBackup;
   final RestoreStagingService _restoreStagingService;
   final ReportPublicationService _publicationService;
+
+  @override
+  Future<bool> hasPendingRestore() {
+    return _restoreStagingService.hasPendingRequest();
+  }
 
   @override
   Future<bool> exportBackup() async {

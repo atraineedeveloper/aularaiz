@@ -349,7 +349,7 @@ class _EvaluationEditorState extends State<_EvaluationEditor> {
             if (_deliveryStatus == DeliveryStatus.delivered) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<AchievementLevel?>(
-                value: _achievement,
+                initialValue: _achievement,
                 decoration: InputDecoration(
                   labelText: l10n.evaluationAchievement,
                 ),

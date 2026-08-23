@@ -33,7 +33,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class SchoolWorkspaceScreen extends StatefulWidget {
-  const SchoolWorkspaceScreen({super.key});
+  const SchoolWorkspaceScreen({
+    required this.schoolId,
+    required this.onChooseSchool,
+    super.key,
+  });
+
+  final String schoolId;
+  final VoidCallback onChooseSchool;
 
   @override
   State<SchoolWorkspaceScreen> createState() => _SchoolWorkspaceScreenState();
@@ -49,7 +56,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       _loadStarted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        context.read<SchoolWorkspaceController>().load();
+        context.read<SchoolWorkspaceController>().load(widget.schoolId);
       });
     }
   }
@@ -70,6 +77,11 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          tooltip: _label(context, 'Cambiar escuela', 'Choose another school'),
+          onPressed: widget.onChooseSchool,
+          icon: const Icon(Icons.arrow_back_rounded),
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -89,71 +101,64 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: controller.isSaving ? null : _showCreateGroupDialog,
-        icon: const Icon(Icons.add),
-        label: Text(l10n.createGroup),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.groupsTitle,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              if (controller.error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  l10n.groupSaveError,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 20),
-              Expanded(
-                child: controller.groups.isEmpty
-                    ? _EmptyGroups(message: l10n.groupsEmpty)
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          final columns = constraints.maxWidth >= 1100
-                              ? 3
-                              : constraints.maxWidth >= 680
-                              ? 2
-                              : 1;
-                          final width =
-                              (constraints.maxWidth - (columns - 1) * 16) /
-                              columns;
-
-                          return SingleChildScrollView(
-                            child: Wrap(
-                              spacing: 16,
-                              runSpacing: 16,
-                              children: [
-                                for (final group in controller.groups)
-                                  SizedBox(
-                                    width: width,
-                                    child: _GroupCard(
-                                      group: group,
-                                      onStudents: () => _openStudents(group),
-                                      onAttendance: () =>
-                                          _openAttendance(group),
-                                      onProjects: () => _openProjects(group),
-                                      onEvaluation: () =>
-                                          _openEvaluation(group),
-                                      onRecords: () =>
-                                          _openStudentRecords(group),
-                                      onReports: () => _openReports(group),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          );
-                        },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1120),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    _label(context, 'Mi grupo', 'My class'),
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _label(
+                      context,
+                      'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
+                      'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
+                    ),
+                  ),
+                  if (controller.error != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.groupSaveError,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
                       ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: controller.groups.isEmpty
+                        ? _EmptyGroup(
+                            isSaving: controller.isSaving,
+                            onCreate: _showCreateGroupDialog,
+                          )
+                        : ListView.separated(
+                            itemCount: controller.groups.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 16),
+                            itemBuilder: (context, index) {
+                              final group = controller.groups[index];
+                              return _GroupCard(
+                                group: group,
+                                onStudents: () => _openStudents(group),
+                                onAttendance: () => _openAttendance(group),
+                                onProjects: () => _openProjects(group),
+                                onEvaluation: () => _openEvaluation(group),
+                                onRecords: () => _openStudentRecords(group),
+                                onReports: () => _openReports(group),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -161,13 +166,15 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   }
 
   Future<void> _showCreateGroupDialog() async {
+    final controller = context.read<SchoolWorkspaceController>();
+    if (!controller.canCreateGroup) return;
     final draft = await showDialog<_GroupDraft>(
       context: context,
       builder: (context) => const _CreateGroupDialog(),
     );
     if (draft == null || !mounted) return;
 
-    await context.read<SchoolWorkspaceController>().createGroup(
+    await controller.createGroup(
       name: draft.name,
       grades: draft.grades,
       shift: draft.shift,
@@ -224,20 +231,28 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => ChangeNotifierProvider(
+        builder: (routeContext) => ChangeNotifierProvider(
           create: (_) => ProjectsController(
             projectRepository: projectRepository,
             activityRepository: activityRepository,
             createProject: createProject,
             createActivity: createActivity,
           ),
-          child: ProjectsScreen(group: group),
+          child: ProjectsScreen(
+            group: group,
+            onEvaluateActivity: (activity) {
+              _openEvaluation(group, initialActivityId: activity.id);
+            },
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _openEvaluation(TeachingGroup group) async {
+  Future<void> _openEvaluation(
+    TeachingGroup group, {
+    String? initialActivityId,
+  }) async {
     final projectRepository = context.read<ProjectRepository>();
     final activityRepository = context.read<ActivityRepository>();
     final studentRepository = context.read<StudentRepository>();
@@ -253,6 +268,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             studentRepository: studentRepository,
             evaluationRepository: evaluationRepository,
             saveActivityEvaluation: saveActivityEvaluation,
+            initialActivityId: initialActivityId,
           ),
           child: EvaluationScreen(group: group),
         ),
@@ -295,31 +311,58 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   }
 }
 
-class _EmptyGroups extends StatelessWidget {
-  const _EmptyGroups({required this.message});
+class _EmptyGroup extends StatelessWidget {
+  const _EmptyGroup({required this.isSaving, required this.onCreate});
 
-  final String message;
+  final bool isSaving;
+  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.groups_2_outlined,
-              size: 64,
-              color: Theme.of(context).colorScheme.secondary,
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.groups_2_outlined,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _label(
+                    context,
+                    'Configura el grupo que atiendes',
+                    'Set up the class you teach',
+                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _label(
+                    context,
+                    'Podrás elegir uno o varios grados si trabajas en un grupo multigrado.',
+                    'You may choose one or more grades if you teach a multigrade class.',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton.icon(
+                  onPressed: isSaving ? null : onCreate,
+                  icon: const Icon(Icons.add_rounded),
+                  label: Text(
+                    _label(context, 'Configurar mi grupo', 'Set up my class'),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -354,17 +397,19 @@ class _GroupCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: Text(
-                    group.name,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                Text(
+                  group.name,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 Chip(
                   label: Text(
@@ -386,25 +431,55 @@ class _GroupCard extends StatelessWidget {
                   Chip(label: Text(_gradeLabel(grade, l10n))),
               ],
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
+            Text(
+              _label(context, 'Acciones del día', 'Daily actions'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 10,
               runSpacing: 10,
               children: [
-                FilledButton.tonalIcon(
+                FilledButton.icon(
                   onPressed: onAttendance,
-                  icon: const Icon(Icons.fact_check_outlined),
-                  label: Text(l10n.openAttendance),
+                  icon: const Icon(Icons.fact_check_rounded),
+                  label: Text(
+                    _label(context, 'Tomar asistencia', 'Take attendance'),
+                  ),
                 ),
+                FilledButton.icon(
+                  onPressed: onEvaluation,
+                  icon: const Icon(Icons.assignment_turned_in_rounded),
+                  label: Text(
+                    _label(
+                      context,
+                      'Evaluar actividades',
+                      'Evaluate activities',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 32),
+            Text(
+              _label(context, 'Gestión del grupo', 'Class management'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
                 FilledButton.tonalIcon(
                   onPressed: onProjects,
                   icon: const Icon(Icons.auto_awesome_motion_outlined),
                   label: Text(l10n.openProjects),
                 ),
                 FilledButton.tonalIcon(
-                  onPressed: onEvaluation,
-                  icon: const Icon(Icons.assignment_turned_in_outlined),
-                  label: Text(l10n.openEvaluation),
+                  onPressed: onStudents,
+                  icon: const Icon(Icons.groups_rounded),
+                  label: Text(l10n.openStudents),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: onRecords,
@@ -415,11 +490,6 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onReports,
                   icon: const Icon(Icons.summarize_outlined),
                   label: Text(l10n.openReports),
-                ),
-                OutlinedButton.icon(
-                  onPressed: onStudents,
-                  icon: const Icon(Icons.groups_rounded),
-                  label: Text(l10n.openStudents),
                 ),
               ],
             ),
@@ -456,7 +526,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
     final l10n = AppLocalizations.of(context);
 
     return AlertDialog(
-      title: Text(l10n.createGroup),
+      title: Text(_label(context, 'Configurar mi grupo', 'Set up my class')),
       content: SizedBox(
         width: 520,
         child: Form(
@@ -537,8 +607,8 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
 
     Navigator.of(context).pop(
       _GroupDraft(
-        name: _nameController.text,
-        shift: _shiftController.text,
+        name: _nameController.text.trim(),
+        shift: _shiftController.text.trim(),
         grades: Set<PrimaryGrade>.of(_grades),
       ),
     );
@@ -566,4 +636,10 @@ String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {
     PrimaryGrade.fifth => l10n.grade5,
     PrimaryGrade.sixth => l10n.grade6,
   };
+}
+
+String _label(BuildContext context, String spanish, String english) {
+  return Localizations.localeOf(context).languageCode == 'en'
+      ? english
+      : spanish;
 }

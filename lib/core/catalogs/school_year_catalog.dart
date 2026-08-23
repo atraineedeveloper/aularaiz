@@ -11,25 +11,21 @@ final class SchoolYearPreset {
 }
 
 abstract final class SchoolYearCatalog {
-  static final SchoolYearPreset basicEducation2026_2027 = SchoolYearPreset(
-    label: '2026-2027',
-    startsOn: DateTime(2026, 8, 31),
-    endsOn: DateTime(2027, 7, 9),
+  static SchoolYearPreset forStartYear(int year) => SchoolYearPreset(
+    label: '$year-${year + 1}',
+    startsOn: DateTime(year, 8, 1),
+    endsOn: DateTime(year + 1, 7, 31),
   );
+
+  static final List<SchoolYearPreset> basicEducationOptions =
+      List<SchoolYearPreset>.unmodifiable([
+        for (var year = 2024; year <= 2030; year++) forStartYear(year),
+      ]);
 
   static SchoolYearPreset currentBasicEducation([DateTime? now]) {
     final date = now ?? DateTime.now();
-    final preset = basicEducation2026_2027;
-
-    // The 2026-2027 SEP calendar is the currently supported official
-    // basic-education cycle. Keeping this explicit prevents guessed dates from
-    // silently becoming school records. Add the next official preset only
-    // after SEP publishes it.
-    if (!date.isBefore(DateTime(2026, 7, 1)) &&
-        date.isBefore(DateTime(2027, 8, 1))) {
-      return preset;
-    }
-
-    return preset;
+    final startYear = date.month >= 8 ? date.year : date.year - 1;
+    final supportedYear = startYear.clamp(2024, 2030);
+    return forStartYear(supportedYear);
   }
 }

@@ -94,8 +94,8 @@ void main() {
   });
 
   test('invalid batch is rejected before the atomic writer is called', () async {
-    expect(
-      () => useCase(
+    await expectLater(
+      useCase(
         group: group,
         sourceName: 'lista.csv',
         sheetName: null,

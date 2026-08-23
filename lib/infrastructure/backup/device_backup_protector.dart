@@ -210,7 +210,9 @@ final class DeviceBackupProtector implements BackupProtector {
     late final Uint8List nonce;
     late final Uint8List mac;
     try {
-      nonce = Uint8List.fromList(base64Decode(_requiredString(header, 'nonce')));
+      nonce = Uint8List.fromList(
+        base64Decode(_requiredString(header, 'nonce')),
+      );
       mac = Uint8List.fromList(base64Decode(_requiredString(header, 'mac')));
     } on BackupProtectionException {
       rethrow;

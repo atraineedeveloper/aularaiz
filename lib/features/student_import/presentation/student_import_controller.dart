@@ -42,6 +42,16 @@ final class StudentImportController extends ChangeNotifier {
   Object? get error => _error;
   StudentImportFormatProblem? get formatProblem => _formatProblem;
 
+  bool get mappingHasDuplicateColumns {
+    final mapping = _mapping;
+    if (mapping == null) return false;
+    final mapped = mapping.columns.values.whereType<int>().toList();
+    return mapped.length != mapped.toSet().length;
+  }
+
+  bool get mappingReady =>
+      _mapping?.hasRequiredFields == true && !mappingHasDuplicateColumns;
+
   Future<void> loadFile({
     required String fileName,
     required List<int> bytes,
@@ -59,7 +69,7 @@ final class StudentImportController extends ChangeNotifier {
       _mapping = mapping;
       _drafts = const [];
       _preview = null;
-      if (mapping.hasRequiredFields) {
+      if (mappingReady) {
         await _reparseAndPreview();
       }
     } on StudentImportFormatException catch (error) {
@@ -83,7 +93,7 @@ final class StudentImportController extends ChangeNotifier {
     _mapping = mapping.withColumn(field, column);
     _error = null;
     _formatProblem = null;
-    if (_mapping!.hasRequiredFields) {
+    if (mappingReady) {
       await _reparseAndPreview();
     } else {
       _drafts = const [];
@@ -151,7 +161,7 @@ final class StudentImportController extends ChangeNotifier {
   Future<void> _reparseAndPreview() async {
     final table = _table;
     final mapping = _mapping;
-    if (table == null || mapping == null || !mapping.hasRequiredFields) return;
+    if (table == null || mapping == null || !mappingReady) return;
     _drafts = _parser.parseDrafts(table, mapping);
     await _rebuildPreview();
   }

@@ -147,9 +147,8 @@ final class StudentImportPreviewRow {
   final DateTime? birthDate;
   final Set<StudentImportIssue> issues;
 
-  bool get hasErrors => issues.any(
-    (issue) => issue.severity == StudentImportIssueSeverity.error,
-  );
+  bool get hasErrors =>
+      issues.any((issue) => issue.severity == StudentImportIssueSeverity.error);
 
   bool get hasWarnings => issues.any(
     (issue) => issue.severity == StudentImportIssueSeverity.warning,
@@ -174,13 +173,11 @@ final class StudentImportPreview {
 
   int get readyCount => rows.where((row) => row.canImport).length;
 
-  int get errorCount => rows
-      .where((row) => row.draft.included && row.hasErrors)
-      .length;
+  int get errorCount =>
+      rows.where((row) => row.draft.included && row.hasErrors).length;
 
-  int get warningCount => rows
-      .where((row) => row.draft.included && row.hasWarnings)
-      .length;
+  int get warningCount =>
+      rows.where((row) => row.draft.included && row.hasWarnings).length;
 
   bool get canConfirm => includedCount > 0 && errorCount == 0;
 }

@@ -142,7 +142,9 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).importFileUnreadable)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).importFileUnreadable),
+        ),
       );
     }
   }
@@ -184,9 +186,8 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
     final result = await controller.confirmImport();
     if (!mounted) return;
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.importFailed)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.importFailed)));
       return;
     }
 
@@ -396,7 +397,8 @@ class _MappingDropdown extends StatelessWidget {
       key: ValueKey('${field.name}-$selected-${mapping.headers.length}'),
       initialValue: selected,
       decoration: InputDecoration(
-        labelText: '${l10n.importFieldLabel(field)}${requiredField ? ' *' : ''}',
+        labelText:
+            '${l10n.importFieldLabel(field)}${requiredField ? ' *' : ''}',
       ),
       items: [
         DropdownMenuItem(value: -1, child: Text(l10n.importNotMapped)),
@@ -459,10 +461,7 @@ class _PreviewSection extends StatelessWidget {
             if (preview.rows.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 28),
-                child: Text(
-                  l10n.importNoRows,
-                  textAlign: TextAlign.center,
-                ),
+                child: Text(l10n.importNoRows, textAlign: TextAlign.center),
               )
             else
               ListView.separated(
@@ -475,10 +474,8 @@ class _PreviewSection extends StatelessWidget {
                   return _PreviewRowCard(
                     row: row,
                     enabled: enabled,
-                    onIncludedChanged: (included) => onIncludedChanged(
-                      row.draft.sourceRow,
-                      included,
-                    ),
+                    onIncludedChanged: (included) =>
+                        onIncludedChanged(row.draft.sourceRow, included),
                     onEdit: () => onEdit(row),
                   );
                 },

@@ -35,11 +35,7 @@ final class AulaRaizDatabaseFileValidator {
 
     try {
       final result = await Isolate.run(
-        () => _validatePath(
-          file.path,
-          maxSchemaVersion,
-          exactSchemaVersion,
-        ),
+        () => _validatePath(file.path, maxSchemaVersion, exactSchemaVersion),
       );
       return DatabaseFileValidation(schemaVersion: result);
     } on RestoreException {

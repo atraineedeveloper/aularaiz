@@ -5,21 +5,8 @@ import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:flutter/foundation.dart';
-
-final class AttendanceStudentRow {
-  const AttendanceStudentRow({
-    required this.studentId,
-    required this.displayName,
-    required this.listNumber,
-    required this.status,
-  });
-
-  final String studentId;
-  final String displayName;
-  final int listNumber;
-  final AttendanceStatus status;
-}
 
 final class MonthlyAttendanceStudent {
   const MonthlyAttendanceStudent({
@@ -50,40 +37,44 @@ final class AttendanceController extends ChangeNotifier {
   final BuildDailyAttendance _buildDailyAttendance;
 
   TeachingGroup? _group;
-  DateTime _selectedDate = _today();
   DateTime _selectedMonth = DateTime(_today().year, _today().month);
-  DailyAttendance? _attendance;
-  List<AttendanceStudentRow> _rows = const [];
-  List<DailyAttendance> _monthDays = const [];
+  List<DailyAttendance> _savedMonthDays = const [];
+  List<Enrollment> _enrollments = const [];
   List<MonthlyAttendanceStudent> _monthStudents = const [];
+  final Map<DateTime, DailyAttendance> _draftDays = {};
+  final Set<DateTime> _dirtyDates = {};
   bool _isLoading = false;
   bool _isSaving = false;
-  bool _isDirty = false;
   Object? _error;
 
   TeachingGroup? get group => _group;
-  DateTime get selectedDate => _selectedDate;
   DateTime get selectedMonth => _selectedMonth;
-  DailyAttendance? get attendance => _attendance;
-  List<AttendanceStudentRow> get rows => _rows;
-  List<DailyAttendance> get monthDays => _monthDays;
   List<MonthlyAttendanceStudent> get monthStudents => _monthStudents;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
-  bool get isDirty => _isDirty;
+  bool get isDirty => _dirtyDates.isNotEmpty;
   Object? get error => _error;
 
-  int count(AttendanceStatus status) => _attendance?.count(status) ?? 0;
+  List<DateTime> get monthDates {
+    final lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
+    return List<DateTime>.unmodifiable([
+      for (var day = 1; day <= lastDay; day++)
+        if (_isWeekday(DateTime(_selectedMonth.year, _selectedMonth.month, day)))
+          DateTime(_selectedMonth.year, _selectedMonth.month, day),
+    ]);
+  }
+
+  int get recordedDays {
+    final dates = <DateTime>{
+      for (final day in _savedMonthDays) _normalize(day.date),
+      ..._draftDays.keys,
+    };
+    return dates.length;
+  }
 
   Future<void> load(TeachingGroup group) async {
     _group = group;
-    await _loadDate(_selectedDate);
-  }
-
-  Future<void> selectDate(DateTime date) async {
-    _selectedDate = DateTime(date.year, date.month, date.day);
-    _selectedMonth = DateTime(date.year, date.month);
-    await _loadDate(_selectedDate);
+    await _loadMonth();
   }
 
   Future<void> selectMonth(DateTime month) async {
@@ -91,56 +82,64 @@ final class AttendanceController extends ChangeNotifier {
     await _loadMonth();
   }
 
-  void setStatus(String studentId, AttendanceStatus status) {
-    final attendance = _attendance;
-    if (attendance == null || attendance.statusFor(studentId) == status) return;
-    _attendance = attendance.withStatus(studentId, status);
-    _rows = [
-      for (final row in _rows)
-        if (row.studentId == studentId)
-          AttendanceStudentRow(
-            studentId: row.studentId,
-            displayName: row.displayName,
-            listNumber: row.listNumber,
-            status: status,
-          )
-        else
-          row,
-    ];
-    _isDirty = true;
-    notifyListeners();
+  bool isStudentActiveOn(String studentId, DateTime date) {
+    return _enrollments.any(
+      (enrollment) =>
+          enrollment.studentId == studentId && enrollment.isActiveOn(date),
+    );
   }
 
-  void markAllPresent() {
-    final attendance = _attendance;
+  AttendanceStatus? statusFor(String studentId, DateTime date) {
+    return _attendanceFor(date)?.statusFor(studentId);
+  }
+
+  bool hasAttendanceFor(DateTime date) => _attendanceFor(date) != null;
+
+  bool isDateDirty(DateTime date) => _dirtyDates.contains(_normalize(date));
+
+  Future<void> markDayPresent(DateTime date) async {
+    final attendance = await _ensureDraft(date);
     if (attendance == null || attendance.entries.isEmpty) return;
+
     var next = attendance;
     for (final studentId in attendance.entries.keys) {
       next = next.withStatus(studentId, AttendanceStatus.present);
     }
-    _attendance = next;
-    _rows = [
-      for (final row in _rows)
-        AttendanceStudentRow(
-          studentId: row.studentId,
-          displayName: row.displayName,
-          listNumber: row.listNumber,
-          status: AttendanceStatus.present,
-        ),
-    ];
-    _isDirty = true;
+    final normalized = _normalize(date);
+    _draftDays[normalized] = next;
+    _dirtyDates.add(normalized);
     notifyListeners();
   }
 
-  Future<bool> save() async {
-    final attendance = _attendance;
-    if (attendance == null || _isSaving) return false;
+  Future<void> setMonthStatus(
+    String studentId,
+    DateTime date,
+    AttendanceStatus status,
+  ) async {
+    final normalized = _normalize(date);
+    final attendance = await _ensureDraft(normalized);
+    if (attendance == null || attendance.statusFor(studentId) == null) return;
+    if (attendance.statusFor(studentId) == status &&
+        _dirtyDates.contains(normalized)) {
+      return;
+    }
+
+    _draftDays[normalized] = attendance.withStatus(studentId, status);
+    _dirtyDates.add(normalized);
+    notifyListeners();
+  }
+
+  Future<bool> saveMonth() async {
+    if (_isSaving || _dirtyDates.isEmpty) return false;
     _isSaving = true;
     _error = null;
     notifyListeners();
     try {
-      await _attendanceRepository.save(attendance);
-      _isDirty = false;
+      final dates = _dirtyDates.toList()..sort();
+      for (final date in dates) {
+        final attendance = _draftDays[date];
+        if (attendance != null) await _attendanceRepository.save(attendance);
+      }
       await _loadMonth(notify: false);
       return true;
     } catch (error) {
@@ -152,87 +151,103 @@ final class AttendanceController extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadDate(DateTime date) async {
-    final group = _group;
-    if (group == null) return;
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-    try {
-      _attendance = await _buildDailyAttendance(groupId: group.id, date: date);
-      _rows = await _buildRows(group.id, date, _attendance!);
-      _isDirty = false;
-      await _loadMonth(notify: false);
-    } catch (error) {
-      _error = error;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  Future<void> discardChanges() async {
+    await _loadMonth();
   }
 
-  Future<List<AttendanceStudentRow>> _buildRows(
-    String groupId,
-    DateTime date,
-    DailyAttendance attendance,
-  ) async {
-    final enrollments = await _enrollmentRepository.findByGroupId(groupId);
-    final rows = <AttendanceStudentRow>[];
-    for (final entry in attendance.entries.values) {
-      final student = await _studentRepository.findById(entry.studentId);
-      if (student == null) continue;
-      final matching = enrollments.where(
-        (enrollment) =>
-            enrollment.studentId == entry.studentId &&
-            enrollment.isActiveOn(date),
-      );
-      final listNumber = matching.isEmpty ? 9999 : matching.first.listNumber;
-      rows.add(
-        AttendanceStudentRow(
-          studentId: entry.studentId,
-          displayName: student.displayName,
-          listNumber: listNumber,
-          status: entry.status,
-        ),
-      );
+  Future<DailyAttendance?> _ensureDraft(DateTime date) async {
+    final group = _group;
+    if (group == null) return null;
+    final normalized = _normalize(date);
+    final current = _attendanceFor(normalized);
+    if (current != null) {
+      _draftDays.putIfAbsent(normalized, () => current);
+      return _draftDays[normalized];
     }
-    rows.sort((left, right) => left.listNumber.compareTo(right.listNumber));
-    return List<AttendanceStudentRow>.unmodifiable(rows);
+
+    final built = await _buildDailyAttendance(
+      groupId: group.id,
+      date: normalized,
+    );
+    if (built.entries.isEmpty) return null;
+    _draftDays[normalized] = built;
+    return built;
+  }
+
+  DailyAttendance? _attendanceFor(DateTime date) {
+    final normalized = _normalize(date);
+    final draft = _draftDays[normalized];
+    if (draft != null) return draft;
+    for (final day in _savedMonthDays) {
+      if (_normalize(day.date) == normalized) return day;
+    }
+    return null;
   }
 
   Future<void> _loadMonth({bool notify = true}) async {
     final group = _group;
     if (group == null) return;
-    _monthDays = await _attendanceRepository.listForMonth(
-      group.id,
-      _selectedMonth,
-    );
-    final studentIds = <String>{
-      for (final day in _monthDays) ...day.entries.keys,
-    };
-    final enrollments = await _enrollmentRepository.findByGroupId(group.id);
-    final students = <MonthlyAttendanceStudent>[];
-    for (final studentId in studentIds) {
-      final student = await _studentRepository.findById(studentId);
-      if (student == null) continue;
-      final studentEnrollments = enrollments.where(
-        (enrollment) => enrollment.studentId == studentId,
+    _isLoading = true;
+    _error = null;
+    if (notify) notifyListeners();
+    try {
+      _savedMonthDays = await _attendanceRepository.listForMonth(
+        group.id,
+        _selectedMonth,
       );
-      final listNumber = studentEnrollments.isEmpty
-          ? 9999
-          : studentEnrollments.first.listNumber;
+      _draftDays.clear();
+      _dirtyDates.clear();
+      _enrollments = await _enrollmentRepository.findByGroupId(group.id);
+      _monthStudents = await _buildMonthStudents();
+    } catch (error) {
+      _error = error;
+    } finally {
+      _isLoading = false;
+      if (notify) notifyListeners();
+    }
+  }
+
+  Future<List<MonthlyAttendanceStudent>> _buildMonthStudents() async {
+    final first = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+    final last = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    final overlapping = _enrollments.where((enrollment) {
+      if (enrollment.startsOn.isAfter(last)) return false;
+      final end = enrollment.endsOn;
+      return end == null || !end.isBefore(first);
+    }).toList();
+
+    final byStudent = <String, List<Enrollment>>{};
+    for (final enrollment in overlapping) {
+      byStudent.putIfAbsent(enrollment.studentId, () => []).add(enrollment);
+    }
+
+    final students = <MonthlyAttendanceStudent>[];
+    for (final entry in byStudent.entries) {
+      final student = await _studentRepository.findById(entry.key);
+      if (student == null) continue;
+      entry.value.sort((left, right) => left.startsOn.compareTo(right.startsOn));
       students.add(
         MonthlyAttendanceStudent(
-          studentId: studentId,
+          studentId: entry.key,
           displayName: student.displayName,
-          listNumber: listNumber,
+          listNumber: entry.value.first.listNumber,
         ),
       );
     }
-    students.sort((left, right) => left.listNumber.compareTo(right.listNumber));
-    _monthStudents = List<MonthlyAttendanceStudent>.unmodifiable(students);
-    if (notify) notifyListeners();
+    students.sort((left, right) {
+      final byNumber = left.listNumber.compareTo(right.listNumber);
+      return byNumber != 0
+          ? byNumber
+          : left.displayName.compareTo(right.displayName);
+    });
+    return List<MonthlyAttendanceStudent>.unmodifiable(students);
   }
+
+  static DateTime _normalize(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  static bool _isWeekday(DateTime date) =>
+      date.weekday >= DateTime.monday && date.weekday <= DateTime.friday;
 
   static DateTime _today() {
     final now = DateTime.now();

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
+import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -90,7 +91,36 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('El archivo no es una copia válida de AulaRaíz o está dañado.'),
+      find.text(
+        'El archivo no es una copia válida de AulaRaíz, está dañado o su cifrado fue alterado.',
+      ),
+      findsOneWidget,
+    );
+    expect(gateway.stageCalls, 0);
+  });
+
+  testWidgets('missing encryption key explains installation limitation', (
+    tester,
+  ) async {
+    final gateway = _FakeBackupRestoreGateway(
+      selection: _selection(),
+      selectionError: const BackupProtectionException(
+        BackupProtectionProblem.keyMismatch,
+        'different installation',
+      ),
+    );
+
+    await tester.pumpWidget(
+      _host(gateway: gateway, locale: const Locale('es')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Elegir copia para restaurar'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        'No se encontró la clave local necesaria para abrir esta copia cifrada. Por ahora, solo puede restaurarse en la instalación que la creó.',
+      ),
       findsOneWidget,
     );
     expect(gateway.stageCalls, 0);

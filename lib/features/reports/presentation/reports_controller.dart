@@ -20,7 +20,10 @@ final class ReportsController extends ChangeNotifier {
   final ReportPublicationService _publicationService;
 
   TeachingGroup? _group;
-  DateTime _referenceMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _referenceMonth = DateTime(
+    DateTime.now().year,
+    DateTime.now().month,
+  );
   GroupReportData? _groupReport;
   bool _includeSensitiveFollowUp = false;
   bool _isLoading = false;
@@ -41,18 +44,12 @@ final class ReportsController extends ChangeNotifier {
   }
 
   Future<void> previousMonth() async {
-    _referenceMonth = DateTime(
-      _referenceMonth.year,
-      _referenceMonth.month - 1,
-    );
+    _referenceMonth = DateTime(_referenceMonth.year, _referenceMonth.month - 1);
     await _reloadGroupReport();
   }
 
   Future<void> nextMonth() async {
-    _referenceMonth = DateTime(
-      _referenceMonth.year,
-      _referenceMonth.month + 1,
-    );
+    _referenceMonth = DateTime(_referenceMonth.year, _referenceMonth.month + 1);
     await _reloadGroupReport();
   }
 
@@ -73,7 +70,8 @@ final class ReportsController extends ChangeNotifier {
           includeSensitiveFollowUp: _includeSensitiveFollowUp,
         ),
       );
-      final bytes = await PdfReportRenderer(english: english).renderGroup(report);
+      final bytes = await PdfReportRenderer(english: english)
+          .renderGroup(report);
       return _publicationService.publishPdf(
         bytes: bytes,
         fileName: 'aularaiz-reporte-grupal-${_monthKey()}.pdf',
@@ -96,9 +94,8 @@ final class ReportsController extends ChangeNotifier {
           includeSensitiveFollowUp: _includeSensitiveFollowUp,
         ),
       );
-      final bytes = await PdfReportRenderer(english: english).renderIndividual(
-        report,
-      );
+      final bytes = await PdfReportRenderer(english: english)
+          .renderIndividual(report);
       return _publicationService.publishPdf(
         bytes: bytes,
         fileName: 'aularaiz-reporte-individual-${_monthKey()}.pdf',

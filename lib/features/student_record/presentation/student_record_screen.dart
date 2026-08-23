@@ -1,6 +1,7 @@
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';
@@ -16,7 +17,7 @@ class StudentRecordScreen extends StatefulWidget {
     super.key,
   });
 
-  final dynamic group;
+  final TeachingGroup group;
   final Student student;
 
   @override
@@ -109,12 +110,10 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                         const SizedBox(height: 24),
                         _TimelineSection(
                           controller: controller,
-                          onObservation: () => _addEntry(
-                            StudentRecordEntryKind.observation,
-                          ),
-                          onAgreement: () => _addEntry(
-                            StudentRecordEntryKind.familyAgreement,
-                          ),
+                          onObservation: () =>
+                              _addEntry(StudentRecordEntryKind.observation),
+                          onAgreement: () =>
+                              _addEntry(StudentRecordEntryKind.familyAgreement),
                         ),
                       ],
                     ),
@@ -343,9 +342,8 @@ class _EvidenceSection extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.event_available_outlined),
                   title: Text(
-                    MaterialLocalizations.of(context).formatCompactDate(
-                      evidence.date,
-                    ),
+                    MaterialLocalizations.of(context)
+                        .formatCompactDate(evidence.date),
                   ),
                   trailing: Text(_attendanceLabel(evidence.status, l10n)),
                 ),
@@ -462,9 +460,8 @@ class _TimelineSection extends StatelessWidget {
                   ),
                   subtitle: Text(entry.text),
                   trailing: Text(
-                    MaterialLocalizations.of(context).formatCompactDate(
-                      entry.occurredAt.toLocal(),
-                    ),
+                    MaterialLocalizations.of(context)
+                        .formatCompactDate(entry.occurredAt.toLocal()),
                   ),
                 ),
           ],
@@ -637,10 +634,7 @@ class _EntryDialogState extends State<_EntryDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(l10n.create),
-        ),
+        FilledButton(onPressed: _submit, child: Text(l10n.create)),
       ],
     );
   }
@@ -657,9 +651,8 @@ class _EntryDialogState extends State<_EntryDialog> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.of(context).pop(
-      _EntryDraft(date: _date, text: _textController.text),
-    );
+    Navigator.of(context)
+        .pop(_EntryDraft(date: _date, text: _textController.text));
   }
 }
 

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
+import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/data/local/storage_layout.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/infrastructure/backup/aularaiz_database_file_validator.dart';
@@ -18,18 +19,21 @@ final class RestoreStagingService {
     ApplicationSupportDirectoryProvider directoryProvider =
         getApplicationSupportDirectory,
     AulaRaizBackupCodec codec = const AulaRaizBackupCodec(),
+    BackupProtector protector = const PassThroughBackupProtector(),
     AulaRaizDatabaseFileValidator validator =
         const AulaRaizDatabaseFileValidator(),
   }) : _profile = profile,
        _currentSchemaVersion = currentSchemaVersion,
        _directoryProvider = directoryProvider,
        _codec = codec,
+       _protector = protector,
        _validator = validator;
 
   final StorageProfile _profile;
   final int _currentSchemaVersion;
   final ApplicationSupportDirectoryProvider _directoryProvider;
   final AulaRaizBackupCodec _codec;
+  final BackupProtector _protector;
   final AulaRaizDatabaseFileValidator _validator;
 
   static int _sequence = 0;
@@ -42,14 +46,16 @@ final class RestoreStagingService {
     return layout.restoreMarkerFile.exists();
   }
 
-  RestorePreview inspect(Uint8List backupBytes) {
-    final inspection = _codec.inspect(backupBytes);
+  Future<RestorePreview> inspect(Uint8List backupBytes) async {
+    final clearBackupBytes = await _protector.unprotect(backupBytes);
+    final inspection = _codec.inspect(clearBackupBytes);
     _validateCompatibility(inspection.manifest);
     return RestorePreview(manifest: inspection.manifest);
   }
 
   Future<StagedRestore> stage(Uint8List backupBytes) async {
-    final inspection = _codec.inspect(backupBytes);
+    final clearBackupBytes = await _protector.unprotect(backupBytes);
+    final inspection = _codec.inspect(clearBackupBytes);
     _validateCompatibility(inspection.manifest);
     final preview = RestorePreview(manifest: inspection.manifest);
     final layout = await AulaRaizStorageLayout.resolve(

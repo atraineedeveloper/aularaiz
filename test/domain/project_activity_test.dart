@@ -16,10 +16,6 @@ void main() {
     title: 'Mi comunidad',
     lifecycle: ProjectLifecycle.draft,
     methodology: ProjectMethodology.communityProjects,
-    formativeFields: <FormativeField>{
-      FormativeField.humanAndCommunity,
-      FormativeField.languages,
-    },
     articulatingAxes: <ArticulatingAxis>{
       ArticulatingAxis.inclusion,
       ArticulatingAxis.criticalThinking,
@@ -35,10 +31,13 @@ void main() {
     ]);
   });
 
-  test('project supports multiple formative fields and articulating axes', () {
-    expect(project.formativeFields, hasLength(2));
-    expect(project.formativeFields, contains(FormativeField.languages));
+  test('project carries methodology, articulating axes and grade scope', () {
+    expect(project.methodology, ProjectMethodology.communityProjects);
     expect(project.articulatingAxes, contains(ArticulatingAxis.inclusion));
+    expect(project.targetGrades, <PrimaryGrade>{
+      PrimaryGrade.second,
+      PrimaryGrade.third,
+    });
   });
 
   test('project must target at least one grade', () {
@@ -49,34 +48,18 @@ void main() {
         title: 'Vacío',
         lifecycle: ProjectLifecycle.draft,
         methodology: ProjectMethodology.unspecified,
-        formativeFields: <FormativeField>{FormativeField.languages},
         targetGrades: <PrimaryGrade>{},
       ),
       throwsArgumentError,
     );
   });
 
-  test('project must include at least one formative field', () {
-    expect(
-      () => Project(
-        id: 'project-2',
-        groupId: 'group-1',
-        title: 'Vacío',
-        lifecycle: ProjectLifecycle.draft,
-        methodology: ProjectMethodology.unspecified,
-        formativeFields: <FormativeField>{},
-        targetGrades: <PrimaryGrade>{PrimaryGrade.second},
-      ),
-      throwsArgumentError,
-    );
-  });
-
-  test('activity grades and field must stay inside project scope', () {
+  test('activity field is independent while grades stay inside project scope', () {
     final valid = Activity(
       id: 'activity-1',
       projectId: project.id,
       title: 'Investigar',
-      formativeField: FormativeField.languages,
+      formativeField: FormativeField.knowledgeAndScientificThought,
       targetGrades: <PrimaryGrade>{PrimaryGrade.second},
       roster: <ActivityParticipant>[
         ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),
@@ -90,24 +73,28 @@ void main() {
       targetGrades: <PrimaryGrade>{PrimaryGrade.fourth},
       roster: const <ActivityParticipant>[],
     );
-    final invalidField = Activity(
-      id: 'activity-3',
-      projectId: project.id,
-      title: 'Campo fuera de alcance',
-      formativeField: FormativeField.knowledgeAndScientificThought,
-      targetGrades: <PrimaryGrade>{PrimaryGrade.second},
-      roster: const <ActivityParticipant>[],
-    );
 
     expect(ActivityPolicy.validate(activity: valid, project: project), isEmpty);
     expect(
       ActivityPolicy.validate(activity: invalidGrade, project: project),
       contains(ActivityViolation.targetGradeOutsideProject),
     );
-    expect(
-      ActivityPolicy.validate(activity: invalidField, project: project),
-      contains(ActivityViolation.formativeFieldOutsideProject),
+  });
+
+  test('activity keeps identifier and normalized calendar date', () {
+    final activity = Activity(
+      id: 'activity-1',
+      projectId: project.id,
+      identifier: 'A3',
+      title: 'Ceremonia escolar',
+      occursOn: DateTime(2026, 9, 16, 14, 30),
+      formativeField: FormativeField.humanAndCommunity,
+      targetGrades: <PrimaryGrade>{PrimaryGrade.second},
+      roster: const <ActivityParticipant>[],
     );
+
+    expect(activity.displayIdentifier, 'A3');
+    expect(activity.occursOn, DateTime(2026, 9, 16, 14, 30));
   });
 
   test('activity freezes student id and grade in its historical roster', () {

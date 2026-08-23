@@ -2,8 +2,10 @@ import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
@@ -12,6 +14,8 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_screen.dart';
+import 'package:aularaiz/features/evaluation/presentation/evaluation_controller.dart';
+import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
 import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
@@ -130,6 +134,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                       onAttendance: () =>
                                           _openAttendance(group),
                                       onProjects: () => _openProjects(group),
+                                      onEvaluation: () =>
+                                          _openEvaluation(group),
                                     ),
                                   ),
                               ],
@@ -221,6 +227,29 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       ),
     );
   }
+
+  Future<void> _openEvaluation(TeachingGroup group) async {
+    final projectRepository = context.read<ProjectRepository>();
+    final activityRepository = context.read<ActivityRepository>();
+    final studentRepository = context.read<StudentRepository>();
+    final evaluationRepository = context.read<EvaluationRepository>();
+    final saveActivityEvaluation = context.read<SaveActivityEvaluation>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => EvaluationController(
+            projectRepository: projectRepository,
+            activityRepository: activityRepository,
+            studentRepository: studentRepository,
+            evaluationRepository: evaluationRepository,
+            saveActivityEvaluation: saveActivityEvaluation,
+          ),
+          child: EvaluationScreen(group: group),
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyGroups extends StatelessWidget {
@@ -260,12 +289,14 @@ class _GroupCard extends StatelessWidget {
     required this.onStudents,
     required this.onAttendance,
     required this.onProjects,
+    required this.onEvaluation,
   });
 
   final TeachingGroup group;
   final VoidCallback onStudents;
   final VoidCallback onAttendance;
   final VoidCallback onProjects;
+  final VoidCallback onEvaluation;
 
   @override
   Widget build(BuildContext context) {
@@ -322,6 +353,11 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onProjects,
                   icon: const Icon(Icons.auto_awesome_motion_outlined),
                   label: Text(l10n.openProjects),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onEvaluation,
+                  icon: const Icon(Icons.assignment_turned_in_outlined),
+                  label: Text(l10n.openEvaluation),
                 ),
                 OutlinedButton.icon(
                   onPressed: onStudents,

@@ -1,3 +1,5 @@
+import 'package:aularaiz/data/local/database_connection_stub.dart'
+    if (dart.library.ui) 'package:aularaiz/data/local/database_connection.dart';
 import 'package:aularaiz/data/local/schema/schema.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
@@ -35,6 +37,20 @@ part 'app_database.g.dart';
 )
 final class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor, {this.storageProfile});
+
+  factory AppDatabase.production() {
+    return AppDatabase(
+      openAulaRaizConnection(StorageProfile.production),
+      storageProfile: StorageProfile.production,
+    );
+  }
+
+  factory AppDatabase.demo() {
+    return AppDatabase(
+      openAulaRaizConnection(StorageProfile.demo),
+      storageProfile: StorageProfile.demo,
+    );
+  }
 
   factory AppDatabase.forTesting(
     QueryExecutor executor, {

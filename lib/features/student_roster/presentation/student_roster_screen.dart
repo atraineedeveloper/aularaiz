@@ -2,6 +2,7 @@ import 'package:aularaiz/application/student_import/import_students.dart';
 import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_controller.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_localization.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_screen.dart';
@@ -184,6 +185,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       givenNames: draft.givenNames,
       firstSurname: draft.firstSurname,
       secondSurname: draft.secondSurname,
+      sex: draft.sex,
       birthDate: draft.birthDate,
       grade: draft.grade,
       listNumber: draft.listNumber,
@@ -226,6 +228,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
       givenNames: draft.givenNames,
       firstSurname: draft.firstSurname,
       secondSurname: draft.secondSurname,
+      sex: draft.sex,
       birthDate: draft.birthDate,
     );
   }
@@ -477,6 +480,7 @@ class _StudentDialogState extends State<_StudentDialog> {
   late final TextEditingController _listNumberController;
   late PrimaryGrade _grade;
   DateTime? _birthDate;
+  StudentSex? _sex;
   bool _dirty = false;
 
   @override
@@ -499,6 +503,7 @@ class _StudentDialogState extends State<_StudentDialog> {
     );
     _grade = entry?.enrollment.grade ?? grades.first;
     _birthDate = entry?.student.birthDate;
+    _sex = entry?.student.sex;
   }
 
   @override
@@ -567,6 +572,28 @@ class _StudentDialogState extends State<_StudentDialog> {
                                   .formatMediumDate(_birthDate!),
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<StudentSex>(
+                    initialValue: _sex,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: _studentSexFieldLabel(context),
+                    ),
+                    hint: Text(_studentSexUnspecifiedLabel(context)),
+                    items: [
+                      for (final sex in StudentSex.values)
+                        DropdownMenuItem(
+                          value: sex,
+                          child: Text(_studentSexLabel(context, sex)),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _sex = value;
+                        _dirty = true;
+                      });
+                    },
                   ),
                   if (!widget.identityOnly) ...[
                     const SizedBox(height: 12),
@@ -683,6 +710,7 @@ class _StudentDialogState extends State<_StudentDialog> {
         givenNames: _givenNamesController.text,
         firstSurname: _firstSurnameController.text,
         secondSurname: _secondSurnameController.text,
+        sex: _sex,
         birthDate: _birthDate,
         grade: grade,
         listNumber: listNumber,
@@ -794,6 +822,7 @@ final class _StudentDraft {
     required this.givenNames,
     required this.firstSurname,
     required this.secondSurname,
+    required this.sex,
     required this.birthDate,
     required this.grade,
     required this.listNumber,
@@ -802,6 +831,7 @@ final class _StudentDraft {
   final String givenNames;
   final String firstSurname;
   final String secondSurname;
+  final StudentSex? sex;
   final DateTime? birthDate;
   final PrimaryGrade grade;
   final int listNumber;
@@ -812,6 +842,22 @@ final class _EnrollmentDraft {
 
   final PrimaryGrade grade;
   final int listNumber;
+}
+
+String _studentSexFieldLabel(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'en' ? 'Sex' : 'Sexo';
+
+String _studentSexUnspecifiedLabel(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'en'
+    ? 'Not specified'
+    : 'Sin especificar';
+
+String _studentSexLabel(BuildContext context, StudentSex sex) {
+  final english = Localizations.localeOf(context).languageCode == 'en';
+  return switch (sex) {
+    StudentSex.male => english ? 'Male' : 'Masculino',
+    StudentSex.female => english ? 'Female' : 'Femenino',
+  };
 }
 
 String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {

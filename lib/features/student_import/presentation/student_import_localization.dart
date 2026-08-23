@@ -101,9 +101,10 @@ extension StudentImportLocalization on AppLocalizations {
         _importEnglish
             ? 'First surname is required.'
             : 'El primer apellido es obligatorio.',
-      StudentImportIssue.invalidSex => _importEnglish
-          ? 'Sex must be Male or Female when provided.'
-          : 'El sexo debe ser Masculino o Femenino cuando se capture.',
+      StudentImportIssue.invalidSex =>
+        _importEnglish
+            ? 'Sex must be Male or Female when provided.'
+            : 'El sexo debe ser Masculino o Femenino cuando se capture.',
       StudentImportIssue.invalidBirthDate =>
         _importEnglish
             ? 'Birth date is not valid. Use YYYY-MM-DD or DD/MM/YYYY.'

@@ -554,6 +554,13 @@ class _PreviewRowCard extends StatelessWidget {
                       '${l10n.importFieldLabel(StudentImportField.grade)}: '
                       '${draft.gradeText.isEmpty ? '—' : draft.gradeText}',
                     ),
+                    if (draft.sexText.trim().isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        '${l10n.importFieldLabel(StudentImportField.sex)}: '
+                        '${draft.sexText}',
+                      ),
+                    ],
                     if (draft.birthDateText.trim().isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
@@ -625,6 +632,7 @@ class _EditImportRowDialogState extends State<_EditImportRowDialog> {
   late final TextEditingController _givenNames;
   late final TextEditingController _firstSurname;
   late final TextEditingController _secondSurname;
+  late final TextEditingController _sex;
   late final TextEditingController _birthDate;
   late final TextEditingController _grade;
   late final TextEditingController _listNumber;
@@ -636,6 +644,7 @@ class _EditImportRowDialogState extends State<_EditImportRowDialog> {
     _givenNames = TextEditingController(text: draft.givenNames);
     _firstSurname = TextEditingController(text: draft.firstSurname);
     _secondSurname = TextEditingController(text: draft.secondSurname);
+    _sex = TextEditingController(text: draft.sexText);
     _birthDate = TextEditingController(text: draft.birthDateText);
     _grade = TextEditingController(text: draft.gradeText);
     _listNumber = TextEditingController(text: draft.listNumberText);
@@ -646,6 +655,7 @@ class _EditImportRowDialogState extends State<_EditImportRowDialog> {
     _givenNames.dispose();
     _firstSurname.dispose();
     _secondSurname.dispose();
+    _sex.dispose();
     _birthDate.dispose();
     _grade.dispose();
     _listNumber.dispose();
@@ -687,6 +697,14 @@ class _EditImportRowDialogState extends State<_EditImportRowDialog> {
                   labelText: l10n.importFieldLabel(
                     StudentImportField.secondSurname,
                   ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _sex,
+                decoration: InputDecoration(
+                  labelText: l10n.importFieldLabel(StudentImportField.sex),
+                  hintText: 'Masculino / Femenino',
                 ),
               ),
               const SizedBox(height: 12),
@@ -733,6 +751,7 @@ class _EditImportRowDialogState extends State<_EditImportRowDialog> {
                 givenNames: _givenNames.text,
                 firstSurname: _firstSurname.text,
                 secondSurname: _secondSurname.text,
+                sexText: _sex.text,
                 birthDateText: _birthDate.text,
                 gradeText: _grade.text,
                 listNumberText: _listNumber.text,

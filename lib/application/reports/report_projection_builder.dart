@@ -236,6 +236,7 @@ final class ReportProjectionBuilder {
       displayName: student.displayName,
       listNumber: enrollment.listNumber,
       grade: enrollment.grade,
+      sex: student.sex,
       attendance: AttendanceReportSummary(
         present: present,
         absent: absent,

@@ -46,17 +46,32 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<StudentRosterController>();
     final entries = controller.entries;
+    final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final compact = MediaQuery.sizeOf(context).width < 480 || textScale >= 1.5;
+    final loadFailed =
+        controller.failureKind == StudentRosterFailureKind.load;
+    final canMutate =
+        !controller.isSaving && !controller.isLoading && !loadFailed;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.group.name)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: controller.isSaving ? null : () => _addStudent(context),
-        icon: const Icon(Icons.person_add_alt_1_outlined),
-        label: Text(l10n.addStudent),
-      ),
+      floatingActionButton: compact
+          ? FloatingActionButton(
+              onPressed: canMutate ? () => _addStudent(context) : null,
+              tooltip: l10n.addStudent,
+              child: const Icon(Icons.person_add_alt_1_outlined),
+            )
+          : FloatingActionButton.extended(
+              onPressed: canMutate ? () => _addStudent(context) : null,
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: Text(l10n.addStudent),
+            ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 16 : 24,
+            vertical: 24,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -65,19 +80,30 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: OutlinedButton.icon(
-                  onPressed: controller.isSaving
-                      ? null
-                      : () => _importStudents(context),
-                  icon: const Icon(Icons.upload_file_outlined),
-                  label: Text(l10n.importStudentsTitle),
+              if (compact)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: canMutate ? () => _importStudents(context) : null,
+                    child: Text(
+                      l10n.importStudentsTitle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              else
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: canMutate ? () => _importStudents(context) : null,
+                    icon: const Icon(Icons.upload_file_outlined),
+                    label: Text(l10n.importStudentsTitle),
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               TextField(
                 controller: _searchController,
+                enabled: !loadFailed,
                 onChanged: controller.setQuery,
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
@@ -94,7 +120,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                         ),
                 ),
               ),
-              if (controller.error != null) ...[
+              if (controller.failureKind == StudentRosterFailureKind.mutation) ...[
                 const SizedBox(height: 12),
                 Text(
                   l10n.studentSaveError,
@@ -105,6 +131,12 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
               Expanded(
                 child: controller.isLoading
                     ? const Center(child: CircularProgressIndicator())
+                    : loadFailed
+                    ? _RosterLoadFailure(
+                        message: l10n.studentRosterLoadError,
+                        retryLabel: l10n.retry,
+                        onRetry: () => controller.load(widget.group),
+                      )
                     : entries.isEmpty
                     ? Center(
                         child: Text(
@@ -245,6 +277,51 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
   }
 }
 
+class _RosterLoadFailure extends StatelessWidget {
+  const _RosterLoadFailure({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 40,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.tonalIcon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: Text(retryLabel),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StudentTile extends StatelessWidget {
   const _StudentTile({
     required this.entry,
@@ -261,6 +338,50 @@ class _StudentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    final compact = MediaQuery.sizeOf(context).width < 480 || textScale >= 1.5;
+    final actionMenu = _StudentActionMenu(
+      entry: entry,
+      onEdit: onEdit,
+      onDeactivate: onDeactivate,
+      onReactivate: onReactivate,
+    );
+
+    if (compact) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(child: Text('${entry.enrollment.listNumber}')),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      entry.student.displayName,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(_gradeLabel(entry.enrollment.grade, l10n)),
+                  Text(entry.isActive ? l10n.active : l10n.inactive),
+                ],
+              ),
+              Align(alignment: Alignment.centerRight, child: actionMenu),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Card(
       child: ListTile(
@@ -274,35 +395,55 @@ class _StudentTile extends StatelessWidget {
             Text(entry.isActive ? l10n.active : l10n.inactive),
           ],
         ),
-        trailing: PopupMenuButton<_StudentAction>(
-          onSelected: (action) {
-            switch (action) {
-              case _StudentAction.edit:
-                onEdit();
-              case _StudentAction.deactivate:
-                onDeactivate();
-              case _StudentAction.reactivate:
-                onReactivate();
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: _StudentAction.edit,
-              child: Text(l10n.editStudent),
-            ),
-            if (entry.isActive)
-              PopupMenuItem(
-                value: _StudentAction.deactivate,
-                child: Text(l10n.deactivateStudent),
-              )
-            else
-              PopupMenuItem(
-                value: _StudentAction.reactivate,
-                child: Text(l10n.reactivateStudent),
-              ),
-          ],
-        ),
+        trailing: actionMenu,
       ),
+    );
+  }
+}
+
+class _StudentActionMenu extends StatelessWidget {
+  const _StudentActionMenu({
+    required this.entry,
+    required this.onEdit,
+    required this.onDeactivate,
+    required this.onReactivate,
+  });
+
+  final StudentRosterEntry entry;
+  final VoidCallback onEdit;
+  final VoidCallback onDeactivate;
+  final VoidCallback onReactivate;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<_StudentAction>(
+      onSelected: (action) {
+        switch (action) {
+          case _StudentAction.edit:
+            onEdit();
+          case _StudentAction.deactivate:
+            onDeactivate();
+          case _StudentAction.reactivate:
+            onReactivate();
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _StudentAction.edit,
+          child: Text(l10n.editStudent),
+        ),
+        if (entry.isActive)
+          PopupMenuItem(
+            value: _StudentAction.deactivate,
+            child: Text(l10n.deactivateStudent),
+          )
+        else
+          PopupMenuItem(
+            value: _StudentAction.reactivate,
+            child: Text(l10n.reactivateStudent),
+          ),
+      ],
     );
   }
 }
@@ -427,6 +568,7 @@ class _StudentDialogState extends State<_StudentDialog> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<PrimaryGrade>(
                       initialValue: _grade,
+                      isExpanded: true,
                       decoration: InputDecoration(labelText: l10n.grade),
                       items: [
                         for (final grade in grades)
@@ -594,6 +736,7 @@ class _ReactivateDialogState extends State<_ReactivateDialog> {
           children: [
             DropdownButtonFormField<PrimaryGrade>(
               initialValue: _grade,
+              isExpanded: true,
               decoration: InputDecoration(labelText: l10n.grade),
               items: [
                 for (final grade in grades)

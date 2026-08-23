@@ -38,8 +38,7 @@ extension StudentRecordLocalization on AppLocalizations {
       _recordEnglish ? 'Observation' : 'Observación';
   String get studentRecordFamilyAgreement =>
       _recordEnglish ? 'Family agreement' : 'Acuerdo familiar';
-  String get studentRecordEntryText =>
-      _recordEnglish ? 'Record' : 'Registro';
+  String get studentRecordEntryText => _recordEnglish ? 'Record' : 'Registro';
   String get studentRecordEntryDate => _recordEnglish ? 'Date' : 'Fecha';
   String get studentRecordEvidence =>
       _recordEnglish ? 'Related evidence' : 'Evidencia relacionada';

@@ -44,11 +44,13 @@ extension StudentImportLocalization on AppLocalizations {
   String get importSheet => _importEnglish ? 'Sheet' : 'Hoja';
   String get importRow => _importEnglish ? 'Row' : 'Fila';
   String get importEditRow => _importEnglish ? 'Edit row' : 'Editar fila';
-  String get importIncludeRow => _importEnglish ? 'Include row' : 'Incluir fila';
+  String get importIncludeRow =>
+      _importEnglish ? 'Include row' : 'Incluir fila';
   String get importConfirmButton =>
       _importEnglish ? 'Import selected rows' : 'Importar filas seleccionadas';
-  String get importConfirmTitle =>
-      _importEnglish ? 'Confirm atomic import' : 'Confirmar importación atómica';
+  String get importConfirmTitle => _importEnglish
+      ? 'Confirm atomic import'
+      : 'Confirmar importación atómica';
   String importConfirmBody(int count) => _importEnglish
       ? '$count students will be imported as one transaction. If the batch fails, none of them will be saved.'
       : 'Se importarán $count alumnos en una sola transacción. Si el lote falla, ninguno quedará guardado.';
@@ -91,39 +93,51 @@ extension StudentImportLocalization on AppLocalizations {
   String importIssueLabel(StudentImportIssue issue) {
     return switch (issue) {
       StudentImportIssue.missingGivenNames =>
-        _importEnglish ? 'Names are required.' : 'Los nombres son obligatorios.',
-      StudentImportIssue.missingFirstSurname => _importEnglish
-          ? 'First surname is required.'
-          : 'El primer apellido es obligatorio.',
-      StudentImportIssue.invalidBirthDate => _importEnglish
-          ? 'Birth date is not valid. Use YYYY-MM-DD or DD/MM/YYYY.'
-          : 'La fecha de nacimiento no es válida. Usa AAAA-MM-DD o DD/MM/AAAA.',
-      StudentImportIssue.birthDateInFuture => _importEnglish
-          ? 'Birth date cannot be in the future.'
-          : 'La fecha de nacimiento no puede estar en el futuro.',
+        _importEnglish
+            ? 'Names are required.'
+            : 'Los nombres son obligatorios.',
+      StudentImportIssue.missingFirstSurname =>
+        _importEnglish
+            ? 'First surname is required.'
+            : 'El primer apellido es obligatorio.',
+      StudentImportIssue.invalidBirthDate =>
+        _importEnglish
+            ? 'Birth date is not valid. Use YYYY-MM-DD or DD/MM/YYYY.'
+            : 'La fecha de nacimiento no es válida. Usa AAAA-MM-DD o DD/MM/AAAA.',
+      StudentImportIssue.birthDateInFuture =>
+        _importEnglish
+            ? 'Birth date cannot be in the future.'
+            : 'La fecha de nacimiento no puede estar en el futuro.',
       StudentImportIssue.missingGrade =>
         _importEnglish ? 'Grade is required.' : 'El grado es obligatorio.',
-      StudentImportIssue.invalidGrade => _importEnglish
-          ? 'Grade must be from 1 to 6.'
-          : 'El grado debe estar entre 1 y 6.',
-      StudentImportIssue.gradeNotOffered => _importEnglish
-          ? 'This group does not offer that grade.'
-          : 'Este grupo no admite ese grado.',
-      StudentImportIssue.missingListNumber => _importEnglish
-          ? 'List number is required.'
-          : 'El número de lista es obligatorio.',
-      StudentImportIssue.invalidListNumber => _importEnglish
-          ? 'List number must be a positive integer.'
-          : 'El número de lista debe ser un entero positivo.',
-      StudentImportIssue.listNumberAlreadyAssigned => _importEnglish
-          ? 'That list number is already assigned in this group.'
-          : 'Ese número de lista ya está asignado en este grupo.',
-      StudentImportIssue.duplicateListNumberInFile => _importEnglish
-          ? 'This list number is repeated among included rows.'
-          : 'Este número de lista se repite entre las filas incluidas.',
-      StudentImportIssue.possibleDuplicateExisting => _importEnglish
-          ? 'A student with the same identity already exists in this group.'
-          : 'Ya existe en el grupo un alumno con la misma identidad.',
+      StudentImportIssue.invalidGrade =>
+        _importEnglish
+            ? 'Grade must be from 1 to 6.'
+            : 'El grado debe estar entre 1 y 6.',
+      StudentImportIssue.gradeNotOffered =>
+        _importEnglish
+            ? 'This group does not offer that grade.'
+            : 'Este grupo no admite ese grado.',
+      StudentImportIssue.missingListNumber =>
+        _importEnglish
+            ? 'List number is required.'
+            : 'El número de lista es obligatorio.',
+      StudentImportIssue.invalidListNumber =>
+        _importEnglish
+            ? 'List number must be a positive integer.'
+            : 'El número de lista debe ser un entero positivo.',
+      StudentImportIssue.listNumberAlreadyAssigned =>
+        _importEnglish
+            ? 'That list number is already assigned in this group.'
+            : 'Ese número de lista ya está asignado en este grupo.',
+      StudentImportIssue.duplicateListNumberInFile =>
+        _importEnglish
+            ? 'This list number is repeated among included rows.'
+            : 'Este número de lista se repite entre las filas incluidas.',
+      StudentImportIssue.possibleDuplicateExisting =>
+        _importEnglish
+            ? 'A student with the same identity already exists in this group.'
+            : 'Ya existe en el grupo un alumno con la misma identidad.',
     };
   }
 

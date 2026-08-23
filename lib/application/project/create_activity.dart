@@ -86,8 +86,9 @@ final class CreateActivity {
   }
 
   DateTime _effectiveRosterDate(List<Enrollment> eligible, DateTime requested) {
-    if (eligible.any((enrollment) => enrollment.isActiveOn(requested)))
+    if (eligible.any((enrollment) => enrollment.isActiveOn(requested))) {
       return requested;
+    }
     final upcoming =
         eligible
             .map((enrollment) => enrollment.startsOn)

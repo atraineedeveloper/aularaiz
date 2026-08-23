@@ -47,9 +47,9 @@ void main() {
     final restored = AppDatabase.forTesting(NativeDatabase(restoredFile));
     addTearDown(restored.close);
 
-    final rows = await restored.customSelect(
-      'SELECT value FROM backup_marker',
-    ).get();
+    final rows = await restored
+        .customSelect('SELECT value FROM backup_marker')
+        .get();
     expect(rows, hasLength(1));
     expect(rows.single.read<String>('value'), 'preserved');
   });

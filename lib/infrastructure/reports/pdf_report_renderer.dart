@@ -127,13 +127,19 @@ final class PdfReportRenderer {
                   _monthLabel(header.referenceMonth, english),
                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                 ),
-                pw.Text(header.schoolYearLabel, style: const pw.TextStyle(fontSize: 9)),
+                pw.Text(
+                  header.schoolYearLabel,
+                  style: const pw.TextStyle(fontSize: 9),
+                ),
               ],
             ),
           ],
         ),
         pw.SizedBox(height: 8),
-        pw.Text(header.schoolName, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        pw.Text(
+          header.schoolName,
+          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+        ),
         pw.Text(
           '${labels.group}: ${header.groupName}'
           '${header.cct == null ? '' : ' · CCT ${header.cct}'}',
@@ -189,7 +195,10 @@ final class PdfReportRenderer {
     );
   }
 
-  pw.Widget _attendanceSummary(AttendanceReportSummary summary, _Labels labels) {
+  pw.Widget _attendanceSummary(
+    AttendanceReportSummary summary,
+    _Labels labels,
+  ) {
     return pw.Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -203,7 +212,10 @@ final class PdfReportRenderer {
     );
   }
 
-  pw.Widget _evaluationSummary(EvaluationReportSummary summary, _Labels labels) {
+  pw.Widget _evaluationSummary(
+    EvaluationReportSummary summary,
+    _Labels labels,
+  ) {
     final compliance = summary.deliveryCompliance;
     return pw.Wrap(
       spacing: 8,
@@ -276,10 +288,18 @@ final class PdfReportRenderer {
 
   pw.Widget _evaluationTable(List<EvaluationReportItem> items, _Labels labels) {
     if (items.isEmpty) {
-      return pw.Text(labels.noEvaluations, style: const pw.TextStyle(fontSize: 9));
+      return pw.Text(
+        labels.noEvaluations,
+        style: const pw.TextStyle(fontSize: 9),
+      );
     }
     final rows = <List<String>>[
-      [labels.activity, labels.delivery, labels.achievement, labels.observation],
+      [
+        labels.activity,
+        labels.delivery,
+        labels.achievement,
+        labels.observation,
+      ],
       for (final item in items)
         [
           item.activityTitle,
@@ -436,7 +456,9 @@ String _monthLabel(DateTime month, bool english) {
   ];
   final names = english ? en : es;
   final name = names[month.month - 1];
-  return english ? '$name ${month.year}' : '${name[0].toUpperCase()}${name.substring(1)} ${month.year}';
+  return english
+      ? '$name ${month.year}'
+      : '${name[0].toUpperCase()}${name.substring(1)} ${month.year}';
 }
 
 final class _Labels {
@@ -444,7 +466,8 @@ final class _Labels {
 
   final bool english;
 
-  String get individualReport => english ? 'Individual report' : 'Reporte individual';
+  String get individualReport =>
+      english ? 'Individual report' : 'Reporte individual';
   String get groupReport => english ? 'Group report' : 'Reporte grupal';
   String get group => english ? 'Group' : 'Grupo';
   String get page => english ? 'Page' : 'Página';
@@ -471,12 +494,16 @@ final class _Labels {
   String get noEvaluations => english
       ? 'No applicable activities for this student.'
       : 'No hay actividades aplicables para este alumno.';
-  String get pedagogicalProfile => english ? 'Pedagogical profile' : 'Perfil pedagógico';
+  String get pedagogicalProfile =>
+      english ? 'Pedagogical profile' : 'Perfil pedagógico';
   String get strengths => english ? 'Strengths' : 'Fortalezas';
   String get difficulties => english ? 'Difficulties' : 'Dificultades';
-  String get supports => english ? 'Supports and adjustments' : 'Apoyos y ajustes';
-  String get followUp => english ? 'Chronological follow-up' : 'Seguimiento cronológico';
-  String get familyAgreement => english ? 'Family agreement' : 'Acuerdo familiar';
+  String get supports =>
+      english ? 'Supports and adjustments' : 'Apoyos y ajustes';
+  String get followUp =>
+      english ? 'Chronological follow-up' : 'Seguimiento cronológico';
+  String get familyAgreement =>
+      english ? 'Family agreement' : 'Acuerdo familiar';
   String get mastered => english ? 'Mastered' : 'Dominado';
   String get sufficient => english ? 'Sufficient' : 'Suficiente';
   String get inProgress => english ? 'In progress' : 'En proceso';

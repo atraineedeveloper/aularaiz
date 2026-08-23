@@ -11,6 +11,7 @@ import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
@@ -52,13 +53,12 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_loadStarted) {
-      _loadStarted = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        context.read<SchoolWorkspaceController>().load(widget.schoolId);
-      });
-    }
+    if (_loadStarted) return;
+    _loadStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<SchoolWorkspaceController>().load(widget.schoolId);
+    });
   }
 
   @override
@@ -70,7 +70,6 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     if (controller.isLoading && setup == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (setup == null) {
       return Scaffold(body: Center(child: Text(l10n.setupSaveError)));
     }
@@ -93,6 +92,11 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: _label(context, 'Editar escuela', 'Edit school'),
+            onPressed: controller.isSaving ? null : _showEditSchoolDialog,
+            icon: const Icon(Icons.edit_outlined),
+          ),
           IconButton(
             tooltip: l10n.settingsTitle,
             onPressed: () => context.push('/settings'),
@@ -125,7 +129,11 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   if (controller.error != null) ...[
                     const SizedBox(height: 12),
                     Text(
-                      l10n.groupSaveError,
+                      _label(
+                        context,
+                        'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
+                        'The change could not be saved. Check the data and try again.',
+                      ),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
                       ),
@@ -146,6 +154,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                               final group = controller.groups[index];
                               return _GroupCard(
                                 group: group,
+                                onEdit: () => _showEditGroupDialog(group),
                                 onStudents: () => _openStudents(group),
                                 onAttendance: () => _openAttendance(group),
                                 onProjects: () => _openProjects(group),
@@ -165,20 +174,74 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     );
   }
 
+  Future<void> _showEditSchoolDialog() async {
+    final controller = context.read<SchoolWorkspaceController>();
+    final setup = controller.setup;
+    if (setup == null) return;
+    final draft = await showDialog<_SchoolDraft>(
+      context: context,
+      builder: (context) => _EditSchoolDialog(
+        name: setup.school.name,
+        cct: setup.school.cct,
+        state: setup.school.state,
+        municipality: setup.school.municipality,
+        locality: setup.school.locality,
+      ),
+    );
+    if (draft == null || !mounted) return;
+    final saved = await controller.updateSchool(
+      name: draft.name,
+      cct: draft.cct,
+      state: draft.state,
+      municipality: draft.municipality,
+      locality: draft.locality,
+    );
+    if (mounted && saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _label(context, 'Escuela actualizada.', 'School updated.'),
+          ),
+        ),
+      );
+    }
+  }
+
   Future<void> _showCreateGroupDialog() async {
     final controller = context.read<SchoolWorkspaceController>();
     if (!controller.canCreateGroup) return;
     final draft = await showDialog<_GroupDraft>(
       context: context,
-      builder: (context) => const _CreateGroupDialog(),
+      builder: (context) => const _GroupDialog(),
     );
     if (draft == null || !mounted) return;
-
     await controller.createGroup(
       name: draft.name,
       grades: draft.grades,
       shift: draft.shift,
     );
+  }
+
+  Future<void> _showEditGroupDialog(TeachingGroup group) async {
+    final controller = context.read<SchoolWorkspaceController>();
+    final draft = await showDialog<_GroupDraft>(
+      context: context,
+      builder: (context) => _GroupDialog(initialGroup: group),
+    );
+    if (draft == null || !mounted) return;
+    final saved = await controller.updateGroup(
+      group: group,
+      name: draft.name,
+      grades: draft.grades,
+      shift: draft.shift,
+    );
+    if (mounted && saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_label(context, 'Grupo actualizado.', 'Class updated.')),
+        ),
+      );
+    }
   }
 
   Future<void> _openStudents(TeachingGroup group) async {
@@ -256,6 +319,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     final projectRepository = context.read<ProjectRepository>();
     final activityRepository = context.read<ActivityRepository>();
     final studentRepository = context.read<StudentRepository>();
+    final enrollmentRepository = context.read<EnrollmentRepository>();
     final evaluationRepository = context.read<EvaluationRepository>();
     final saveActivityEvaluation = context.read<SaveActivityEvaluation>();
 
@@ -266,6 +330,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             projectRepository: projectRepository,
             activityRepository: activityRepository,
             studentRepository: studentRepository,
+            enrollmentRepository: enrollmentRepository,
             evaluationRepository: evaluationRepository,
             saveActivityEvaluation: saveActivityEvaluation,
             initialActivityId: initialActivityId,
@@ -372,6 +437,7 @@ class _EmptyGroup extends StatelessWidget {
 class _GroupCard extends StatelessWidget {
   const _GroupCard({
     required this.group,
+    required this.onEdit,
     required this.onStudents,
     required this.onAttendance,
     required this.onProjects,
@@ -381,6 +447,7 @@ class _GroupCard extends StatelessWidget {
   });
 
   final TeachingGroup group;
+  final VoidCallback onEdit;
   final VoidCallback onStudents;
   final VoidCallback onAttendance;
   final VoidCallback onProjects;
@@ -401,16 +468,20 @@ class _GroupCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 8,
+            Row(
               children: [
-                Text(
-                  group.name,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Expanded(
+                  child: Text(
+                    group.name,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                 ),
+                IconButton(
+                  tooltip: _label(context, 'Editar grupo', 'Edit class'),
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+                const SizedBox(width: 4),
                 Chip(
                   label: Text(
                     group.isMultigrade ? l10n.multigrade : l10n.unigrade,
@@ -500,19 +571,30 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-class _CreateGroupDialog extends StatefulWidget {
-  const _CreateGroupDialog();
+class _GroupDialog extends StatefulWidget {
+  const _GroupDialog({this.initialGroup});
+
+  final TeachingGroup? initialGroup;
 
   @override
-  State<_CreateGroupDialog> createState() => _CreateGroupDialogState();
+  State<_GroupDialog> createState() => _GroupDialogState();
 }
 
-class _CreateGroupDialogState extends State<_CreateGroupDialog> {
+class _GroupDialogState extends State<_GroupDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _shiftController = TextEditingController();
-  final Set<PrimaryGrade> _grades = {};
+  late final TextEditingController _nameController;
+  late final TextEditingController _shiftController;
+  late final Set<PrimaryGrade> _grades;
   bool _showGradesError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final group = widget.initialGroup;
+    _nameController = TextEditingController(text: group?.name ?? '');
+    _shiftController = TextEditingController(text: group?.shift ?? '');
+    _grades = Set<PrimaryGrade>.of(group?.grades ?? const <PrimaryGrade>{});
+  }
 
   @override
   void dispose() {
@@ -524,9 +606,14 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final editing = widget.initialGroup != null;
 
     return AlertDialog(
-      title: Text(_label(context, 'Configurar mi grupo', 'Set up my class')),
+      title: Text(
+        editing
+            ? _label(context, 'Editar grupo', 'Edit class')
+            : _label(context, 'Configurar mi grupo', 'Set up my class'),
+      ),
       content: SizedBox(
         width: 520,
         child: Form(
@@ -550,10 +637,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   decoration: InputDecoration(labelText: l10n.shift),
                 ),
                 const SizedBox(height: 20),
-                Text(
-                  l10n.grades,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(l10n.grades, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -580,9 +664,7 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
                   const SizedBox(height: 8),
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ],
               ],
@@ -595,7 +677,10 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _submit, child: Text(l10n.create)),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(editing ? l10n.save : l10n.create),
+        ),
       ],
     );
   }
@@ -604,7 +689,6 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
     final hasGrades = _grades.isNotEmpty;
     setState(() => _showGradesError = !hasGrades);
     if (!_formKey.currentState!.validate() || !hasGrades) return;
-
     Navigator.of(context).pop(
       _GroupDraft(
         name: _nameController.text.trim(),
@@ -612,6 +696,166 @@ class _CreateGroupDialogState extends State<_CreateGroupDialog> {
         grades: Set<PrimaryGrade>.of(_grades),
       ),
     );
+  }
+}
+
+class _EditSchoolDialog extends StatefulWidget {
+  const _EditSchoolDialog({
+    required this.name,
+    this.cct,
+    this.state,
+    this.municipality,
+    this.locality,
+  });
+
+  final String name;
+  final String? cct;
+  final String? state;
+  final String? municipality;
+  final String? locality;
+
+  @override
+  State<_EditSchoolDialog> createState() => _EditSchoolDialogState();
+}
+
+class _EditSchoolDialogState extends State<_EditSchoolDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _cctController;
+  late final TextEditingController _localityController;
+  String? _state;
+  String? _municipality;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.name);
+    _cctController = TextEditingController(text: widget.cct ?? '');
+    _localityController = TextEditingController(text: widget.locality ?? '');
+    _state = MexicoGeographyCatalog.states.any((item) => item.name == widget.state)
+        ? widget.state
+        : null;
+    final municipalities = _municipalitiesFor(_state);
+    _municipality = municipalities.contains(widget.municipality)
+        ? widget.municipality
+        : null;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _cctController.dispose();
+    _localityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final municipalities = _municipalitiesFor(_state);
+
+    return AlertDialog(
+      title: Text(_label(context, 'Editar escuela', 'Edit school')),
+      content: SizedBox(
+        width: 560,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: _nameController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Nombre de la escuela', 'School name'),
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? l10n.requiredField
+                      : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _cctController,
+                  decoration: const InputDecoration(labelText: 'CCT'),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: _state,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Estado', 'State'),
+                  ),
+                  items: [
+                    for (final state in MexicoGeographyCatalog.states)
+                      DropdownMenuItem(value: state.name, child: Text(state.name)),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _state = value;
+                      _municipality = null;
+                    });
+                  },
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  key: ValueKey(_state),
+                  initialValue: _municipality,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Municipio', 'Municipality'),
+                  ),
+                  items: [
+                    for (final municipality in municipalities)
+                      DropdownMenuItem(
+                        value: municipality,
+                        child: Text(municipality),
+                      ),
+                  ],
+                  onChanged: municipalities.isEmpty
+                      ? null
+                      : (value) => setState(() => _municipality = value),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _localityController,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Localidad', 'Locality'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l10n.save)),
+      ],
+    );
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(
+      _SchoolDraft(
+        name: _nameController.text.trim(),
+        cct: _cctController.text.trim(),
+        state: _state,
+        municipality: _municipality,
+        locality: _localityController.text.trim(),
+      ),
+    );
+  }
+
+  List<String> _municipalitiesFor(String? stateName) {
+    if (stateName == null) return const [];
+    return MexicoGeographyCatalog.states
+        .where((state) => state.name == stateName)
+        .firstOrNull
+        ?.municipalities ??
+        const [];
   }
 }
 
@@ -625,6 +869,22 @@ final class _GroupDraft {
   final String name;
   final String shift;
   final Set<PrimaryGrade> grades;
+}
+
+final class _SchoolDraft {
+  const _SchoolDraft({
+    required this.name,
+    required this.cct,
+    required this.state,
+    required this.municipality,
+    required this.locality,
+  });
+
+  final String name;
+  final String cct;
+  final String? state;
+  final String? municipality;
+  final String locality;
 }
 
 String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {

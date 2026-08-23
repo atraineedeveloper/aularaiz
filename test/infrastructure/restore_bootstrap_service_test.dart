@@ -226,10 +226,10 @@ Future<Uint8List> _createDatabaseBytes(
     try {
       statement.execute(<Object?>[marker]);
     } finally {
-      statement.dispose();
+      statement.close();
     }
   } finally {
-    database.dispose();
+    database.close();
   }
   return file.readAsBytes();
 }
@@ -240,7 +240,7 @@ String _readMarker(File file) {
     return database.select('SELECT value FROM restore_marker').single['value']
         as String;
   } finally {
-    database.dispose();
+    database.close();
   }
 }
 
@@ -251,9 +251,9 @@ void _updateMarker(File file, String value) {
     try {
       statement.execute(<Object?>[value]);
     } finally {
-      statement.dispose();
+      statement.close();
     }
   } finally {
-    database.dispose();
+    database.close();
   }
 }

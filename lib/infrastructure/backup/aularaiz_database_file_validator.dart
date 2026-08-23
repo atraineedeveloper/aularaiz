@@ -106,7 +106,7 @@ final class AulaRaizDatabaseFileValidator {
 
       return versionValue;
     } finally {
-      database.dispose();
+      database.close();
     }
   }
 }

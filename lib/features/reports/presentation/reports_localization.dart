@@ -11,8 +11,9 @@ extension ReportsLocalization on AppLocalizations {
       _reportsEnglish ? 'Previous month' : 'Mes anterior';
   String get reportsNextMonth =>
       _reportsEnglish ? 'Next month' : 'Mes siguiente';
-  String get reportsGroupTitle =>
-      _reportsEnglish ? 'Group report and export' : 'Reporte y exportación grupal';
+  String get reportsGroupTitle => _reportsEnglish
+      ? 'Group report and export'
+      : 'Reporte y exportación grupal';
   String get reportsGroupDescription => _reportsEnglish
       ? 'Attendance and formative evaluation summary. Export the same monthly data to PDF, CSV, or Excel.'
       : 'Resumen de asistencia y evaluación formativa. Exporta los mismos datos mensuales a PDF, CSV o Excel.';
@@ -23,7 +24,8 @@ extension ReportsLocalization on AppLocalizations {
       : 'Genera un PDF de un alumno para este mes.';
   String get reportsGeneratePdf =>
       _reportsEnglish ? 'Generate PDF' : 'Generar PDF';
-  String get reportsExportCsv => _reportsEnglish ? 'Export CSV' : 'Exportar CSV';
+  String get reportsExportCsv =>
+      _reportsEnglish ? 'Export CSV' : 'Exportar CSV';
   String get reportsExportXlsx =>
       _reportsEnglish ? 'Export Excel' : 'Exportar Excel';
   String get reportsExportSafeNote => _reportsEnglish

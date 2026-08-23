@@ -64,7 +64,7 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     if (file == null) return null;
 
     final bytes = await file.readAsBytes();
-    final preview = _restoreStagingService.inspect(bytes);
+    final preview = await _restoreStagingService.inspect(bytes);
     return BackupSelection(bytes: bytes, preview: preview);
   }
 

@@ -2,6 +2,7 @@ import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
+import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
@@ -42,6 +43,7 @@ import 'package:aularaiz/data/repositories/drift_student_record_repository.dart'
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
+import 'package:aularaiz/infrastructure/backup/device_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/drift_database_snapshotter.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
@@ -125,6 +127,11 @@ class AppDependencies extends StatelessWidget {
         Provider<ReportPublicationService>(
           create: (_) => const ReportPublicationService(),
         ),
+        Provider<BackupProtector>(
+          create: (_) => DeviceBackupProtector(
+            keyStore: const SecureBackupEncryptionKeyStore(),
+          ),
+        ),
         Provider<BackupRestoreGateway>(
           create: (context) => PlatformBackupRestoreGateway(
             createBackup: CreateBackup(
@@ -133,10 +140,12 @@ class AppDependencies extends StatelessWidget {
               ),
               schemaVersion: AppDatabase.currentSchemaVersion,
               storageProfile: StorageProfile.production.name,
+              protector: context.read<BackupProtector>(),
             ),
             restoreStagingService: RestoreStagingService(
               profile: StorageProfile.production,
               currentSchemaVersion: AppDatabase.currentSchemaVersion,
+              protector: context.read<BackupProtector>(),
             ),
             publicationService: context.read<ReportPublicationService>(),
           ),

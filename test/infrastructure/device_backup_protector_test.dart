@@ -7,25 +7,28 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('DeviceBackupProtector', () {
-    test('AES-256-GCM hides the complete inner backup and round-trips it', () async {
-      final keyStore = _MemoryKeyStore(_key(seed: 7));
-      final protector = DeviceBackupProtector(keyStore: keyStore);
-      final clear = _clearBackupBytes();
+    test(
+      'AES-256-GCM hides the complete inner backup and round-trips it',
+      () async {
+        final keyStore = _MemoryKeyStore(_key(seed: 7));
+        final protector = DeviceBackupProtector(keyStore: keyStore);
+        final clear = _clearBackupBytes();
 
-      final protected = await protector.protect(clear);
-      final restored = await protector.unprotect(protected);
+        final protected = await protector.protect(clear);
+        final restored = await protector.unprotect(protected);
 
-      expect(protected, isNot(orderedEquals(clear)));
-      expect(
-        _containsSequence(protected, ascii.encode('SQLite format 3\u0000')),
-        isFalse,
-      );
-      expect(
-        _containsSequence(protected, utf8.encode('AULARAIZ_BACKUP\n')),
-        isFalse,
-      );
-      expect(restored, orderedEquals(clear));
-    });
+        expect(protected, isNot(orderedEquals(clear)));
+        expect(
+          _containsSequence(protected, ascii.encode('SQLite format 3\u0000')),
+          isFalse,
+        );
+        expect(
+          _containsSequence(protected, utf8.encode('AULARAIZ_BACKUP\n')),
+          isFalse,
+        );
+        expect(restored, orderedEquals(clear));
+      },
+    );
 
     test('same backup encrypted twice uses different nonces', () async {
       final keyStore = _MemoryKeyStore(_key(seed: 11));
@@ -51,26 +54,29 @@ void main() {
       expect(result, orderedEquals(clear));
     });
 
-    test('backup from another installation is rejected before decryption', () async {
-      final source = DeviceBackupProtector(
-        keyStore: _MemoryKeyStore(_key(seed: 23)),
-      );
-      final destination = DeviceBackupProtector(
-        keyStore: _MemoryKeyStore(_key(seed: 91)),
-      );
-      final protected = await source.protect(_clearBackupBytes());
+    test(
+      'backup from another installation is rejected before decryption',
+      () async {
+        final source = DeviceBackupProtector(
+          keyStore: _MemoryKeyStore(_key(seed: 23)),
+        );
+        final destination = DeviceBackupProtector(
+          keyStore: _MemoryKeyStore(_key(seed: 91)),
+        );
+        final protected = await source.protect(_clearBackupBytes());
 
-      expect(
-        () => destination.unprotect(protected),
-        throwsA(
-          isA<BackupProtectionException>().having(
-            (error) => error.problem,
-            'problem',
-            BackupProtectionProblem.keyMismatch,
+        expect(
+          () => destination.unprotect(protected),
+          throwsA(
+            isA<BackupProtectionException>().having(
+              (error) => error.problem,
+              'problem',
+              BackupProtectionProblem.keyMismatch,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
 
     test('ciphertext tampering is rejected by GCM authentication', () async {
       final protector = DeviceBackupProtector(

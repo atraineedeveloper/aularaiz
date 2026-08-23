@@ -60,7 +60,9 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               if (controller.options.isNotEmpty)
                 DropdownButtonFormField<String>(
                   initialValue: controller.selected?.activity.id,
-                  decoration: InputDecoration(labelText: l10n.evaluationActivity),
+                  decoration: InputDecoration(
+                    labelText: l10n.evaluationActivity,
+                  ),
                   items: [
                     for (final option in controller.options)
                       DropdownMenuItem(
@@ -92,7 +94,9 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                   ),
                 )
               else if (controller.isLoading)
-                const Expanded(child: Center(child: CircularProgressIndicator()))
+                const Expanded(
+                  child: Center(child: CircularProgressIndicator()),
+                )
               else ...[
                 _Metrics(metrics: controller.metrics),
                 const SizedBox(height: 16),
@@ -118,7 +122,9 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                       ? Center(child: Text(l10n.evaluationNoResults))
                       : LayoutBuilder(
                           builder: (context, constraints) {
-                            final columns = constraints.maxWidth >= 1000 ? 2 : 1;
+                            final columns = constraints.maxWidth >= 1000
+                                ? 2
+                                : 1;
                             final width =
                                 (constraints.maxWidth - (columns - 1) * 12) /
                                 columns;
@@ -366,7 +372,9 @@ class _EvaluationEditorState extends State<_EvaluationEditor> {
               controller: _observationController,
               minLines: 2,
               maxLines: 5,
-              decoration: InputDecoration(labelText: l10n.evaluationObservation),
+              decoration: InputDecoration(
+                labelText: l10n.evaluationObservation,
+              ),
             ),
             if (widget.sheet) ...[
               const SizedBox(height: 24),

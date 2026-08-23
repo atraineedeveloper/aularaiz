@@ -70,20 +70,18 @@ final class CreateActivity {
     return activity;
   }
 
-  DateTime _effectiveRosterDate(
-    List<Enrollment> eligible,
-    DateTime requested,
-  ) {
+  DateTime _effectiveRosterDate(List<Enrollment> eligible, DateTime requested) {
     final normalized = DateTime(requested.year, requested.month, requested.day);
     if (eligible.any((enrollment) => enrollment.isActiveOn(normalized))) {
       return normalized;
     }
 
-    final upcoming = eligible
-        .map((enrollment) => enrollment.startsOn)
-        .where((date) => date.isAfter(normalized))
-        .toList()
-      ..sort();
+    final upcoming =
+        eligible
+            .map((enrollment) => enrollment.startsOn)
+            .where((date) => date.isAfter(normalized))
+            .toList()
+          ..sort();
     return upcoming.isEmpty ? normalized : upcoming.first;
   }
 }

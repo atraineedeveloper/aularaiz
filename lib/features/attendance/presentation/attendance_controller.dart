@@ -56,10 +56,16 @@ final class AttendanceController extends ChangeNotifier {
   Object? get error => _error;
 
   List<DateTime> get monthDates {
-    final lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0).day;
+    final lastDay = DateTime(
+      _selectedMonth.year,
+      _selectedMonth.month + 1,
+      0,
+    ).day;
     return List<DateTime>.unmodifiable([
       for (var day = 1; day <= lastDay; day++)
-        if (_isWeekday(DateTime(_selectedMonth.year, _selectedMonth.month, day)))
+        if (_isWeekday(
+          DateTime(_selectedMonth.year, _selectedMonth.month, day),
+        ))
           DateTime(_selectedMonth.year, _selectedMonth.month, day),
     ]);
   }
@@ -225,7 +231,9 @@ final class AttendanceController extends ChangeNotifier {
     for (final entry in byStudent.entries) {
       final student = await _studentRepository.findById(entry.key);
       if (student == null) continue;
-      entry.value.sort((left, right) => left.startsOn.compareTo(right.startsOn));
+      entry.value.sort(
+        (left, right) => left.startsOn.compareTo(right.startsOn),
+      );
       students.add(
         MonthlyAttendanceStudent(
           studentId: entry.key,

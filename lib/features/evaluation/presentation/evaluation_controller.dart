@@ -316,7 +316,8 @@ final class EvaluationController extends ChangeNotifier {
     final enrollments = await repository.findByGroupId(group.id);
     final eligible = enrollments
         .where(
-          (enrollment) => option.activity.targetGrades.contains(enrollment.grade),
+          (enrollment) =>
+              option.activity.targetGrades.contains(enrollment.grade),
         )
         .toList();
     if (eligible.isEmpty) return option;
@@ -361,11 +362,12 @@ final class EvaluationController extends ChangeNotifier {
       return today;
     }
 
-    final upcoming = eligible
-        .map((enrollment) => enrollment.startsOn)
-        .where((date) => date.isAfter(today))
-        .toList()
-      ..sort();
+    final upcoming =
+        eligible
+            .map((enrollment) => enrollment.startsOn)
+            .where((date) => date.isAfter(today))
+            .toList()
+          ..sort();
     if (upcoming.isNotEmpty) return upcoming.first;
 
     final starts = eligible.map((enrollment) => enrollment.startsOn).toList()

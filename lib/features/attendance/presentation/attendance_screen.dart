@@ -122,7 +122,8 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                       ConstrainedBox(
                         constraints: const BoxConstraints(minWidth: 220),
                         child: Text(
-                          MaterialLocalizations.of(context).formatMonthYear(month),
+                          MaterialLocalizations.of(context)
+                              .formatMonthYear(month),
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
@@ -315,10 +316,7 @@ class _DayHeader extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            '${date.day}',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
+          Text('${date.day}', style: Theme.of(context).textTheme.labelLarge),
           Text(
             _weekdayLabel(context, date),
             style: Theme.of(context).textTheme.bodySmall,

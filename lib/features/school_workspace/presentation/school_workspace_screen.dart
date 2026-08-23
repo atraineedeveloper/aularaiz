@@ -238,7 +238,9 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     if (mounted && saved) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_label(context, 'Grupo actualizado.', 'Class updated.')),
+          content: Text(
+            _label(context, 'Grupo actualizado.', 'Class updated.'),
+          ),
         ),
       );
     }
@@ -637,7 +639,10 @@ class _GroupDialogState extends State<_GroupDialog> {
                   decoration: InputDecoration(labelText: l10n.shift),
                 ),
                 const SizedBox(height: 20),
-                Text(l10n.grades, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l10n.grades,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -664,7 +669,9 @@ class _GroupDialogState extends State<_GroupDialog> {
                   const SizedBox(height: 8),
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
               ],
@@ -732,7 +739,8 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
     _nameController = TextEditingController(text: widget.name);
     _cctController = TextEditingController(text: widget.cct ?? '');
     _localityController = TextEditingController(text: widget.locality ?? '');
-    _state = MexicoGeographyCatalog.states.any((item) => item.name == widget.state)
+    _state =
+        MexicoGeographyCatalog.states.any((item) => item.name == widget.state)
         ? widget.state
         : null;
     final municipalities = _municipalitiesFor(_state);
@@ -768,7 +776,11 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
                   controller: _nameController,
                   autofocus: true,
                   decoration: InputDecoration(
-                    labelText: _label(context, 'Nombre de la escuela', 'School name'),
+                    labelText: _label(
+                      context,
+                      'Nombre de la escuela',
+                      'School name',
+                    ),
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
                       ? l10n.requiredField
@@ -787,7 +799,10 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
                   ),
                   items: [
                     for (final state in MexicoGeographyCatalog.states)
-                      DropdownMenuItem(value: state.name, child: Text(state.name)),
+                      DropdownMenuItem(
+                        value: state.name,
+                        child: Text(state.name),
+                      ),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -852,9 +867,9 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
   List<String> _municipalitiesFor(String? stateName) {
     if (stateName == null) return const [];
     return MexicoGeographyCatalog.states
-        .where((state) => state.name == stateName)
-        .firstOrNull
-        ?.municipalities ??
+            .where((state) => state.name == stateName)
+            .firstOrNull
+            ?.municipalities ??
         const [];
   }
 }

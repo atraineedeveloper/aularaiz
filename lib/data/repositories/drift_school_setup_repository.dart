@@ -92,18 +92,18 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
   @override
   Future<void> updateSchool(School school) async {
     final updated =
-        await (database.update(database.schools)
-              ..where((table) => table.id.equals(school.id)))
-            .write(
-              SchoolsCompanion(
-                name: Value(school.name),
-                cct: Value(school.cct),
-                organization: Value(school.organization),
-                state: Value(school.state),
-                municipality: Value(school.municipality),
-                locality: Value(school.locality),
-              ),
-            );
+        await (database.update(
+          database.schools,
+        )..where((table) => table.id.equals(school.id))).write(
+          SchoolsCompanion(
+            name: Value(school.name),
+            cct: Value(school.cct),
+            organization: Value(school.organization),
+            state: Value(school.state),
+            municipality: Value(school.municipality),
+            locality: Value(school.locality),
+          ),
+        );
     if (updated != 1) {
       throw StateError('School does not exist.');
     }

@@ -37,16 +37,8 @@ final class AutomationCapabilityCatalog {
   const AutomationCapabilityCatalog._();
 
   static const List<Map<String, Object?>> capabilities = <Map<String, Object?>>[
-    <String, Object?>{
-      'id': 'status',
-      'mode': 'read',
-      'personal_data': false,
-    },
-    <String, Object?>{
-      'id': 'groups',
-      'mode': 'read',
-      'personal_data': false,
-    },
+    <String, Object?>{'id': 'status', 'mode': 'read', 'personal_data': false},
+    <String, Object?>{'id': 'groups', 'mode': 'read', 'personal_data': false},
     <String, Object?>{
       'id': 'group-summary',
       'mode': 'read',

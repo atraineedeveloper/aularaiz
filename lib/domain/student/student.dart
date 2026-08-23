@@ -1,9 +1,12 @@
+import 'package:aularaiz/domain/student/student_sex.dart';
+
 final class Student {
   Student({
     required this.id,
     required this.givenNames,
     required this.firstSurname,
     this.secondSurname,
+    this.sex,
     DateTime? birthDate,
   }) : birthDate = birthDate == null
            ? null
@@ -38,6 +41,7 @@ final class Student {
   final String givenNames;
   final String firstSurname;
   final String? secondSurname;
+  final StudentSex? sex;
   final DateTime? birthDate;
 
   String get displayName {

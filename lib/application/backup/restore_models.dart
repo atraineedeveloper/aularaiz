@@ -29,10 +29,7 @@ final class RestorePreview {
 }
 
 final class StagedRestore {
-  const StagedRestore({
-    required this.requestId,
-    required this.preview,
-  });
+  const StagedRestore({required this.requestId, required this.preview});
 
   final String requestId;
   final RestorePreview preview;

@@ -324,7 +324,7 @@ class _GroupReportCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(l10n.reportsGroupDescription),
             const SizedBox(height: 12),
-            Text('$studentCount ${l10n.evaluationStudents.toLowerCase()}'),
+            Text('$studentCount ${l10n.reportsStudents}'),
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: onGenerate,

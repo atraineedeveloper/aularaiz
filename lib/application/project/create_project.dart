@@ -7,9 +7,11 @@ import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 
 final class CreateProject {
-  CreateProject({required ProjectRepository repository, required IdGenerator idGenerator})
-      : _repository = repository,
-        _idGenerator = idGenerator;
+  CreateProject({
+    required ProjectRepository repository,
+    required IdGenerator idGenerator,
+  }) : _repository = repository,
+       _idGenerator = idGenerator;
 
   final ProjectRepository _repository;
   final IdGenerator _idGenerator;

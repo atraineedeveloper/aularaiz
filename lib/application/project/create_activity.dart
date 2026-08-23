@@ -39,8 +39,14 @@ final class CreateActivity {
 
     final existing = await _activityRepository.listForProject(projectId);
     final identifier = _nextIdentifier(existing);
-    final normalizedDate = DateTime(occursOn.year, occursOn.month, occursOn.day);
-    final enrollments = await _enrollmentRepository.findByGroupId(project.groupId);
+    final normalizedDate = DateTime(
+      occursOn.year,
+      occursOn.month,
+      occursOn.day,
+    );
+    final enrollments = await _enrollmentRepository.findByGroupId(
+      project.groupId,
+    );
     final eligible = enrollments
         .where((enrollment) => targetGrades.contains(enrollment.grade))
         .toList();
@@ -48,7 +54,10 @@ final class CreateActivity {
     final roster = <ActivityParticipant>[
       for (final enrollment in eligible)
         if (enrollment.isActiveOn(effectiveRosterDate))
-          ActivityParticipant(studentId: enrollment.studentId, grade: enrollment.grade),
+          ActivityParticipant(
+            studentId: enrollment.studentId,
+            grade: enrollment.grade,
+          ),
     ];
 
     final activity = Activity(
@@ -77,12 +86,14 @@ final class CreateActivity {
   }
 
   DateTime _effectiveRosterDate(List<Enrollment> eligible, DateTime requested) {
-    if (eligible.any((enrollment) => enrollment.isActiveOn(requested))) return requested;
-    final upcoming = eligible
-        .map((enrollment) => enrollment.startsOn)
-        .where((date) => date.isAfter(requested))
-        .toList()
-      ..sort();
+    if (eligible.any((enrollment) => enrollment.isActiveOn(requested)))
+      return requested;
+    final upcoming =
+        eligible
+            .map((enrollment) => enrollment.startsOn)
+            .where((date) => date.isAfter(requested))
+            .toList()
+          ..sort();
     return upcoming.isEmpty ? requested : upcoming.first;
   }
 }

@@ -42,7 +42,8 @@ final class ProjectsController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   Object? get error => _error;
-  List<Activity> activitiesFor(String projectId) => _activities[projectId] ?? const [];
+  List<Activity> activitiesFor(String projectId) =>
+      _activities[projectId] ?? const [];
 
   Future<void> load(TeachingGroup group) async {
     _group = group;
@@ -137,7 +138,9 @@ final class ProjectsController extends ChangeNotifier {
     final projects = await _projectRepository.listForGroup(group.id);
     final activities = <String, List<Activity>>{};
     for (final project in projects) {
-      activities[project.id] = await _activityRepository.listForProject(project.id);
+      activities[project.id] = await _activityRepository.listForProject(
+        project.id,
+      );
     }
     _projects = List<Project>.unmodifiable(projects);
     _activities = Map<String, List<Activity>>.unmodifiable(activities);

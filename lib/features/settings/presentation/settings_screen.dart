@@ -1,6 +1,7 @@
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/app/theme/app_palette.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
+import 'package:aularaiz/features/settings/presentation/update_section.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -99,6 +100,8 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 const BackupRestoreSection(),
+                const SizedBox(height: 20),
+                const UpdateSection(),
                 const SizedBox(height: 20),
                 _SettingsSection(
                   icon: Icons.text_fields_rounded,

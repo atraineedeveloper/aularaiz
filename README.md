@@ -6,7 +6,7 @@ This repository is a clean-room rewrite. The previous `SistemaDocenteNEM` applic
 
 ## Current status
 
-**Phase 7 complete — Product UX and accessibility hardening. AulaRaíz Beta now includes cross-product resilience and accessibility hardening.**
+**Phase 8 implementation complete — Recovery, distribution and lifecycle.** AulaRaíz now has the application-side and CI foundations required for production distribution. Publishing signed binaries still requires the repository's production Android and Windows signing credentials to be provisioned.
 
 Implemented foundations and workflows now include:
 
@@ -28,9 +28,16 @@ Implemented foundations and workflows now include:
 - cross-product keyboard/focus, semantics, touch-target, high-contrast and text-scaling hardening;
 - lazy rendering for large attendance/evaluation rosters and 30–40 student scenarios;
 - recoverable loading/error states for critical roster workflows;
-- automated Drift, formatting, analysis, tests and Android/Windows build validation in CI.
+- versioned `.aularaiz` backups with SQLite integrity validation and crash-safe restore rollback;
+- AES-256-GCM backup encryption using an installation key held in OS secure storage;
+- separation of program files from classroom SQLite data;
+- a per-user Windows installer and user-initiated verified update flow;
+- Android App Bundle production-signing configuration for Google Play;
+- a signed GitHub Release pipeline for Android and Windows with SHA-256 release assets;
+- lifecycle tests covering recovery and program/data preservation;
+- automated Drift, formatting, analysis, tests and Android/Windows package validation in CI.
 
-The next implementation phase is **Phase 8 — Recovery, distribution and lifecycle**.
+The next optional implementation phase is **Phase 9 — Advanced local automation**. It does not block the core teacher product from production distribution.
 
 ## Product direction
 
@@ -51,3 +58,4 @@ The next implementation phase is **Phase 8 — Recovery, distribution and lifecy
 - [`privacy-baseline.md`](docs/phase-0/privacy-baseline.md) — local-data, diagnostics, exports, backups and agent privacy boundaries.
 - [`delivery-roadmap.md`](docs/phase-0/delivery-roadmap.md) — implementation phases from Flutter foundation through distribution and automation.
 - [`decisions-and-open-questions.md`](docs/phase-0/decisions-and-open-questions.md) — accepted defaults and decisions that still require an explicit product-owner choice.
+- [`release-and-lifecycle.md`](docs/phase-8/release-and-lifecycle.md) — production signing, package, update and data-preservation contract.

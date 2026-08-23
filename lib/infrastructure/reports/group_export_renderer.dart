@@ -48,9 +48,9 @@ final class GroupExportRenderer {
         row
             .map<CellValue?>((value) {
               return switch (value) {
-                int value => IntCellValue(value),
-                double value => DoubleCellValue(value),
-                String value => TextCellValue(value),
+                final int value => IntCellValue(value),
+                final double value => DoubleCellValue(value),
+                final String value => TextCellValue(value),
                 null => null,
                 _ => TextCellValue(value.toString()),
               };

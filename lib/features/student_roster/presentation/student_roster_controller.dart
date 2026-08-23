@@ -9,6 +9,8 @@ import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:flutter/foundation.dart';
 
+enum StudentRosterFailureKind { load, mutation }
+
 final class StudentRosterEntry {
   const StudentRosterEntry({required this.student, required this.enrollment});
 
@@ -40,11 +42,13 @@ final class StudentRosterController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSaving = false;
   Object? _error;
+  StudentRosterFailureKind? _failureKind;
 
   TeachingGroup? get group => _group;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   Object? get error => _error;
+  StudentRosterFailureKind? get failureKind => _failureKind;
 
   List<StudentRosterEntry> get entries {
     final query = _query.trim().toLowerCase();
@@ -67,12 +71,14 @@ final class StudentRosterController extends ChangeNotifier {
     _group = group;
     _isLoading = true;
     _error = null;
+    _failureKind = null;
     notifyListeners();
 
     try {
       await _reloadEntries();
     } catch (error) {
       _error = error;
+      _failureKind = StudentRosterFailureKind.load;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -179,12 +185,14 @@ final class StudentRosterController extends ChangeNotifier {
   Future<bool> _runMutation(Future<bool> Function() mutation) async {
     _isSaving = true;
     _error = null;
+    _failureKind = null;
     notifyListeners();
 
     try {
       return await mutation();
     } catch (error) {
       _error = error;
+      _failureKind = StudentRosterFailureKind.mutation;
       return false;
     } finally {
       _isSaving = false;

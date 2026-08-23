@@ -30,9 +30,7 @@ void main() {
 
     final fixture = _RosterFixture();
 
-    await tester.pumpWidget(
-      fixture.app(textScaler: TextScaler.linear(2)),
-    );
+    await tester.pumpWidget(fixture.app(textScaler: TextScaler.linear(2)));
     await tester.pumpAndSettle();
 
     expect(find.text(fixture.student.displayName), findsOneWidget);
@@ -48,7 +46,10 @@ void main() {
 
     expect(find.text('No se pudo cargar la lista de alumnos.'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
-    expect(find.text('No se pudo guardar el alumno o la matrícula.'), findsNothing);
+    expect(
+      find.text('No se pudo guardar el alumno o la matrícula.'),
+      findsNothing,
+    );
     expect(fixture.enrollmentRepository.findByGroupCalls, 1);
 
     await tester.tap(find.text('Reintentar'));
@@ -202,7 +203,8 @@ final class _MemoryTeachingGroupRepository implements TeachingGroupRepository {
   final TeachingGroup group;
 
   @override
-  Future<TeachingGroup?> findById(String id) async => id == group.id ? group : null;
+  Future<TeachingGroup?> findById(String id) async =>
+      id == group.id ? group : null;
 
   @override
   Future<List<TeachingGroup>> listForSchoolYear(String schoolYearId) async {

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
+  static const Size minimumInteractiveSize = Size(48, 48);
+
   static ThemeData light(AppPalette palette) =>
       _base(Brightness.light, palette);
 
@@ -38,6 +40,10 @@ abstract final class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
       visualDensity: VisualDensity.standard,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      focusColor: scheme.primary.withValues(
+        alpha: brightness == Brightness.dark ? 0.28 : 0.18,
+      ),
     );
     final textTheme = GoogleFonts.montserratTextTheme(base.textTheme).copyWith(
       displayLarge: GoogleFonts.montserrat(
@@ -69,6 +75,9 @@ abstract final class AppTheme {
         fontWeight: FontWeight.w600,
       ),
     );
+    final controlShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+    );
 
     return base.copyWith(
       textTheme: textTheme,
@@ -95,12 +104,43 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: scheme.outlineVariant),
         ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+          minimumSize: minimumInteractiveSize,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          shape: controlShape,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: minimumInteractiveSize,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          shape: controlShape,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: minimumInteractiveSize,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          shape: controlShape,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: minimumInteractiveSize,
+          padding: const EdgeInsets.all(12),
+        ),
+      ),
+      segmentedButtonTheme: const SegmentedButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStatePropertyAll(minimumInteractiveSize),
+          padding: WidgetStatePropertyAll(
+            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
         ),
       ),

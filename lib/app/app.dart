@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/accessibility/app_accessibility_frame.dart';
 import 'package:aularaiz/app/routing/app_router.dart';
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/app/theme/app_theme.dart';
@@ -23,6 +24,17 @@ class AulaRaizApp extends StatelessWidget {
       highContrastTheme: AppTheme.highContrastLight(settings.palette),
       highContrastDarkTheme: AppTheme.highContrastDark(settings.palette),
       themeMode: settings.themeMode,
+      builder: (context, child) => AppAccessibilityFrame(
+        onOpenSettings: () => appRouter.go('/settings'),
+        onNavigateBack: () {
+          if (appRouter.canPop()) {
+            appRouter.pop();
+          } else {
+            appRouter.go('/');
+          }
+        },
+        child: child ?? const SizedBox.shrink(),
+      ),
       routerConfig: appRouter,
     );
   }

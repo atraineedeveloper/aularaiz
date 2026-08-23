@@ -160,7 +160,10 @@ final class EvaluationController extends ChangeNotifier {
     );
   }
 
-  Future<void> load(TeachingGroup group) async {
+  Future<void> load(
+    TeachingGroup group, {
+    String? initialActivityId,
+  }) async {
     _group = group;
     _isLoading = true;
     _error = null;
@@ -177,7 +180,16 @@ final class EvaluationController extends ChangeNotifier {
         }
       }
       _options = List<EvaluationActivityOption>.unmodifiable(options);
-      _selected = options.isEmpty ? null : options.first;
+      if (options.isEmpty) {
+        _selected = null;
+      } else if (initialActivityId == null) {
+        _selected = options.first;
+      } else {
+        _selected = options
+            .where((option) => option.activity.id == initialActivityId)
+            .firstOrNull;
+        _selected ??= options.first;
+      }
       await _loadSelectedRows();
     } catch (error) {
       _error = error;

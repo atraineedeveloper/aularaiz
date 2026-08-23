@@ -36,10 +36,7 @@ final class GithubUpdateService {
       maxBytes: _maxMetadataBytes,
       acceptGithubJson: true,
     );
-    return parseLatestGithubRelease(
-      metadata,
-      currentVersion: installedVersion,
-    );
+    return parseLatestGithubRelease(metadata, currentVersion: installedVersion);
   }
 
   Future<File> downloadAndVerify(AppUpdate update) async {
@@ -104,13 +101,21 @@ final class GithubUpdateService {
   }
 
   Future<void> _verifyAuthenticodeSignature(File installer) async {
-    final result = await Process.run('powershell.exe', <String>[
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      r'''$signature = Get-AuthenticodeSignature -LiteralPath $args[0]; if ($signature.Status -ne 'Valid') { Write-Error "Invalid Authenticode signature: $($signature.Status)"; exit 1 }''',
-      installer.path,
-    ]);
+    const verificationScript = r'''
+$signature = Get-AuthenticodeSignature -LiteralPath $env:AULARAIZ_UPDATE_INSTALLER
+if ($signature.Status -ne 'Valid') {
+  Write-Error "Invalid Authenticode signature: $($signature.Status)"
+  exit 1
+}
+''';
+    final result = await Process.run(
+      'powershell.exe',
+      <String>['-NoProfile', '-NonInteractive', '-Command', verificationScript],
+      environment: <String, String>{
+        ...Platform.environment,
+        'AULARAIZ_UPDATE_INSTALLER': installer.path,
+      },
+    );
     if (result.exitCode != 0) {
       throw const FormatException(
         'Downloaded installer did not have a valid Authenticode signature.',
@@ -195,7 +200,10 @@ final class GithubUpdateService {
   }) {
     request.headers.set(HttpHeaders.userAgentHeader, 'AulaRaiz-Update-Client');
     if (acceptGithubJson) {
-      request.headers.set(HttpHeaders.acceptHeader, 'application/vnd.github+json');
+      request.headers.set(
+        HttpHeaders.acceptHeader,
+        'application/vnd.github+json',
+      );
       request.headers.set('X-GitHub-Api-Version', '2022-11-28');
     }
   }

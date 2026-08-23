@@ -8,9 +8,8 @@ void main() {
     test('parses tags and compares numeric components', () {
       expect(SemanticVersion.parse('v1.2.3').toString(), '1.2.3');
       expect(
-        SemanticVersion.parse('1.10.0').compareTo(
-          SemanticVersion.parse('1.9.9'),
-        ),
+        SemanticVersion.parse('1.10.0')
+            .compareTo(SemanticVersion.parse('1.9.9')),
         greaterThan(0),
       );
     });
@@ -34,70 +33,68 @@ void main() {
         'assets': [
           {
             'name': 'AulaRaiz-Setup-1.2.0.exe',
-            'browser_download_url':
-                'https://github.com/atraineedeveloper/aularaiz/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe',
+            'browser_download_url': 'https://github.com/atraineedeveloper/aularaiz/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe',
           },
           {
             'name': 'AulaRaiz-Setup-1.2.0.exe.sha256',
-            'browser_download_url':
-                'https://github.com/atraineedeveloper/aularaiz/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe.sha256',
+            'browser_download_url': 'https://github.com/atraineedeveloper/aularaiz/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe.sha256',
           },
         ],
       });
 
-      final update = parseLatestGithubRelease(
-        payload,
-        currentVersion: '1.1.9',
-      );
+      final update = parseLatestGithubRelease(payload, currentVersion: '1.1.9');
 
       expect(update, isNotNull);
       expect(update!.version.toString(), '1.2.0');
       expect(update.installerFileName, 'AulaRaiz-Setup-1.2.0.exe');
     });
 
-    test('returns no update for current, older, draft, or prerelease builds', () {
-      Map<String, Object> payload({
-        required String tag,
-        bool draft = false,
-        bool prerelease = false,
-      }) => {
-        'tag_name': tag,
-        'html_url':
-            'https://github.com/atraineedeveloper/aularaiz/releases/tag/$tag',
-        'draft': draft,
-        'prerelease': prerelease,
-        'assets': const <Object>[],
-      };
+    test(
+      'returns no update for current, older, draft, or prerelease builds',
+      () {
+        Map<String, Object> payload({
+          required String tag,
+          bool draft = false,
+          bool prerelease = false,
+        }) => {
+          'tag_name': tag,
+          'html_url':
+              'https://github.com/atraineedeveloper/aularaiz/releases/tag/$tag',
+          'draft': draft,
+          'prerelease': prerelease,
+          'assets': const <Object>[],
+        };
 
-      expect(
-        parseLatestGithubRelease(
-          jsonEncode(payload(tag: 'v1.0.0')),
-          currentVersion: '1.0.0',
-        ),
-        isNull,
-      );
-      expect(
-        parseLatestGithubRelease(
-          jsonEncode(payload(tag: 'v0.9.9')),
-          currentVersion: '1.0.0',
-        ),
-        isNull,
-      );
-      expect(
-        parseLatestGithubRelease(
-          jsonEncode(payload(tag: 'v2.0.0', draft: true)),
-          currentVersion: '1.0.0',
-        ),
-        isNull,
-      );
-      expect(
-        parseLatestGithubRelease(
-          jsonEncode(payload(tag: 'v2.0.0', prerelease: true)),
-          currentVersion: '1.0.0',
-        ),
-        isNull,
-      );
-    });
+        expect(
+          parseLatestGithubRelease(
+            jsonEncode(payload(tag: 'v1.0.0')),
+            currentVersion: '1.0.0',
+          ),
+          isNull,
+        );
+        expect(
+          parseLatestGithubRelease(
+            jsonEncode(payload(tag: 'v0.9.9')),
+            currentVersion: '1.0.0',
+          ),
+          isNull,
+        );
+        expect(
+          parseLatestGithubRelease(
+            jsonEncode(payload(tag: 'v2.0.0', draft: true)),
+            currentVersion: '1.0.0',
+          ),
+          isNull,
+        );
+        expect(
+          parseLatestGithubRelease(
+            jsonEncode(payload(tag: 'v2.0.0', prerelease: true)),
+            currentVersion: '1.0.0',
+          ),
+          isNull,
+        );
+      },
+    );
 
     test('requires both installer and checksum assets', () {
       final payload = jsonEncode({

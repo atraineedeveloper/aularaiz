@@ -77,8 +77,7 @@ AppUpdate? parseLatestGithubRelease(
     return null;
   }
 
-  final installerFileName =
-      'AulaRaiz-Setup-${availableVersion.toString()}.exe';
+  final installerFileName = 'AulaRaiz-Setup-${availableVersion.toString()}.exe';
   final checksumFileName = '$installerFileName.sha256';
 
   Uri? installerUri;
@@ -118,9 +117,8 @@ AppUpdate? parseLatestGithubRelease(
 
 String parseSha256Checksum(String source, {required String fileName}) {
   for (final rawLine in const LineSplitter().convert(source)) {
-    final match = RegExp(r'^([0-9a-fA-F]{64})\s+\*?(.+)$').firstMatch(
-      rawLine.trim(),
-    );
+    final match = RegExp(r'^([0-9a-fA-F]{64})\s+\*?(.+)$')
+        .firstMatch(rawLine.trim());
     if (match == null) continue;
 
     final candidateName = match.group(2)!.trim();

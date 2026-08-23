@@ -207,10 +207,10 @@ final class _UpdateStrings {
   String get description => english
       ? 'Check for signed AulaRaíz releases for Windows.'
       : 'Busca versiones firmadas de AulaRaíz para Windows.';
-  String currentVersion(String version) => english
-      ? 'Installed version: $version'
-      : 'Versión instalada: $version';
-  String get checkButton => english ? 'Check for updates' : 'Buscar actualizaciones';
+  String currentVersion(String version) =>
+      english ? 'Installed version: $version' : 'Versión instalada: $version';
+  String get checkButton =>
+      english ? 'Check for updates' : 'Buscar actualizaciones';
   String get checking => english ? 'Checking…' : 'Buscando…';
   String get upToDate => english
       ? 'You already have the latest version.'
@@ -221,7 +221,8 @@ final class _UpdateStrings {
   String get checkFailed => english
       ? 'Could not check for updates. Check your connection and try again.'
       : 'No se pudo buscar actualizaciones. Revisa tu conexión e inténtalo de nuevo.';
-  String get installButton => english ? 'Download and install' : 'Descargar e instalar';
+  String get installButton =>
+      english ? 'Download and install' : 'Descargar e instalar';
   String get preparing => english ? 'Preparing…' : 'Preparando…';
   String get verifying => english
       ? 'Downloading and verifying the installer…'
@@ -232,7 +233,8 @@ final class _UpdateStrings {
   String get installFailed => english
       ? 'The update could not be verified or opened.'
       : 'No se pudo verificar o abrir la actualización.';
-  String get installerReadyTitle => english ? 'Update ready' : 'Actualización lista';
+  String get installerReadyTitle =>
+      english ? 'Update ready' : 'Actualización lista';
   String get installerReadyBody => english
       ? 'Follow the installer steps. AulaRaíz may ask you to close the current window while it updates. Classroom data is stored separately from the program files.'
       : 'Sigue los pasos del instalador. AulaRaíz puede pedirte cerrar esta ventana mientras se actualiza. Los datos del aula se guardan separados de los archivos del programa.';

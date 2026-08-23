@@ -33,35 +33,38 @@ void main() {
       }
     });
 
-    test('staging validates candidate but does not snapshot current data', () async {
-      final candidateBytes = await _createDatabaseBytes(
-        supportDirectory,
-        'candidate-source',
-        'candidate',
-      );
-      final backup = _encodeBackup(candidateBytes);
-      final service = RestoreStagingService(
-        profile: StorageProfile.production,
-        currentSchemaVersion: 1,
-        directoryProvider: () async => supportDirectory,
-      );
+    test(
+      'staging validates candidate but does not snapshot current data',
+      () async {
+        final candidateBytes = await _createDatabaseBytes(
+          supportDirectory,
+          'candidate-source',
+          'candidate',
+        );
+        final backup = _encodeBackup(candidateBytes);
+        final service = RestoreStagingService(
+          profile: StorageProfile.production,
+          currentSchemaVersion: 1,
+          directoryProvider: () async => supportDirectory,
+        );
 
-      final staged = await service.stage(backup);
-      final marker = RestoreRequestMarker.decode(
-        await layout.restoreMarkerFile.readAsString(),
-      );
+        final staged = await service.stage(backup);
+        final marker = RestoreRequestMarker.decode(
+          await layout.restoreMarkerFile.readAsString(),
+        );
 
-      expect(marker.state, RestoreRequestState.staged);
-      expect(marker.safetySha256, isNull);
-      expect(
-        await layout.pendingRestoreFile(staged.requestId).exists(),
-        isTrue,
-      );
-      expect(
-        await layout.safetyRestoreFile(staged.requestId).exists(),
-        isFalse,
-      );
-    });
+        expect(marker.state, RestoreRequestState.staged);
+        expect(marker.safetySha256, isNull);
+        expect(
+          await layout.pendingRestoreFile(staged.requestId).exists(),
+          isTrue,
+        );
+        expect(
+          await layout.safetyRestoreFile(staged.requestId).exists(),
+          isFalse,
+        );
+      },
+    );
 
     test('applies staged database and removes recovery artifacts', () async {
       await _writeActiveDatabase(layout.databaseFile, 'current');
@@ -97,9 +100,7 @@ void main() {
         isFalse,
       );
       expect(
-        supportDirectory
-            .listSync()
-            .where(layout.isManagedRestoreArtifact),
+        supportDirectory.listSync().where(layout.isManagedRestoreArtifact),
         isEmpty,
       );
     });

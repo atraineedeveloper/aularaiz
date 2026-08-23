@@ -1,9 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
-import 'package:aularaiz/application/contracts/database_snapshotter.dart';
 import 'package:aularaiz/data/local/storage_layout.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/infrastructure/backup/aularaiz_database_file_validator.dart';
@@ -12,7 +12,6 @@ import 'package:crypto/crypto.dart';
 
 final class RestoreStagingService {
   RestoreStagingService({
-    required DatabaseSnapshotter currentSnapshotter,
     required StorageProfile profile,
     required int currentSchemaVersion,
     ApplicationSupportDirectoryProvider directoryProvider =
@@ -20,14 +19,12 @@ final class RestoreStagingService {
     AulaRaizBackupCodec codec = const AulaRaizBackupCodec(),
     AulaRaizDatabaseFileValidator validator =
         const AulaRaizDatabaseFileValidator(),
-  }) : _currentSnapshotter = currentSnapshotter,
-       _profile = profile,
+  }) : _profile = profile,
        _currentSchemaVersion = currentSchemaVersion,
        _directoryProvider = directoryProvider,
        _codec = codec,
        _validator = validator;
 
-  final DatabaseSnapshotter _currentSnapshotter;
   final StorageProfile _profile;
   final int _currentSchemaVersion;
   final ApplicationSupportDirectoryProvider _directoryProvider;
@@ -52,7 +49,6 @@ final class RestoreStagingService {
     );
     final requestId = _newRequestId();
     final pending = layout.pendingRestoreFile(requestId);
-    final safety = layout.safetyRestoreFile(requestId);
     final markerTemp = layout.restoreMarkerTempFile;
     var committed = false;
 
@@ -61,47 +57,33 @@ final class RestoreStagingService {
       await _validator.validate(
         pending,
         maxSchemaVersion: _currentSchemaVersion,
-      );
-
-      final safetyBytes = await _currentSnapshotter.createSnapshot();
-      await _writeFresh(safety, safetyBytes);
-      await _validator.validate(
-        safety,
-        maxSchemaVersion: _currentSchemaVersion,
-        exactSchemaVersion: _currentSchemaVersion,
+        exactSchemaVersion: inspection.manifest.schemaVersion,
       );
 
       final marker = RestoreRequestMarker(
         requestId: requestId,
         profile: _profile,
+        state: RestoreRequestState.staged,
         stagedAtUtc: DateTime.now().toUtc(),
         backupCreatedAtUtc: inspection.manifest.createdAtUtc,
         sourceSchemaVersion: inspection.manifest.schemaVersion,
         pendingSha256: sha256.convert(await pending.readAsBytes()).toString(),
-        safetySha256: sha256.convert(await safety.readAsBytes()).toString(),
       );
       await _writeFresh(
         markerTemp,
-        Uint8List.fromList(marker.encode().codeUnits),
+        Uint8List.fromList(utf8.encode(marker.encode())),
       );
-      if (await layout.restoreMarkerFile.exists()) {
-        await layout.restoreMarkerFile.delete();
-      }
+      await _deleteIfPresent(layout.restoreMarkerFile);
       await markerTemp.rename(layout.restoreMarkerFile.path);
       committed = true;
       await _cleanupStaleArtifacts(
         layout,
-        keep: <String>{
-          layout.restoreMarkerFile.path,
-          pending.path,
-          safety.path,
-        },
+        keep: <String>{layout.restoreMarkerFile.path, pending.path},
       );
       return StagedRestore(requestId: requestId, preview: preview);
     } finally {
       if (!committed) {
         await _deleteIfPresent(pending);
-        await _deleteIfPresent(safety);
         await _deleteIfPresent(markerTemp);
       }
     }

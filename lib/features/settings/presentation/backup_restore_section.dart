@@ -15,8 +15,17 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
   BackupSelection? _selection;
   bool _busy = false;
   bool _restorePrepared = false;
+  bool _pendingChecked = false;
   String? _status;
   bool _statusIsError = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_pendingChecked) return;
+    _pendingChecked = true;
+    _loadPendingRestore();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,10 +124,28 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
     );
   }
 
+  Future<void> _loadPendingRestore() async {
+    try {
+      final pending = await context
+          .read<BackupRestoreGateway>()
+          .hasPendingRestore();
+      if (!mounted || !pending) return;
+      setState(() {
+        _restorePrepared = true;
+      });
+    } on Object {
+      if (!mounted) return;
+      final strings = _BackupRestoreStrings.of(context);
+      _setStatus(strings.pendingCheckError, isError: true);
+    }
+  }
+
   Future<void> _exportBackup() async {
     final strings = _BackupRestoreStrings.of(context);
     await _runBusy(() async {
-      final published = await context.read<BackupRestoreGateway>().exportBackup();
+      final published = await context
+          .read<BackupRestoreGateway>()
+          .exportBackup();
       if (!mounted) return;
       _setStatus(
         published ? strings.backupSaved : strings.backupCancelled,
@@ -130,7 +157,9 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
   Future<void> _selectBackup() async {
     final strings = _BackupRestoreStrings.of(context);
     await _runBusy(() async {
-      final selection = await context.read<BackupRestoreGateway>().selectBackup();
+      final selection = await context
+          .read<BackupRestoreGateway>()
+          .selectBackup();
       if (!mounted || selection == null) return;
       setState(() {
         _selection = selection;
@@ -271,7 +300,7 @@ class _BackupPreviewCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.verified_outlined, color: scheme.primary),
+                Icon(Icons.fact_check_outlined, color: scheme.primary),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -379,7 +408,9 @@ class _StatusPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final background = isError ? scheme.errorContainer : scheme.surfaceContainer;
+    final background = isError
+        ? scheme.errorContainer
+        : scheme.surfaceContainer;
     final foreground = isError ? scheme.onErrorContainer : scheme.onSurface;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -414,33 +445,50 @@ final class _BackupRestoreStrings {
 
   final bool spanish;
 
-  String get title => spanish ? 'Copia de seguridad y restauración' : 'Backup and restore';
+  String get title => spanish
+      ? 'Copia de seguridad y restauración'
+      : 'Backup and restore';
   String get description => spanish
       ? 'Guarda una copia completa de AulaRaíz o prepara una restauración validada. La restauración se aplica al volver a abrir la app.'
       : 'Save a complete AulaRaíz backup or prepare a validated restore. The restore is applied when you reopen the app.';
-  String get createBackup => spanish ? 'Crear copia de seguridad' : 'Create backup';
-  String get chooseBackup => spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
-  String get working => spanish ? 'Procesando de forma segura…' : 'Processing safely…';
-  String get backupSaved => spanish ? 'Copia de seguridad guardada o compartida.' : 'Backup saved or shared.';
-  String get backupCancelled => spanish ? 'No se guardó ninguna copia.' : 'No backup was saved.';
-  String get backupReady => spanish ? 'La copia es válida y está lista para revisión.' : 'The backup is valid and ready for review.';
-  String get previewTitle => spanish ? 'Copia válida' : 'Valid backup';
+  String get createBackup =>
+      spanish ? 'Crear copia de seguridad' : 'Create backup';
+  String get chooseBackup =>
+      spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
+  String get working =>
+      spanish ? 'Procesando de forma segura…' : 'Processing safely…';
+  String get backupSaved => spanish
+      ? 'Copia de seguridad guardada o compartida.'
+      : 'Backup saved or shared.';
+  String get backupCancelled =>
+      spanish ? 'No se guardó ninguna copia.' : 'No backup was saved.';
+  String get backupReady => spanish
+      ? 'La copia fue reconocida y es compatible. Se validará completamente al preparar la restauración.'
+      : 'The backup was recognized and is compatible. It will be fully validated when the restore is prepared.';
+  String get previewTitle =>
+      spanish ? 'Copia reconocida' : 'Recognized backup';
   String get createdLabel => spanish ? 'Creada' : 'Created';
   String get schemaLabel => spanish ? 'Versión de datos' : 'Data version';
   String get profileLabel => spanish ? 'Perfil' : 'Profile';
-  String get productionProfile => spanish ? 'Datos principales' : 'Main data';
-  String get demoProfile => spanish ? 'Datos de demostración' : 'Demo data';
+  String get productionProfile =>
+      spanish ? 'Datos principales' : 'Main data';
+  String get demoProfile =>
+      spanish ? 'Datos de demostración' : 'Demo data';
   String get previewWarning => spanish
-      ? 'Al restaurar, los datos actuales serán reemplazados por esta copia. AulaRaíz crea primero una copia de seguridad interna para poder revertir si algo falla.'
-      : 'Restoring replaces the current data with this backup. AulaRaíz first creates an internal safety copy so it can roll back if anything fails.';
-  String get restoreThisBackup => spanish ? 'Restaurar esta copia' : 'Restore this backup';
-  String get confirmTitle => spanish ? '¿Preparar esta restauración?' : 'Prepare this restore?';
+      ? 'Al preparar la restauración, AulaRaíz hará una validación SQLite completa. Solo entonces dejará la copia lista para el próximo arranque; los datos actuales todavía no se reemplazan.'
+      : 'When preparing the restore, AulaRaíz performs a full SQLite validation. Only then is the backup staged for the next launch; current data is not replaced yet.';
+  String get restoreThisBackup =>
+      spanish ? 'Restaurar esta copia' : 'Restore this backup';
+  String get confirmTitle =>
+      spanish ? '¿Preparar esta restauración?' : 'Prepare this restore?';
   String get confirmBody => spanish
-      ? 'La copia se dejará preparada y se aplicará al próximo arranque. Guarda cualquier trabajo pendiente y después cierra completamente AulaRaíz y vuelve a abrirla.'
-      : 'The backup will be staged and applied on the next launch. Save any pending work, then fully close AulaRaíz and open it again.';
+      ? 'La copia se validará completamente y, si pasa, se dejará preparada para el próximo arranque. Guarda cualquier trabajo pendiente y después cierra completamente AulaRaíz y vuelve a abrirla.'
+      : 'The backup will be fully validated and, if it passes, staged for the next launch. Save any pending work, then fully close AulaRaíz and open it again.';
   String get cancel => spanish ? 'Cancelar' : 'Cancel';
-  String get confirmAction => spanish ? 'Preparar restauración' : 'Prepare restore';
-  String get preparedTitle => spanish ? 'Restauración preparada' : 'Restore prepared';
+  String get confirmAction =>
+      spanish ? 'Preparar restauración' : 'Prepare restore';
+  String get preparedTitle =>
+      spanish ? 'Restauración preparada' : 'Restore prepared';
   String get preparedBody => spanish
       ? 'Cierra completamente AulaRaíz y vuelve a abrirla para aplicar la restauración. No continúes editando datos antes de reiniciar.'
       : 'Fully close AulaRaíz and open it again to apply the restore. Do not keep editing data before restarting.';
@@ -457,6 +505,9 @@ final class _BackupRestoreStrings {
   String get restoreError => spanish
       ? 'No se pudo preparar la restauración de forma segura.'
       : 'The restore could not be prepared safely.';
+  String get pendingCheckError => spanish
+      ? 'No se pudo comprobar si hay una restauración pendiente. Intenta cerrar y volver a abrir AulaRaíz.'
+      : 'AulaRaíz could not check whether a restore is pending. Try closing and reopening the app.';
   String get genericError => spanish
       ? 'No se pudo completar la operación. Tus datos actuales no fueron reemplazados.'
       : 'The operation could not be completed. Your current data was not replaced.';

@@ -24,6 +24,7 @@ final class DriftStudentEnrollmentBatchWriter
                 givenNames: Value(student.givenNames),
                 firstSurname: Value(student.firstSurname),
                 secondSurname: Value(student.secondSurname),
+                sex: Value(student.sex),
                 birthDate: Value(student.birthDate),
               ),
             );

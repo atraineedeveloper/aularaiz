@@ -11,6 +11,8 @@ A production release is created from a tag that exactly matches the semantic ver
 - `AulaRaiz-Setup-<version>.exe` — production-signed per-user Windows installer;
 - `AulaRaiz-Setup-<version>.exe.sha256` — Windows installer checksum.
 
+The Windows installer contains both the Flutter desktop application (`aularaiz.exe`) and, from Phase 9 onward, the standalone local automation executable (`aularaiz-agent.exe`).
+
 The workflow refuses to publish when the tag and application version disagree or when production signing credentials are missing.
 
 ## Android / Google Play signing
@@ -37,7 +39,7 @@ The release workflow requires:
 - `WINDOWS_CERTIFICATE_PFX_BASE64`;
 - `WINDOWS_CERTIFICATE_PASSWORD`.
 
-It signs both `aularaiz.exe` and the final installer with SHA-256 and an RFC 3161 timestamp. The certificate is materialized only on the ephemeral runner and removed before artifact upload.
+It signs `aularaiz.exe`, `aularaiz-agent.exe` and the final installer with SHA-256 and an RFC 3161 timestamp. The certificate is materialized only on the ephemeral runner and removed before artifact upload.
 
 The installer intentionally does not delete application-support data during uninstall. Classroom data belongs to the user, not to the program package.
 
@@ -66,6 +68,8 @@ Windows updates are user-initiated from Preferences. AulaRaíz:
 6. verifies that Windows reports a valid Authenticode signature on the installer;
 7. opens the verified installer so the user remains in control of the update.
 
+Because the automation executable ships inside the same signed installer, updating AulaRaíz also updates `aularaiz-agent.exe` as one versioned product.
+
 Drafts and prereleases are ignored by the update parser. Android updates are distributed through Google Play rather than this Windows flow.
 
 ## Creating a release
@@ -73,7 +77,7 @@ Drafts and prereleases are ignored by the update parser. Android updates are dis
 1. Update `pubspec.yaml` to the intended application version and increment the Android build number after every Play upload.
 2. Merge the version change only after normal CI passes.
 3. Push a matching `v<version>` tag, or run the Release workflow manually with that exact tag.
-4. The workflow reruns quality checks, builds the signed App Bundle, builds/signs the Windows application and installer, creates SHA-256 files, and publishes the GitHub Release.
+4. The workflow reruns quality checks, builds the signed App Bundle, builds/signs the Windows application and automation executable, builds/signs the installer, creates SHA-256 files, and publishes the GitHub Release.
 5. Upload the `.aab` from that release to the intended Google Play track.
 
 Production artifacts must never be built with debug signing or with a certificate/private key committed to the repository.

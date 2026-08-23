@@ -91,24 +91,35 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       )
                     : LayoutBuilder(
                         builder: (context, constraints) {
+                          final publishEnabled = !controller.isPublishing;
                           if (constraints.maxWidth >= 980) {
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(
-                                  width: 340,
+                                  width: 360,
                                   child: _GroupReportCard(
                                     studentCount: report.students.length,
-                                    onGenerate: controller.isPublishing
-                                        ? null
-                                        : _publishGroup,
+                                    onGenerate: publishEnabled
+                                        ? _publishGroup
+                                        : null,
+                                    onExportCsv: publishEnabled
+                                        ? () => _publishGroupExport(
+                                            GroupExportFormat.csv,
+                                          )
+                                        : null,
+                                    onExportXlsx: publishEnabled
+                                        ? () => _publishGroupExport(
+                                            GroupExportFormat.xlsx,
+                                          )
+                                        : null,
                                   ),
                                 ),
                                 const SizedBox(width: 20),
                                 Expanded(
                                   child: _StudentReportsList(
                                     students: report.students,
-                                    enabled: !controller.isPublishing,
+                                    enabled: publishEnabled,
                                     onGenerate: _publishIndividual,
                                   ),
                                 ),
@@ -119,16 +130,26 @@ class _ReportsScreenState extends State<ReportsScreen> {
                             children: [
                               _GroupReportCard(
                                 studentCount: report.students.length,
-                                onGenerate: controller.isPublishing
-                                    ? null
-                                    : _publishGroup,
+                                onGenerate: publishEnabled
+                                    ? _publishGroup
+                                    : null,
+                                onExportCsv: publishEnabled
+                                    ? () => _publishGroupExport(
+                                        GroupExportFormat.csv,
+                                      )
+                                    : null,
+                                onExportXlsx: publishEnabled
+                                    ? () => _publishGroupExport(
+                                        GroupExportFormat.xlsx,
+                                      )
+                                    : null,
                               ),
                               const SizedBox(height: 18),
                               SizedBox(
                                 height: 520,
                                 child: _StudentReportsList(
                                   students: report.students,
-                                  enabled: !controller.isPublishing,
+                                  enabled: publishEnabled,
                                   onGenerate: _publishIndividual,
                                 ),
                               ),
@@ -178,6 +199,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final controller = context.read<ReportsController>();
     final l10n = AppLocalizations.of(context);
     final result = await controller.publishGroup(
+      english: l10n.localeName.startsWith('en'),
+    );
+    if (!mounted) return;
+    _showResult(result);
+  }
+
+  Future<void> _publishGroupExport(GroupExportFormat format) async {
+    final controller = context.read<ReportsController>();
+    final l10n = AppLocalizations.of(context);
+    final result = await controller.publishGroupExport(
+      format: format,
       english: l10n.localeName.startsWith('en'),
     );
     if (!mounted) return;
@@ -305,10 +337,14 @@ class _GroupReportCard extends StatelessWidget {
   const _GroupReportCard({
     required this.studentCount,
     required this.onGenerate,
+    required this.onExportCsv,
+    required this.onExportXlsx,
   });
 
   final int studentCount;
   final VoidCallback? onGenerate;
+  final VoidCallback? onExportCsv;
+  final VoidCallback? onExportXlsx;
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +370,23 @@ class _GroupReportCard extends StatelessWidget {
               onPressed: onGenerate,
               icon: const Icon(Icons.picture_as_pdf_outlined),
               label: Text(l10n.reportsGeneratePdf),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onExportCsv,
+              icon: const Icon(Icons.table_rows_outlined),
+              label: Text(l10n.reportsExportCsv),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: onExportXlsx,
+              icon: const Icon(Icons.grid_on_outlined),
+              label: Text(l10n.reportsExportXlsx),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              l10n.reportsExportSafeNote,
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),

@@ -44,7 +44,7 @@ void main() {
 
   test('reads XLSX values in memory and ignores formulas as import data', () {
     final workbook = Excel.createExcel();
-    workbook.appendRow('Alumnos', const [
+    workbook.appendRow('Alumnos', [
       TextCellValue('Nombres'),
       TextCellValue('Primer apellido'),
       TextCellValue('Segundo apellido'),
@@ -52,7 +52,7 @@ void main() {
       TextCellValue('Grado'),
       TextCellValue('Lista'),
     ]);
-    workbook.appendRow('Alumnos', const [
+    workbook.appendRow('Alumnos', [
       TextCellValue('Ana'),
       TextCellValue('López'),
       FormulaCellValue('UPPER("Perez")'),

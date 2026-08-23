@@ -7,6 +7,7 @@ import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
 import 'package:aularaiz/domain/student/student.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 
 final class StudentImportPreviewBuilder {
   StudentImportPreviewBuilder({
@@ -112,6 +113,7 @@ final class StudentImportPreviewBuilder {
           draft: row.draft,
           grade: grade,
           listNumber: listNumber,
+          sex: row.sex,
           birthDate: row.birthDate,
           issues: issues,
         ),
@@ -129,6 +131,7 @@ final class StudentImportPreviewBuilder {
     final issues = <StudentImportIssue>{};
     final givenNames = draft.givenNames.trim();
     final firstSurname = draft.firstSurname.trim();
+    final sexText = draft.sexText.trim();
     final gradeText = draft.gradeText.trim();
     final listNumberText = draft.listNumberText.trim();
     final birthDateText = draft.birthDateText.trim();
@@ -136,6 +139,12 @@ final class StudentImportPreviewBuilder {
     if (givenNames.isEmpty) issues.add(StudentImportIssue.missingGivenNames);
     if (firstSurname.isEmpty) {
       issues.add(StudentImportIssue.missingFirstSurname);
+    }
+
+    StudentSex? sex;
+    if (sexText.isNotEmpty) {
+      sex = _parseSex(sexText);
+      if (sex == null) issues.add(StudentImportIssue.invalidSex);
     }
 
     PrimaryGrade? grade;
@@ -174,9 +183,18 @@ final class StudentImportPreviewBuilder {
       draft: draft,
       grade: grade,
       listNumber: listNumber,
+      sex: sex,
       birthDate: birthDate,
       issues: issues,
     );
+  }
+
+  StudentSex? _parseSex(String value) {
+    return switch (_normalize(value)) {
+      'm' || 'masculino' || 'hombre' || 'male' => StudentSex.male,
+      'f' || 'femenino' || 'mujer' || 'female' => StudentSex.female,
+      _ => null,
+    };
   }
 
   PrimaryGrade? _parseGrade(String value) {
@@ -302,6 +320,7 @@ final class _ParsedDraft {
     required this.draft,
     required this.grade,
     required this.listNumber,
+    required this.sex,
     required this.birthDate,
     required this.issues,
   });
@@ -309,6 +328,7 @@ final class _ParsedDraft {
   final StudentImportDraft draft;
   final PrimaryGrade? grade;
   final int? listNumber;
+  final StudentSex? sex;
   final DateTime? birthDate;
   final Set<StudentImportIssue> issues;
 }

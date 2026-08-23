@@ -317,8 +317,10 @@ Map<String, Object?> _errorEnvelope(String code, String message) =>
     };
 
 void _writeJson(Map<String, Object?> value, {required bool pretty}) {
-  final encoder = pretty ? const JsonEncoder.withIndent('  ') : json;
-  stdout.writeln(encoder.encode(value));
+  final encoded = pretty
+      ? const JsonEncoder.withIndent('  ').convert(value)
+      : jsonEncode(value);
+  stdout.writeln(encoded);
 }
 
 class _CliFailure implements Exception {

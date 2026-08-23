@@ -17,29 +17,35 @@ void main() {
     database = AppDatabase.forTesting(NativeDatabase.memory());
     writer = DriftStudentEnrollmentBatchWriter(database);
 
-    await database.into(database.schools).insert(
-      SchoolsCompanion(
-        id: const Value('school-1'),
-        name: const Value('Primaria de Prueba'),
-        organization: const Value(SchoolOrganization.complete),
-      ),
-    );
-    await database.into(database.schoolYears).insert(
-      SchoolYearsCompanion(
-        id: const Value('year-1'),
-        label: const Value('2026-2027'),
-        startsOn: Value(DateTime(2026, 8, 1)),
-        endsOn: Value(DateTime(2027, 7, 31)),
-      ),
-    );
-    await database.into(database.teachingGroups).insert(
-      const TeachingGroupsCompanion(
-        id: Value('group-1'),
-        schoolId: Value('school-1'),
-        schoolYearId: Value('year-1'),
-        name: Value('5° A'),
-      ),
-    );
+    await database
+        .into(database.schools)
+        .insert(
+          SchoolsCompanion(
+            id: const Value('school-1'),
+            name: const Value('Primaria de Prueba'),
+            organization: const Value(SchoolOrganization.complete),
+          ),
+        );
+    await database
+        .into(database.schoolYears)
+        .insert(
+          SchoolYearsCompanion(
+            id: const Value('year-1'),
+            label: const Value('2026-2027'),
+            startsOn: Value(DateTime(2026, 8, 1)),
+            endsOn: Value(DateTime(2027, 7, 31)),
+          ),
+        );
+    await database
+        .into(database.teachingGroups)
+        .insert(
+          const TeachingGroupsCompanion(
+            id: Value('group-1'),
+            schoolId: Value('school-1'),
+            schoolYearId: Value('year-1'),
+            name: Value('5° A'),
+          ),
+        );
   });
 
   tearDown(() async {

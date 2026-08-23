@@ -24,6 +24,9 @@ extension StudentImportLocalization on AppLocalizations {
   String get importRequiredMapping => _importEnglish
       ? 'Map Names, First surname, Grade, and List number to continue.'
       : 'Mapea Nombres, Primer apellido, Grado y N. de lista para continuar.';
+  String get importDuplicateMapping => _importEnglish
+      ? 'Each AulaRaíz field must use a different source column.'
+      : 'Cada campo de AulaRaíz debe usar una columna de origen diferente.';
   String get importNotMapped => _importEnglish ? 'Not mapped' : 'Sin mapear';
   String get importPreviewTitle =>
       _importEnglish ? 'Review and correct' : 'Revisar y corregir';

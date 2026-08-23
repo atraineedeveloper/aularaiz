@@ -53,44 +53,47 @@ void main() {
     );
   });
 
-  test('duplicate list numbers among included rows block confirmation', () async {
-    final preview = await builder.build(
-      group: group,
-      sourceName: 'lista.csv',
-      sheetName: null,
-      drafts: const [
-        StudentImportDraft(
-          sourceRow: 2,
-          givenNames: 'Ana',
-          firstSurname: 'Pérez',
-          secondSurname: '',
-          birthDateText: '12/03/2016',
-          gradeText: '5°',
-          listNumberText: '2',
-        ),
-        StudentImportDraft(
-          sourceRow: 3,
-          givenNames: 'Bruno',
-          firstSurname: 'Díaz',
-          secondSurname: '',
-          birthDateText: '',
-          gradeText: 'quinto',
-          listNumberText: '2',
-        ),
-      ],
-    );
+  test(
+    'duplicate list numbers among included rows block confirmation',
+    () async {
+      final preview = await builder.build(
+        group: group,
+        sourceName: 'lista.csv',
+        sheetName: null,
+        drafts: const [
+          StudentImportDraft(
+            sourceRow: 2,
+            givenNames: 'Ana',
+            firstSurname: 'Pérez',
+            secondSurname: '',
+            birthDateText: '12/03/2016',
+            gradeText: '5°',
+            listNumberText: '2',
+          ),
+          StudentImportDraft(
+            sourceRow: 3,
+            givenNames: 'Bruno',
+            firstSurname: 'Díaz',
+            secondSurname: '',
+            birthDateText: '',
+            gradeText: 'quinto',
+            listNumberText: '2',
+          ),
+        ],
+      );
 
-    expect(preview.canConfirm, isFalse);
-    expect(preview.errorCount, 2);
-    expect(
-      preview.rows.first.issues,
-      contains(StudentImportIssue.duplicateListNumberInFile),
-    );
-    expect(
-      preview.rows.last.issues,
-      contains(StudentImportIssue.duplicateListNumberInFile),
-    );
-  });
+      expect(preview.canConfirm, isFalse);
+      expect(preview.errorCount, 2);
+      expect(
+        preview.rows.first.issues,
+        contains(StudentImportIssue.duplicateListNumberInFile),
+      );
+      expect(
+        preview.rows.last.issues,
+        contains(StudentImportIssue.duplicateListNumberInFile),
+      );
+    },
+  );
 
   test('excluding one duplicate makes the remaining row importable', () async {
     final preview = await builder.build(
@@ -127,43 +130,46 @@ void main() {
     expect(preview.rows.first.birthDate, DateTime(2016, 3, 12));
   });
 
-  test('existing list number and unsupported grade are blocking errors', () async {
-    final preview = await builder.build(
-      group: group,
-      sourceName: 'lista.csv',
-      sheetName: null,
-      drafts: const [
-        StudentImportDraft(
-          sourceRow: 2,
-          givenNames: 'Ana',
-          firstSurname: 'Pérez',
-          secondSurname: '',
-          birthDateText: '',
-          gradeText: '5',
-          listNumberText: '1',
-        ),
-        StudentImportDraft(
-          sourceRow: 3,
-          givenNames: 'Bruno',
-          firstSurname: 'Díaz',
-          secondSurname: '',
-          birthDateText: '',
-          gradeText: '4',
-          listNumberText: '8',
-        ),
-      ],
-    );
+  test(
+    'existing list number and unsupported grade are blocking errors',
+    () async {
+      final preview = await builder.build(
+        group: group,
+        sourceName: 'lista.csv',
+        sheetName: null,
+        drafts: const [
+          StudentImportDraft(
+            sourceRow: 2,
+            givenNames: 'Ana',
+            firstSurname: 'Pérez',
+            secondSurname: '',
+            birthDateText: '',
+            gradeText: '5',
+            listNumberText: '1',
+          ),
+          StudentImportDraft(
+            sourceRow: 3,
+            givenNames: 'Bruno',
+            firstSurname: 'Díaz',
+            secondSurname: '',
+            birthDateText: '',
+            gradeText: '4',
+            listNumberText: '8',
+          ),
+        ],
+      );
 
-    expect(
-      preview.rows[0].issues,
-      contains(StudentImportIssue.listNumberAlreadyAssigned),
-    );
-    expect(
-      preview.rows[1].issues,
-      contains(StudentImportIssue.gradeNotOffered),
-    );
-    expect(preview.canConfirm, isFalse);
-  });
+      expect(
+        preview.rows[0].issues,
+        contains(StudentImportIssue.listNumberAlreadyAssigned),
+      );
+      expect(
+        preview.rows[1].issues,
+        contains(StudentImportIssue.gradeNotOffered),
+      );
+      expect(preview.canConfirm, isFalse);
+    },
+  );
 
   test('possible existing identity is a warning and does not block', () async {
     final preview = await builder.build(
@@ -236,7 +242,8 @@ final class _SchoolYearRepository implements SchoolYearRepository {
   final SchoolYear value;
 
   @override
-  Future<SchoolYear?> findById(String id) async => id == value.id ? value : null;
+  Future<SchoolYear?> findById(String id) async =>
+      id == value.id ? value : null;
 }
 
 final class _EnrollmentRepository implements EnrollmentRepository {

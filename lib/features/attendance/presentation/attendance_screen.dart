@@ -169,7 +169,7 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                 _label(
                   context,
                   'Haz clic en ✓ bajo un día para marcar al grupo presente y luego cambia sólo las excepciones. También puedes elegir directamente P, A, R o J en cada alumno.',
-                  'Use ✓ under a date to mark the class present, then change only exceptions. You can also choose P, A, L or J for each student.',
+                  'Use ✓ under a date to mark the class present, then change only exceptions. You can also choose P, A, R or J for each student.',
                 ),
               ),
               const SizedBox(height: 16),
@@ -259,7 +259,7 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                 _label(
                   context,
                   'P = Presente · A = Ausente · R = Retardo · J = Falta justificada · — = no inscrito / sin pase de lista',
-                  'P = Present · A = Absent · L = Late · J = Justified absence · — = not enrolled / no attendance saved',
+                  'P = Present · A = Absent · R = Late · J = Justified absence · — = not enrolled / no attendance saved',
                 ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -310,7 +310,6 @@ class _DayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final weekday = MaterialLocalizations.of(context).formatShortWeekday(date);
     return SizedBox(
       width: 48,
       child: Column(
@@ -320,7 +319,10 @@ class _DayHeader extends StatelessWidget {
             '${date.day}',
             style: Theme.of(context).textTheme.labelLarge,
           ),
-          Text(weekday, style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            _weekdayLabel(context, date),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           SizedBox(
             height: 28,
             child: IconButton(
@@ -393,6 +395,20 @@ class _AttendanceCell extends StatelessWidget {
       ),
     );
   }
+}
+
+String _weekdayLabel(BuildContext context, DateTime date) {
+  final english = Localizations.localeOf(context).languageCode == 'en';
+  return switch (date.weekday) {
+    DateTime.monday => english ? 'Mon' : 'Lun',
+    DateTime.tuesday => english ? 'Tue' : 'Mar',
+    DateTime.wednesday => english ? 'Wed' : 'Mié',
+    DateTime.thursday => english ? 'Thu' : 'Jue',
+    DateTime.friday => english ? 'Fri' : 'Vie',
+    DateTime.saturday => english ? 'Sat' : 'Sáb',
+    DateTime.sunday => english ? 'Sun' : 'Dom',
+    _ => '',
+  };
 }
 
 String _statusCode(AttendanceStatus status) => switch (status) {

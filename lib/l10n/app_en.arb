@@ -68,6 +68,8 @@
   "reactivateStudent": "Reactivate",
   "save": "Save",
   "studentSaveError": "The student or enrollment could not be saved.",
+  "studentLoadError": "The student list could not be loaded.",
+  "retry": "Retry",
   "invalidListNumber": "The list number must be greater than zero",
   "noSearchResults": "No students match the search.",
   "discardChangesTitle": "Discard changes?",

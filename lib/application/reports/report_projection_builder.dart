@@ -8,7 +8,7 @@ import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
-import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -179,7 +179,7 @@ final class ReportProjectionBuilder {
         referenceMonth: month,
       ),
       enrollments: List<Enrollment>.unmodifiable(latestByStudent.values),
-      attendance: attendance,
+      attendance: List<DailyAttendance>.unmodifiable(attendance),
       activities: List<Activity>.unmodifiable(activities),
     );
   }
@@ -187,7 +187,7 @@ final class ReportProjectionBuilder {
   Future<StudentReportRow> _buildStudentRow({
     required Student student,
     required Enrollment enrollment,
-    required List<dynamic> attendance,
+    required List<DailyAttendance> attendance,
     required List<Activity> activities,
     required ReportPrivacyOptions privacy,
   }) async {
@@ -196,7 +196,7 @@ final class ReportProjectionBuilder {
     var late = 0;
     var justified = 0;
     for (final day in attendance) {
-      final status = day.statusFor(student.id) as AttendanceStatus?;
+      final status = day.statusFor(student.id);
       switch (status) {
         case AttendanceStatus.present:
           present++;
@@ -271,7 +271,9 @@ final class ReportProjectionBuilder {
       );
     }
 
-    items.sort((left, right) => left.activityTitle.compareTo(right.activityTitle));
+    items.sort(
+      (left, right) => left.activityTitle.compareTo(right.activityTitle),
+    );
     return List<EvaluationReportItem>.unmodifiable(items);
   }
 
@@ -343,7 +345,7 @@ final class _ReportContext {
 
   final ReportHeader header;
   final List<Enrollment> enrollments;
-  final List<dynamic> attendance;
+  final List<DailyAttendance> attendance;
   final List<Activity> activities;
 }
 

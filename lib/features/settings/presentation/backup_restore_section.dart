@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
+import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -250,6 +251,16 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
   String _friendlyError(Object error) {
     final strings = _BackupRestoreStrings.of(context);
     if (error is BackupFormatException) return strings.invalidBackup;
+    if (error is BackupProtectionException) {
+      return switch (error.problem) {
+        BackupProtectionProblem.keyUnavailable ||
+        BackupProtectionProblem.keyMismatch => strings.encryptionKeyUnavailable,
+        BackupProtectionProblem.unsupportedProtection =>
+          strings.unsupportedProtection,
+        BackupProtectionProblem.invalidEnvelope ||
+        BackupProtectionProblem.authenticationFailed => strings.invalidBackup,
+      };
+    }
     if (error is RestoreException) {
       return switch (error.problem) {
         RestoreProblem.profileMismatch => strings.incompatibleProfile,
@@ -447,8 +458,8 @@ final class _BackupRestoreStrings {
   String get title =>
       spanish ? 'Copia de seguridad y restauración' : 'Backup and restore';
   String get description => spanish
-      ? 'Guarda una copia completa de AulaRaíz o prepara una restauración validada. La restauración se aplica al volver a abrir la app.'
-      : 'Save a complete AulaRaíz backup or prepare a validated restore. The restore is applied when you reopen the app.';
+      ? 'Guarda una copia completa cifrada de AulaRaíz o prepara una restauración validada. Por ahora, las copias cifradas solo pueden restaurarse en la instalación que las creó.'
+      : 'Save a complete encrypted AulaRaíz backup or prepare a validated restore. For now, encrypted backups can only be restored by the installation that created them.';
   String get createBackup =>
       spanish ? 'Crear copia de seguridad' : 'Create backup';
   String get chooseBackup =>
@@ -456,8 +467,8 @@ final class _BackupRestoreStrings {
   String get working =>
       spanish ? 'Procesando de forma segura…' : 'Processing safely…';
   String get backupSaved => spanish
-      ? 'Copia de seguridad guardada o compartida.'
-      : 'Backup saved or shared.';
+      ? 'Copia de seguridad cifrada guardada o compartida.'
+      : 'Encrypted backup saved or shared.';
   String get backupCancelled =>
       spanish ? 'No se guardó ninguna copia.' : 'No backup was saved.';
   String get backupReady => spanish
@@ -489,8 +500,14 @@ final class _BackupRestoreStrings {
       : 'Fully close AulaRaíz and open it again to apply the restore. Do not keep editing data before restarting.';
   String get understood => spanish ? 'Entendido' : 'Got it';
   String get invalidBackup => spanish
-      ? 'El archivo no es una copia válida de AulaRaíz o está dañado.'
-      : 'The file is not a valid AulaRaíz backup or is damaged.';
+      ? 'El archivo no es una copia válida de AulaRaíz, está dañado o su cifrado fue alterado.'
+      : 'The file is not a valid AulaRaíz backup, is damaged, or its encrypted contents were altered.';
+  String get encryptionKeyUnavailable => spanish
+      ? 'No se encontró la clave local necesaria para abrir esta copia cifrada. Por ahora, solo puede restaurarse en la instalación que la creó.'
+      : 'The local key required to open this encrypted backup is not available. For now, it can only be restored by the installation that created it.';
+  String get unsupportedProtection => spanish
+      ? 'Esta copia usa un método de protección que esta versión de AulaRaíz no reconoce.'
+      : 'This backup uses a protection method that this version of AulaRaíz does not recognize.';
   String get incompatibleProfile => spanish
       ? 'Esta copia pertenece a otro perfil de datos y no puede restaurarse aquí.'
       : 'This backup belongs to a different data profile and cannot be restored here.';

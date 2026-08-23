@@ -219,39 +219,17 @@ final class ReportProjectionBuilder {
       activities: activities,
       includeObservation: false,
     );
-    var pending = 0;
-    var notDelivered = 0;
-    var deliveredAwaitingEvaluation = 0;
-    var beginning = 0;
-    var developing = 0;
-    var expected = 0;
-    var advanced = 0;
-    for (final item in evaluations) {
-      switch (item.deliveryStatus) {
-        case DeliveryStatus.pending:
-          pending++;
-        case DeliveryStatus.notDelivered:
-          notDelivered++;
-        case DeliveryStatus.delivered:
-          if (item.achievement == null) deliveredAwaitingEvaluation++;
-      }
-      switch (item.achievement) {
-        case AchievementLevel.beginning:
-          beginning++;
-        case AchievementLevel.developing:
-          developing++;
-        case AchievementLevel.expected:
-          expected++;
-        case AchievementLevel.advanced:
-          advanced++;
-        case null:
-          break;
-      }
-    }
+    final evaluationSummary = _summarizeEvaluations(evaluations);
 
-    final record = privacy.includeSensitiveFollowUp
-        ? await _studentRecordRepository.findByStudentId(student.id)
-        : null;
+    String? strengths;
+    String? difficulties;
+    String? supports;
+    if (privacy.includeSensitiveFollowUp) {
+      final record = await _studentRecordRepository.find(student.id);
+      strengths = record?.strengths;
+      difficulties = record?.difficulties;
+      supports = record?.supports;
+    }
 
     return StudentReportRow(
       studentId: student.id,
@@ -264,18 +242,10 @@ final class ReportProjectionBuilder {
         late: late,
         justifiedAbsence: justified,
       ),
-      evaluation: EvaluationReportSummary(
-        pending: pending,
-        notDelivered: notDelivered,
-        deliveredAwaitingEvaluation: deliveredAwaitingEvaluation,
-        beginning: beginning,
-        developing: developing,
-        expected: expected,
-        advanced: advanced,
-      ),
-      strengths: record?.strengths,
-      difficulties: record?.difficulties,
-      supports: record?.supports,
+      evaluation: evaluationSummary,
+      strengths: strengths,
+      difficulties: difficulties,
+      supports: supports,
     );
   }
 
@@ -284,31 +254,81 @@ final class ReportProjectionBuilder {
     required List<Activity> activities,
     required bool includeObservation,
   }) async {
-    final result = <EvaluationReportItem>[];
+    final saved = await _evaluationRepository.listForStudent(studentId);
+    final savedByActivity = <String, ActivityEvaluation>{
+      for (final evaluation in saved) evaluation.activityId: evaluation,
+    };
+    final items = <EvaluationReportItem>[];
+
     for (final activity in activities) {
-      if (!activity.isApplicableTo(studentId)) continue;
-      final evaluation = await _evaluationRepository.find(
-        activity.id,
-        studentId,
-      );
-      final value =
-          evaluation ??
-          ActivityEvaluation(
-            activityId: activity.id,
-            studentId: studentId,
-            deliveryStatus: DeliveryStatus.pending,
-          );
-      result.add(
+      if (!activity.roster.containsKey(studentId)) continue;
+      final evaluation = savedByActivity[activity.id];
+      items.add(
         EvaluationReportItem(
           activityId: activity.id,
           activityTitle: activity.title,
-          deliveryStatus: value.deliveryStatus,
-          achievement: value.achievement,
-          observation: includeObservation ? value.observation : null,
+          deliveryStatus: evaluation?.deliveryStatus ?? DeliveryStatus.pending,
+          achievement: evaluation?.achievement,
+          observation: includeObservation ? evaluation?.observation : null,
         ),
       );
     }
-    return List<EvaluationReportItem>.unmodifiable(result);
+
+    items.sort(
+      (left, right) => left.activityTitle.compareTo(right.activityTitle),
+    );
+    return List<EvaluationReportItem>.unmodifiable(items);
+  }
+
+  EvaluationReportSummary _summarizeEvaluations(
+    List<EvaluationReportItem> evaluations,
+  ) {
+    var pending = 0;
+    var delivered = 0;
+    var notDelivered = 0;
+    var evaluated = 0;
+    var mastered = 0;
+    var sufficient = 0;
+    var inProgress = 0;
+    var requiresSupport = 0;
+
+    for (final evaluation in evaluations) {
+      switch (evaluation.deliveryStatus) {
+        case DeliveryStatus.pending:
+          pending++;
+        case DeliveryStatus.delivered:
+          delivered++;
+        case DeliveryStatus.notDelivered:
+          notDelivered++;
+      }
+      switch (evaluation.achievement) {
+        case AchievementLevel.mastered:
+          evaluated++;
+          mastered++;
+        case AchievementLevel.sufficient:
+          evaluated++;
+          sufficient++;
+        case AchievementLevel.inProgress:
+          evaluated++;
+          inProgress++;
+        case AchievementLevel.requiresSupport:
+          evaluated++;
+          requiresSupport++;
+        case null:
+          break;
+      }
+    }
+
+    return EvaluationReportSummary(
+      pending: pending,
+      delivered: delivered,
+      notDelivered: notDelivered,
+      evaluated: evaluated,
+      mastered: mastered,
+      sufficient: sufficient,
+      inProgress: inProgress,
+      requiresSupport: requiresSupport,
+    );
   }
 
   bool _overlaps(Enrollment enrollment, DateTime start, DateTime end) {
@@ -330,4 +350,11 @@ final class _ReportContext {
   final List<Enrollment> enrollments;
   final List<DailyAttendance> attendance;
   final List<Activity> activities;
+}
+
+extension<T> on Iterable<T> {
+  T? get firstOrNull {
+    final iterator = this.iterator;
+    return iterator.moveNext() ? iterator.current : null;
+  }
 }

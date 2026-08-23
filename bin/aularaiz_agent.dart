@@ -94,7 +94,9 @@ Future<void> main(List<String> arguments) async {
         data['database'] = <String, Object?>{
           'exists': true,
           'profile': invocation.profile.name,
-          'discovery': invocation.databasePath == null ? 'automatic' : 'explicit',
+          'discovery': invocation.databasePath == null
+              ? 'automatic'
+              : 'explicit',
         };
         json['data'] = data;
       }
@@ -107,14 +109,14 @@ Future<void> main(List<String> arguments) async {
     _writeJson(_errorEnvelope(error.code, error.message), pretty: pretty);
     exitCode = error.exitCode;
   } on FormatException catch (error) {
-    _writeJson(
-      _errorEnvelope('invalid-input', error.message),
-      pretty: pretty,
-    );
+    _writeJson(_errorEnvelope('invalid-input', error.message), pretty: pretty);
     exitCode = 2;
   } on ArgumentError catch (error) {
     _writeJson(
-      _errorEnvelope('invalid-input', '${error.message ?? 'Entrada inválida.'}'),
+      _errorEnvelope(
+        'invalid-input',
+        '${error.message ?? 'Entrada inválida.'}',
+      ),
       pretty: pretty,
     );
     exitCode = 2;
@@ -282,8 +284,8 @@ DateTime _parseDate(String value) {
 StudentRecordEntryKind _parseEntryKind(String value) {
   return switch (value) {
     'observation' => StudentRecordEntryKind.observation,
-    'family-agreement' || 'familyAgreement' =>
-      StudentRecordEntryKind.familyAgreement,
+    'family-agreement' ||
+    'familyAgreement' => StudentRecordEntryKind.familyAgreement,
     _ => throw const FormatException(
       '--kind debe ser observation o family-agreement.',
     ),

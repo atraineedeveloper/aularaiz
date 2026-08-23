@@ -33,7 +33,10 @@ void main() {
       expect(find.text('Datos principales'), findsOneWidget);
       expect(find.text('Restaurar esta copia'), findsOneWidget);
 
-      await tester.tap(find.text('Restaurar esta copia'));
+      final restoreAction = find.text('Restaurar esta copia');
+      await tester.ensureVisible(restoreAction);
+      await tester.pumpAndSettle();
+      await tester.tap(restoreAction);
       await tester.pumpAndSettle();
 
       expect(find.text('¿Preparar esta restauración?'), findsOneWidget);

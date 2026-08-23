@@ -10,38 +10,40 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
   final AppDatabase database;
 
   @override
-  Future<bool> hasInitialSetup() async => (await loadInitialSetup()) != null;
+  Future<bool> hasInitialSetup() async => (await listSetups()).isNotEmpty;
 
   @override
   Future<InitialSchoolSetup?> loadInitialSetup() async {
-    final schoolRow = await (database.select(
-      database.schools,
-    )..limit(1)).getSingleOrNull();
-    final yearRows =
-        await (database.select(database.schoolYears)
-              ..orderBy([(table) => OrderingTerm.desc(table.startsOn)])
+    final setups = await listSetups();
+    return setups.isEmpty ? null : setups.first;
+  }
+
+  @override
+  Future<List<InitialSchoolSetup>> listSetups() async {
+    final contexts = await database.select(database.schoolContexts).get();
+    final result = <InitialSchoolSetup>[];
+    for (final context in contexts) {
+      final setup = await _loadContext(
+        schoolId: context.schoolId,
+        schoolYearId: context.schoolYearId,
+      );
+      if (setup != null) result.add(setup);
+    }
+    result.sort((left, right) => left.school.name.compareTo(right.school.name));
+    return List<InitialSchoolSetup>.unmodifiable(result);
+  }
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async {
+    final context =
+        await (database.select(database.schoolContexts)
+              ..where((table) => table.schoolId.equals(schoolId))
               ..limit(1))
-            .get();
-
-    if (schoolRow == null || yearRows.isEmpty) return null;
-    final schoolYearRow = yearRows.single;
-
-    return (
-      school: School(
-        id: schoolRow.id,
-        name: schoolRow.name,
-        cct: schoolRow.cct,
-        organization: schoolRow.organization,
-        state: schoolRow.state,
-        municipality: schoolRow.municipality,
-        locality: schoolRow.locality,
-      ),
-      schoolYear: SchoolYear(
-        id: schoolYearRow.id,
-        label: schoolYearRow.label,
-        startsOn: schoolYearRow.startsOn,
-        endsOn: schoolYearRow.endsOn,
-      ),
+            .getSingleOrNull();
+    if (context == null) return null;
+    return _loadContext(
+      schoolId: context.schoolId,
+      schoolYearId: context.schoolYearId,
     );
   }
 
@@ -75,6 +77,48 @@ final class DriftSchoolSetupRepository implements SchoolSetupRepository {
               endsOn: Value(schoolYear.endsOn),
             ),
           );
+
+      await database.into(database.schoolContexts).insert(
+        SchoolContextsCompanion(
+          schoolId: Value(school.id),
+          schoolYearId: Value(schoolYear.id),
+        ),
+      );
     });
+  }
+
+  Future<InitialSchoolSetup?> _loadContext({
+    required String schoolId,
+    required String schoolYearId,
+  }) async {
+    final schoolRow =
+        await (database.select(database.schools)
+              ..where((table) => table.id.equals(schoolId))
+              ..limit(1))
+            .getSingleOrNull();
+    final schoolYearRow =
+        await (database.select(database.schoolYears)
+              ..where((table) => table.id.equals(schoolYearId))
+              ..limit(1))
+            .getSingleOrNull();
+    if (schoolRow == null || schoolYearRow == null) return null;
+
+    return (
+      school: School(
+        id: schoolRow.id,
+        name: schoolRow.name,
+        cct: schoolRow.cct,
+        organization: schoolRow.organization,
+        state: schoolRow.state,
+        municipality: schoolRow.municipality,
+        locality: schoolRow.locality,
+      ),
+      schoolYear: SchoolYear(
+        id: schoolYearRow.id,
+        label: schoolYearRow.label,
+        startsOn: schoolYearRow.startsOn,
+        endsOn: schoolYearRow.endsOn,
+      ),
+    );
   }
 }

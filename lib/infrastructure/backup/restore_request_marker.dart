@@ -3,15 +3,18 @@ import 'dart:convert';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 
+enum RestoreRequestState { staged, prepared, applying }
+
 final class RestoreRequestMarker {
   const RestoreRequestMarker({
     required this.requestId,
     required this.profile,
+    required this.state,
     required this.stagedAtUtc,
     required this.backupCreatedAtUtc,
     required this.sourceSchemaVersion,
     required this.pendingSha256,
-    required this.safetySha256,
+    this.safetySha256,
   });
 
   factory RestoreRequestMarker.decode(String source) {
@@ -48,6 +51,16 @@ final class RestoreRequestMarker {
           'Restore marker profile is invalid.',
         );
       }
+      final stateName = _string(decoded, 'state');
+      final state = RestoreRequestState.values.where((value) {
+        return value.name == stateName;
+      }).firstOrNull;
+      if (state == null) {
+        throw const RestoreException(
+          RestoreProblem.invalidRequest,
+          'Restore marker state is invalid.',
+        );
+      }
 
       final stagedAtUtc = DateTime.tryParse(_string(decoded, 'stagedAtUtc'))
           ?.toUtc();
@@ -61,14 +74,25 @@ final class RestoreRequestMarker {
         );
       }
 
+      final safetySha256 = decoded['safetySha256'] == null
+          ? null
+          : _sha(decoded, 'safetySha256');
+      if (state != RestoreRequestState.staged && safetySha256 == null) {
+        throw const RestoreException(
+          RestoreProblem.invalidRequest,
+          'Prepared restore markers require a safety checksum.',
+        );
+      }
+
       return RestoreRequestMarker(
         requestId: requestId,
         profile: profile,
+        state: state,
         stagedAtUtc: stagedAtUtc,
         backupCreatedAtUtc: backupCreatedAtUtc,
         sourceSchemaVersion: _integer(decoded, 'sourceSchemaVersion'),
         pendingSha256: _sha(decoded, 'pendingSha256'),
-        safetySha256: _sha(decoded, 'safetySha256'),
+        safetySha256: safetySha256,
       );
     } on RestoreException {
       rethrow;
@@ -87,16 +111,34 @@ final class RestoreRequestMarker {
 
   final String requestId;
   final StorageProfile profile;
+  final RestoreRequestState state;
   final DateTime stagedAtUtc;
   final DateTime backupCreatedAtUtc;
   final int sourceSchemaVersion;
   final String pendingSha256;
-  final String safetySha256;
+  final String? safetySha256;
+
+  RestoreRequestMarker copyWith({
+    RestoreRequestState? state,
+    String? safetySha256,
+  }) {
+    return RestoreRequestMarker(
+      requestId: requestId,
+      profile: profile,
+      state: state ?? this.state,
+      stagedAtUtc: stagedAtUtc,
+      backupCreatedAtUtc: backupCreatedAtUtc,
+      sourceSchemaVersion: sourceSchemaVersion,
+      pendingSha256: pendingSha256,
+      safetySha256: safetySha256 ?? this.safetySha256,
+    );
+  }
 
   String encode() => jsonEncode(<String, Object?>{
     'version': currentVersion,
     'requestId': requestId,
     'profile': profile.name,
+    'state': state.name,
     'stagedAtUtc': stagedAtUtc.toUtc().toIso8601String(),
     'backupCreatedAtUtc': backupCreatedAtUtc.toUtc().toIso8601String(),
     'sourceSchemaVersion': sourceSchemaVersion,

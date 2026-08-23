@@ -53,7 +53,6 @@ final class AulaRaizStorageLayout {
     return name.startsWith('$_prefix.restore-');
   }
 
-  File _file(String name) => File(
-    '${directory.path}${Platform.pathSeparator}$name',
-  );
+  File _file(String name) =>
+      File('${directory.path}${Platform.pathSeparator}$name');
 }

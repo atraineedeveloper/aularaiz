@@ -35,26 +35,6 @@ final class BackupManifest {
     required this.databaseLength,
   });
 
-  static const currentFormatVersion = 1;
-
-  final int formatVersion;
-  final DateTime createdAtUtc;
-  final int schemaVersion;
-  final String storageProfile;
-  final String protection;
-  final String databaseSha256;
-  final int databaseLength;
-
-  Map<String, Object?> toJson() => <String, Object?>{
-    'formatVersion': formatVersion,
-    'createdAtUtc': createdAtUtc.toUtc().toIso8601String(),
-    'schemaVersion': schemaVersion,
-    'storageProfile': storageProfile,
-    'protection': protection,
-    'databaseSha256': databaseSha256,
-    'databaseLength': databaseLength,
-  };
-
   factory BackupManifest.fromJson(Map<String, Object?> json) {
     final formatVersion = _requiredInt(json, 'formatVersion');
     final createdAtText = _requiredString(json, 'createdAtUtc');
@@ -76,6 +56,26 @@ final class BackupManifest {
       databaseLength: _requiredInt(json, 'databaseLength'),
     );
   }
+
+  static const currentFormatVersion = 1;
+
+  final int formatVersion;
+  final DateTime createdAtUtc;
+  final int schemaVersion;
+  final String storageProfile;
+  final String protection;
+  final String databaseSha256;
+  final int databaseLength;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'formatVersion': formatVersion,
+    'createdAtUtc': createdAtUtc.toUtc().toIso8601String(),
+    'schemaVersion': schemaVersion,
+    'storageProfile': storageProfile,
+    'protection': protection,
+    'databaseSha256': databaseSha256,
+    'databaseLength': databaseLength,
+  };
 
   static String _requiredString(Map<String, Object?> json, String key) {
     final value = json[key];

@@ -192,27 +192,24 @@ void main() {
     );
   });
 
-  test(
-    'keeps mid-month historical enrollment and counts unsaved evaluation as pending',
-    () async {
-      final report = await builder.buildGroup(
-        group: group,
-        referenceMonth: DateTime(2026, 8),
-      );
+  test('keeps mid-month historical enrollment and counts unsaved evaluation as pending', () async {
+    final report = await builder.buildGroup(
+      group: group,
+      referenceMonth: DateTime(2026, 8),
+    );
 
-      expect(report.students.map((student) => student.studentId), [
-        ana.id,
-        bruno.id,
-      ]);
-      final historical = report.students.singleWhere(
-        (student) => student.studentId == bruno.id,
-      );
-      expect(historical.attendance.absent, 1);
-      expect(historical.evaluation.pending, 1);
-      expect(historical.evaluation.notDelivered, 0);
-      expect(historical.evaluation.evaluated, 0);
-    },
-  );
+    expect(report.students.map((student) => student.studentId), [
+      ana.id,
+      bruno.id,
+    ]);
+    final historical = report.students.singleWhere(
+      (student) => student.studentId == bruno.id,
+    );
+    expect(historical.attendance.absent, 1);
+    expect(historical.evaluation.pending, 1);
+    expect(historical.evaluation.notDelivered, 0);
+    expect(historical.evaluation.evaluated, 0);
+  });
 
   test('excludes enrollment after its historical month ends', () async {
     final report = await builder.buildGroup(

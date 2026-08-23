@@ -18,20 +18,10 @@ import 'package:flutter/foundation.dart';
 
 export 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';
 
-enum EvaluationFilter {
-  all,
-  pending,
-  awaitingEvaluation,
-  notDelivered,
-  evaluated,
-}
+enum EvaluationFilter { all, pending, awaitingEvaluation, notDelivered, evaluated }
 
 final class EvaluationActivityOption {
-  const EvaluationActivityOption({
-    required this.project,
-    required this.activity,
-  });
-
+  const EvaluationActivityOption({required this.project, required this.activity});
   final Project project;
   final Activity activity;
 }
@@ -42,20 +32,21 @@ final class EvaluationStudentRow {
     required this.student,
     required this.evaluation,
   });
-
   final ActivityParticipant participant;
   final Student? student;
   final ActivityEvaluation evaluation;
-
   String get studentId => participant.studentId;
+  EvaluationStudentRow withEvaluation(ActivityEvaluation value) => EvaluationStudentRow(
+    participant: participant,
+    student: student,
+    evaluation: value,
+  );
+}
 
-  EvaluationStudentRow withEvaluation(ActivityEvaluation value) {
-    return EvaluationStudentRow(
-      participant: participant,
-      student: student,
-      evaluation: value,
-    );
-  }
+final class EvaluationMatrixRow {
+  const EvaluationMatrixRow({required this.studentId, required this.student});
+  final String studentId;
+  final Student? student;
 }
 
 final class EvaluationMetrics {
@@ -66,17 +57,13 @@ final class EvaluationMetrics {
     required this.notDelivered,
     required this.evaluated,
   });
-
   final int total;
   final int pending;
   final int delivered;
   final int notDelivered;
   final int evaluated;
-
   int get decidedDeliveries => delivered + notDelivered;
-
-  double? get deliveryCompliance =>
-      decidedDeliveries == 0 ? null : delivered / decidedDeliveries;
+  double? get deliveryCompliance => decidedDeliveries == 0 ? null : delivered / decidedDeliveries;
 }
 
 final class EvaluationController extends ChangeNotifier {
@@ -107,7 +94,7 @@ final class EvaluationController extends ChangeNotifier {
   TeachingGroup? _group;
   List<EvaluationActivityOption> _options = const [];
   EvaluationActivityOption? _selected;
-  List<EvaluationStudentRow> _rows = const [];
+  final Map<String, Map<String, EvaluationStudentRow>> _rowsByActivity = {};
   EvaluationFilter _filter = EvaluationFilter.all;
   bool _isLoading = false;
   bool _isSaving = false;
@@ -120,52 +107,69 @@ final class EvaluationController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   Object? get error => _error;
+  String? get selectedProjectId => _selected?.project.id;
 
-  List<EvaluationStudentRow> get rows => _rows;
-
-  List<EvaluationStudentRow> get visibleRows {
-    return List<EvaluationStudentRow>.unmodifiable(
-      _rows.where((row) {
-        return switch (_filter) {
-          EvaluationFilter.all => true,
-          EvaluationFilter.pending =>
-            row.evaluation.state == EvaluationState.pendingDeliveryDecision,
-          EvaluationFilter.awaitingEvaluation =>
-            row.evaluation.state == EvaluationState.deliveredAwaitingEvaluation,
-          EvaluationFilter.notDelivered =>
-            row.evaluation.state == EvaluationState.notDelivered,
-          EvaluationFilter.evaluated =>
-            row.evaluation.state == EvaluationState.deliveredAndEvaluated,
-        };
-      }),
-    );
+  List<Project> get projects {
+    final result = <Project>[];
+    final seen = <String>{};
+    for (final option in _options) {
+      if (seen.add(option.project.id)) result.add(option.project);
+    }
+    return List<Project>.unmodifiable(result);
   }
 
+  List<EvaluationActivityOption> get projectActivities => List.unmodifiable(
+    _options.where((option) => option.project.id == selectedProjectId),
+  );
+
+  List<EvaluationStudentRow> get rows {
+    final selected = _selected;
+    if (selected == null) return const [];
+    final values = _rowsByActivity[selected.activity.id]?.values.toList() ?? [];
+    values.sort(_compareRows);
+    return List.unmodifiable(values);
+  }
+
+  List<EvaluationMatrixRow> get matrixRows {
+    final ids = <String>{};
+    for (final option in projectActivities) {
+      ids.addAll(_rowsByActivity[option.activity.id]?.keys ?? const <String>[]);
+    }
+    final result = <EvaluationMatrixRow>[];
+    for (final id in ids) {
+      Student? student;
+      for (final option in projectActivities) {
+        student = _rowsByActivity[option.activity.id]?[id]?.student;
+        if (student != null) break;
+      }
+      result.add(EvaluationMatrixRow(studentId: id, student: student));
+    }
+    result.sort((a, b) => (a.student?.displayName ?? a.studentId).compareTo(b.student?.displayName ?? b.studentId));
+    return List.unmodifiable(result);
+  }
+
+  EvaluationStudentRow? cell(String activityId, String studentId) =>
+      _rowsByActivity[activityId]?[studentId];
+
+  List<EvaluationStudentRow> get visibleRows => List.unmodifiable(rows.where((row) => switch (_filter) {
+    EvaluationFilter.all => true,
+    EvaluationFilter.pending => row.evaluation.state == EvaluationState.pendingDeliveryDecision,
+    EvaluationFilter.awaitingEvaluation => row.evaluation.state == EvaluationState.deliveredAwaitingEvaluation,
+    EvaluationFilter.notDelivered => row.evaluation.state == EvaluationState.notDelivered,
+    EvaluationFilter.evaluated => row.evaluation.state == EvaluationState.deliveredAndEvaluated,
+  }));
+
   EvaluationMetrics get metrics {
-    var pending = 0;
-    var delivered = 0;
-    var notDelivered = 0;
-    var evaluated = 0;
-    for (final row in _rows) {
+    var pending = 0, delivered = 0, notDelivered = 0, evaluated = 0;
+    for (final row in rows) {
       switch (row.evaluation.state) {
-        case EvaluationState.pendingDeliveryDecision:
-          pending++;
-        case EvaluationState.deliveredAwaitingEvaluation:
-          delivered++;
-        case EvaluationState.notDelivered:
-          notDelivered++;
-        case EvaluationState.deliveredAndEvaluated:
-          delivered++;
-          evaluated++;
+        case EvaluationState.pendingDeliveryDecision: pending++;
+        case EvaluationState.deliveredAwaitingEvaluation: delivered++;
+        case EvaluationState.notDelivered: notDelivered++;
+        case EvaluationState.deliveredAndEvaluated: delivered++; evaluated++;
       }
     }
-    return EvaluationMetrics(
-      total: _rows.length,
-      pending: pending,
-      delivered: delivered,
-      notDelivered: notDelivered,
-      evaluated: evaluated,
-    );
+    return EvaluationMetrics(total: rows.length, pending: pending, delivered: delivered, notDelivered: notDelivered, evaluated: evaluated);
   }
 
   Future<void> load(TeachingGroup group) async {
@@ -177,27 +181,17 @@ final class EvaluationController extends ChangeNotifier {
       final projects = await _projectRepository.listForGroup(group.id);
       final options = <EvaluationActivityOption>[];
       for (final project in projects) {
-        final activities = await _activityRepository.listForProject(project.id);
-        for (final activity in activities) {
-          options.add(
-            EvaluationActivityOption(project: project, activity: activity),
-          );
+        for (var activity in await _activityRepository.listForProject(project.id)) {
+          var option = EvaluationActivityOption(project: project, activity: activity);
+          if (activity.roster.isEmpty) option = await _repairEmptyRoster(option);
+          options.add(option);
         }
       }
-      _options = List<EvaluationActivityOption>.unmodifiable(options);
-      if (options.isEmpty) {
-        _selected = null;
-      } else {
-        _selected = _initialActivityId == null
-            ? options.first
-            : options
-                      .where(
-                        (option) => option.activity.id == _initialActivityId,
-                      )
-                      .firstOrNull ??
-                  options.first;
-      }
-      await _loadSelectedRows();
+      _options = List.unmodifiable(options);
+      _selected = options.isEmpty
+          ? null
+          : options.where((o) => o.activity.id == _initialActivityId).firstOrNull ?? options.first;
+      await _loadMatrix();
     } catch (error) {
       _error = error;
     } finally {
@@ -207,24 +201,20 @@ final class EvaluationController extends ChangeNotifier {
   }
 
   Future<void> selectActivity(String activityId) async {
-    final next = _options.where((option) => option.activity.id == activityId);
-    if (next.isEmpty || _selected?.activity.id == activityId) return;
-    _selected = next.first;
-    _isLoading = true;
-    _error = null;
+    final matches = _options.where((o) => o.activity.id == activityId);
+    if (matches.isEmpty) return;
+    _selected = matches.first;
     notifyListeners();
-    try {
-      await _loadSelectedRows();
-    } catch (error) {
-      _error = error;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  }
+
+  void selectProject(String projectId) {
+    final matches = _options.where((o) => o.project.id == projectId);
+    if (matches.isEmpty) return;
+    _selected = matches.first;
+    notifyListeners();
   }
 
   void setFilter(EvaluationFilter value) {
-    if (_filter == value) return;
     _filter = value;
     notifyListeners();
   }
@@ -236,22 +226,37 @@ final class EvaluationController extends ChangeNotifier {
     String? observation,
   }) async {
     final selected = _selected;
-    if (selected == null || _isSaving) return false;
+    if (selected == null) return false;
+    return saveCell(
+      activityId: selected.activity.id,
+      studentId: studentId,
+      deliveryStatus: deliveryStatus,
+      achievement: achievement,
+      observation: observation,
+    );
+  }
+
+  Future<bool> saveCell({
+    required String activityId,
+    required String studentId,
+    required DeliveryStatus deliveryStatus,
+    AchievementLevel? achievement,
+    String? observation,
+  }) async {
+    if (_isSaving || cell(activityId, studentId) == null) return false;
     _isSaving = true;
     _error = null;
     notifyListeners();
     try {
       final saved = await _saveActivityEvaluation(
-        activityId: selected.activity.id,
+        activityId: activityId,
         studentId: studentId,
         deliveryStatus: deliveryStatus,
         achievement: achievement,
         observation: observation,
       );
-      _rows = List<EvaluationStudentRow>.unmodifiable([
-        for (final row in _rows)
-          row.studentId == studentId ? row.withEvaluation(saved) : row,
-      ]);
+      final current = _rowsByActivity[activityId]![studentId]!;
+      _rowsByActivity[activityId]![studentId] = current.withEvaluation(saved);
       return true;
     } catch (error) {
       _error = error;
@@ -262,116 +267,66 @@ final class EvaluationController extends ChangeNotifier {
     }
   }
 
-  Future<void> _loadSelectedRows() async {
-    var selected = _selected;
-    if (selected == null) {
-      _rows = const [];
-      return;
-    }
-
-    if (selected.activity.roster.isEmpty) {
-      selected = await _repairEmptyRoster(selected);
-    }
-
-    final evaluations = await _evaluationRepository.listForActivity(
-      selected.activity.id,
-    );
-    final byStudent = {
-      for (final evaluation in evaluations) evaluation.studentId: evaluation,
-    };
-    final participants = selected.activity.roster.values.toList()
-      ..sort((left, right) => left.studentId.compareTo(right.studentId));
-    final result = <EvaluationStudentRow>[];
-    for (final participant in participants) {
-      final student = await _studentRepository.findById(participant.studentId);
-      result.add(
-        EvaluationStudentRow(
+  Future<void> _loadMatrix() async {
+    _rowsByActivity.clear();
+    for (final option in _options) {
+      final evaluations = await _evaluationRepository.listForActivity(option.activity.id);
+      final byStudent = {for (final value in evaluations) value.studentId: value};
+      final rows = <String, EvaluationStudentRow>{};
+      for (final participant in option.activity.roster.values) {
+        final student = await _studentRepository.findById(participant.studentId);
+        rows[participant.studentId] = EvaluationStudentRow(
           participant: participant,
           student: student,
-          evaluation:
-              byStudent[participant.studentId] ??
-              ActivityEvaluation(
-                activityId: selected.activity.id,
-                studentId: participant.studentId,
-                deliveryStatus: DeliveryStatus.pending,
-              ),
-        ),
-      );
+          evaluation: byStudent[participant.studentId] ?? ActivityEvaluation(
+            activityId: option.activity.id,
+            studentId: participant.studentId,
+            deliveryStatus: DeliveryStatus.pending,
+          ),
+        );
+      }
+      _rowsByActivity[option.activity.id] = rows;
     }
-    result.sort((left, right) {
-      final leftName = left.student?.displayName ?? left.studentId;
-      final rightName = right.student?.displayName ?? right.studentId;
-      return leftName.compareTo(rightName);
-    });
-    _rows = List<EvaluationStudentRow>.unmodifiable(result);
   }
 
-  Future<EvaluationActivityOption> _repairEmptyRoster(
-    EvaluationActivityOption option,
-  ) async {
+  Future<EvaluationActivityOption> _repairEmptyRoster(EvaluationActivityOption option) async {
     final repository = _enrollmentRepository;
     final group = _group;
     if (repository == null || group == null) return option;
-
-    final enrollments = await repository.findByGroupId(group.id);
-    final eligible = enrollments
-        .where(
-          (enrollment) =>
-              option.activity.targetGrades.contains(enrollment.grade),
-        )
-        .toList();
+    final eligible = (await repository.findByGroupId(group.id))
+        .where((e) => option.activity.targetGrades.contains(e.grade)).toList();
     if (eligible.isEmpty) return option;
-
-    final reference = _bestRosterDate(eligible);
+    final reference = _bestRosterDate(eligible, option.activity.occursOn);
     final participants = <ActivityParticipant>[
       for (final enrollment in eligible)
         if (enrollment.isActiveOn(reference))
-          ActivityParticipant(
-            studentId: enrollment.studentId,
-            grade: enrollment.grade,
-          ),
+          ActivityParticipant(studentId: enrollment.studentId, grade: enrollment.grade),
     ];
     if (participants.isEmpty) return option;
-
     final repaired = Activity(
       id: option.activity.id,
       projectId: option.activity.projectId,
+      identifier: option.activity.identifier,
       title: option.activity.title,
+      occursOn: option.activity.occursOn,
       formativeField: option.activity.formativeField,
       targetGrades: option.activity.targetGrades,
       roster: participants,
     );
     await _activityRepository.save(repaired);
-
-    final updated = EvaluationActivityOption(
-      project: option.project,
-      activity: repaired,
-    );
-    _selected = updated;
-    _options = List<EvaluationActivityOption>.unmodifiable([
-      for (final current in _options)
-        if (current.activity.id == repaired.id) updated else current,
-    ]);
-    return updated;
+    return EvaluationActivityOption(project: option.project, activity: repaired);
   }
 
-  DateTime _bestRosterDate(List<Enrollment> eligible) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    if (eligible.any((enrollment) => enrollment.isActiveOn(today))) {
-      return today;
-    }
-
-    final upcoming =
-        eligible
-            .map((enrollment) => enrollment.startsOn)
-            .where((date) => date.isAfter(today))
-            .toList()
-          ..sort();
+  DateTime _bestRosterDate(List<Enrollment> eligible, DateTime? activityDate) {
+    final now = activityDate ?? DateTime.now();
+    final reference = DateTime(now.year, now.month, now.day);
+    if (eligible.any((e) => e.isActiveOn(reference))) return reference;
+    final upcoming = eligible.map((e) => e.startsOn).where((d) => d.isAfter(reference)).toList()..sort();
     if (upcoming.isNotEmpty) return upcoming.first;
-
-    final starts = eligible.map((enrollment) => enrollment.startsOn).toList()
-      ..sort();
+    final starts = eligible.map((e) => e.startsOn).toList()..sort();
     return starts.last;
   }
+
+  int _compareRows(EvaluationStudentRow a, EvaluationStudentRow b) =>
+      (a.student?.displayName ?? a.studentId).compareTo(b.student?.displayName ?? b.studentId);
 }

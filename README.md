@@ -1,14 +1,29 @@
 # AulaRaíz
 
-AulaRaíz is a new Flutter application for classroom management and teacher workflows aligned with Mexico's Nueva Escuela Mexicana (NEM).
+AulaRaíz is a Flutter application for classroom management and teacher workflows aligned with Mexico's Nueva Escuela Mexicana (NEM).
 
 This repository is a clean-room rewrite. The previous `SistemaDocenteNEM` application is used only as a functional and product reference: implementation details from WPF/.NET are not migration constraints.
 
 ## Current status
 
-**Phase 0 — Product specification and functional baseline.**
+**Phase 5 complete — Evaluation and student expediente. Phase 6 — Reports and interchange is next.**
 
-No production Flutter code should be added until the Phase 0 product scope, parity matrix, domain invariants, privacy baseline and delivery roadmap are accepted.
+Implemented foundations and workflows now include:
+
+- offline-first local persistence with Drift/SQLite;
+- school, school-year and teaching-group setup;
+- student roster and enrollment history;
+- daily attendance;
+- projects and activities with frozen historical applicability;
+- formative student × activity evaluation with delivery and achievement kept separate;
+- evaluation observations, filters and metrics;
+- pedagogical student expediente with strengths, difficulties, supports, chronological observations and family agreements;
+- related attendance and evaluation evidence inside the expediente;
+- adaptive Windows/Android-oriented UI;
+- Spanish as the default language with optional English support;
+- automated Drift, formatting, analysis, tests and Android/Windows build validation in CI.
+
+The next milestone is **AulaRaíz Beta**, delivered by Phase 6 with reports and safe data interchange.
 
 ## Product direction
 
@@ -21,7 +36,7 @@ No production Flutter code should be added until the Phase 0 product scope, pari
 - Historical classroom records must not be silently rewritten by later configuration changes.
 - Testable domain/application logic kept independent from Flutter widgets and persistence details.
 
-## Phase 0 documents
+## Product and architecture documents
 
 - [`product-specification.md`](docs/phase-0/product-specification.md) — product intent, scope, platform and NEM baseline.
 - [`functional-parity.md`](docs/phase-0/functional-parity.md) — preserve/improve/replace/defer/remove matrix against the previous application.

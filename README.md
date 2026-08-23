@@ -6,7 +6,7 @@ This repository is a clean-room rewrite. The previous `SistemaDocenteNEM` applic
 
 ## Current status
 
-**Phase 8 implementation complete — Recovery, distribution and lifecycle.** AulaRaíz now has the application-side and CI foundations required for production distribution. Publishing signed binaries still requires the repository's production Android and Windows signing credentials to be provisioned.
+**Phases 0–9 implementation complete.** AulaRaíz now covers the planned core teacher product, recovery/distribution lifecycle and the privacy-bounded local automation layer. Publishing signed production binaries still requires the repository's private Android and Windows signing credentials to be provisioned.
 
 Implemented foundations and workflows now include:
 
@@ -35,9 +35,14 @@ Implemented foundations and workflows now include:
 - Android App Bundle production-signing configuration for Google Play;
 - a signed GitHub Release pipeline for Android and Windows with SHA-256 release assets;
 - lifecycle tests covering recovery and program/data preservation;
-- automated Drift, formatting, analysis, tests and Android/Windows package validation in CI.
+- a local machine-readable automation contract (`aularaiz.automation/v1`);
+- minimized group/status projections with explicit personal-data opt-in;
+- evidence-backed attendance/evaluation review recommendations;
+- dry-run-by-default student-note mutations routed through application use cases;
+- a standalone Windows `aularaiz-agent.exe` included in the installer and production signing pipeline;
+- automated Drift, formatting, analysis, tests, automation-agent and Android/Windows package validation in CI.
 
-The next optional implementation phase is **Phase 9 — Advanced local automation**. It does not block the core teacher product from production distribution.
+The planned delivery roadmap through **Phase 9 — Advanced local automation** is implemented. Further product work can now be prioritized by real classroom feedback rather than a required roadmap phase.
 
 ## Product direction
 
@@ -59,3 +64,4 @@ The next optional implementation phase is **Phase 9 — Advanced local automatio
 - [`delivery-roadmap.md`](docs/phase-0/delivery-roadmap.md) — implementation phases from Flutter foundation through distribution and automation.
 - [`decisions-and-open-questions.md`](docs/phase-0/decisions-and-open-questions.md) — accepted defaults and decisions that still require an explicit product-owner choice.
 - [`release-and-lifecycle.md`](docs/phase-8/release-and-lifecycle.md) — production signing, package, update and data-preservation contract.
+- [`local-automation.md`](docs/phase-9/local-automation.md) — Phase 9 CLI/agent, privacy projection matrix, dry-run mutations and evidence contract.

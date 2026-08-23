@@ -1,10 +1,12 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 
 enum StudentImportField {
   listNumber,
   givenNames,
   firstSurname,
   secondSurname,
+  sex,
   birthDate,
   grade,
 }
@@ -14,6 +16,7 @@ enum StudentImportIssueSeverity { error, warning }
 enum StudentImportIssue {
   missingGivenNames(StudentImportIssueSeverity.error),
   missingFirstSurname(StudentImportIssueSeverity.error),
+  invalidSex(StudentImportIssueSeverity.error),
   invalidBirthDate(StudentImportIssueSeverity.error),
   birthDateInFuture(StudentImportIssueSeverity.error),
   missingGrade(StudentImportIssueSeverity.error),
@@ -95,6 +98,7 @@ final class StudentImportDraft {
     required this.givenNames,
     required this.firstSurname,
     required this.secondSurname,
+    required this.sexText,
     required this.birthDateText,
     required this.gradeText,
     required this.listNumberText,
@@ -105,6 +109,7 @@ final class StudentImportDraft {
   final String givenNames;
   final String firstSurname;
   final String secondSurname;
+  final String sexText;
   final String birthDateText;
   final String gradeText;
   final String listNumberText;
@@ -114,6 +119,7 @@ final class StudentImportDraft {
     String? givenNames,
     String? firstSurname,
     String? secondSurname,
+    String? sexText,
     String? birthDateText,
     String? gradeText,
     String? listNumberText,
@@ -124,6 +130,7 @@ final class StudentImportDraft {
       givenNames: givenNames ?? this.givenNames,
       firstSurname: firstSurname ?? this.firstSurname,
       secondSurname: secondSurname ?? this.secondSurname,
+      sexText: sexText ?? this.sexText,
       birthDateText: birthDateText ?? this.birthDateText,
       gradeText: gradeText ?? this.gradeText,
       listNumberText: listNumberText ?? this.listNumberText,
@@ -137,6 +144,7 @@ final class StudentImportPreviewRow {
     required this.draft,
     required this.grade,
     required this.listNumber,
+    required this.sex,
     required this.birthDate,
     required Set<StudentImportIssue> issues,
   }) : issues = Set<StudentImportIssue>.unmodifiable(issues);
@@ -144,6 +152,7 @@ final class StudentImportPreviewRow {
   final StudentImportDraft draft;
   final PrimaryGrade? grade;
   final int? listNumber;
+  final StudentSex? sex;
   final DateTime? birthDate;
   final Set<StudentImportIssue> issues;
 
@@ -188,6 +197,7 @@ final class StudentImportCommitRow {
     required this.givenNames,
     required this.firstSurname,
     required this.secondSurname,
+    required this.sex,
     required this.birthDate,
     required this.grade,
     required this.listNumber,
@@ -197,6 +207,7 @@ final class StudentImportCommitRow {
   final String givenNames;
   final String firstSurname;
   final String? secondSurname;
+  final StudentSex? sex;
   final DateTime? birthDate;
   final PrimaryGrade grade;
   final int listNumber;

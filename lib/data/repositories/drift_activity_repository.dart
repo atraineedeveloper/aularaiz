@@ -2,6 +2,7 @@ import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:drift/drift.dart';
 
 final class DriftActivityRepository implements ActivityRepository {
@@ -45,6 +46,14 @@ final class DriftActivityRepository implements ActivityRepository {
               title: Value(activity.title),
             ),
           );
+      await database
+          .into(database.activityFormativeFields)
+          .insertOnConflictUpdate(
+            ActivityFormativeFieldsCompanion(
+              activityId: Value(activity.id),
+              formativeField: Value(activity.formativeField),
+            ),
+          );
       await (database.delete(
         database.activityRoster,
       )..where((table) => table.activityId.equals(activity.id))).go();
@@ -84,10 +93,16 @@ final class DriftActivityRepository implements ActivityRepository {
     final roster = await (database.select(
       database.activityRoster,
     )..where((table) => table.activityId.equals(row.id))).get();
+    final fieldRow = await (database.select(database.activityFormativeFields)
+          ..where((table) => table.activityId.equals(row.id))
+          ..limit(1))
+        .getSingleOrNull();
+    final formativeField = fieldRow?.formativeField ?? await _legacyField(row);
     return Activity(
       id: row.id,
       projectId: row.projectId,
       title: row.title,
+      formativeField: formativeField,
       targetGrades: {for (final grade in grades) grade.grade},
       roster: [
         for (final participant in roster)
@@ -97,5 +112,14 @@ final class DriftActivityRepository implements ActivityRepository {
           ),
       ],
     );
+  }
+
+  Future<FormativeField> _legacyField(ActivityRow row) async {
+    final project =
+        await (database.select(database.projects)
+              ..where((table) => table.id.equals(row.projectId))
+              ..limit(1))
+            .getSingleOrNull();
+    return project?.formativeField ?? FormativeField.unspecified;
   }
 }

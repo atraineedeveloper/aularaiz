@@ -80,7 +80,13 @@ void main() {
     final table = StudentImportTable(
       sourceName: 'alumnos.xlsx',
       rows: [
-        const ['Nombres', 'Primer apellido', 'Grado', 'Número de lista', 'Nacimiento'],
+        const [
+          'Nombres',
+          'Primer apellido',
+          'Grado',
+          'Número de lista',
+          'Nacimiento',
+        ],
         const [null, null, null, null, null],
         ['Luis', 'Díaz', 4, 2.0, DateTime(2017, 8, 9)],
       ],

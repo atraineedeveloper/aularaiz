@@ -58,10 +58,7 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   Future<BackupSelection?> selectBackup() async {
     final file = await openFile(
       acceptedTypeGroups: <XTypeGroup>[
-        XTypeGroup(
-          label: 'AulaRaíz backup',
-          extensions: <String>['aularaiz'],
-        ),
+        XTypeGroup(label: 'AulaRaíz backup', extensions: <String>['aularaiz']),
       ],
     );
     if (file == null) return null;

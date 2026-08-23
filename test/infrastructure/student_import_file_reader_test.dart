@@ -20,7 +20,12 @@ void main() {
     expect(table.sourceName, 'alumnos.csv');
     expect(table.sheetName, isNull);
     expect(table.rows, hasLength(2));
-    expect(table.rows[0], ['N. de lista', 'Nombres', 'Apellido paterno', 'Grado']);
+    expect(table.rows[0], [
+      'N. de lista',
+      'Nombres',
+      'Apellido paterno',
+      'Grado',
+    ]);
     expect(table.rows[1][0].toString(), '1');
     expect(table.rows[1][1], 'Ana');
   });
@@ -28,7 +33,9 @@ void main() {
   test('falls back to Latin-1 for legacy CSV files', () {
     final table = reader.read(
       fileName: 'alumnos.csv',
-      bytes: latin1.encode('Nombres;Apellido paterno;Grado;Lista\nJosé;Muñoz;5;2\n'),
+      bytes: latin1.encode(
+        'Nombres;Apellido paterno;Grado;Lista\nJosé;Muñoz;5;2\n',
+      ),
     );
 
     expect(table.rows[1][0], 'José');

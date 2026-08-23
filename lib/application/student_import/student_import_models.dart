@@ -1,5 +1,14 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 
+enum StudentImportField {
+  listNumber,
+  givenNames,
+  firstSurname,
+  secondSurname,
+  birthDate,
+  grade,
+}
+
 enum StudentImportIssueSeverity { error, warning }
 
 enum StudentImportIssue {
@@ -26,10 +35,6 @@ enum StudentImportFormatProblem {
   unreadableFile,
   emptyFile,
   noUsableSheet,
-  missingGivenNamesHeader,
-  missingFirstSurnameHeader,
-  missingGradeHeader,
-  missingListNumberHeader,
 }
 
 final class StudentImportFormatException implements Exception {
@@ -53,6 +58,35 @@ final class StudentImportTable {
   final String sourceName;
   final String? sheetName;
   final List<List<Object?>> rows;
+}
+
+final class StudentImportMapping {
+  StudentImportMapping({
+    required this.headerRowIndex,
+    required List<String> headers,
+    required Map<StudentImportField, int?> columns,
+  }) : headers = List<String>.unmodifiable(headers),
+       columns = Map<StudentImportField, int?>.unmodifiable(columns);
+
+  final int headerRowIndex;
+  final List<String> headers;
+  final Map<StudentImportField, int?> columns;
+
+  int? columnFor(StudentImportField field) => columns[field];
+
+  bool get hasRequiredFields =>
+      columnFor(StudentImportField.givenNames) != null &&
+      columnFor(StudentImportField.firstSurname) != null &&
+      columnFor(StudentImportField.grade) != null &&
+      columnFor(StudentImportField.listNumber) != null;
+
+  StudentImportMapping withColumn(StudentImportField field, int? column) {
+    return StudentImportMapping(
+      headerRowIndex: headerRowIndex,
+      headers: headers,
+      columns: {...columns, field: column},
+    );
+  }
 }
 
 final class StudentImportDraft {

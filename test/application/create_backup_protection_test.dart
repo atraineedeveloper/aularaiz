@@ -8,36 +8,39 @@ import 'package:aularaiz/infrastructure/backup/device_backup_protector.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('CreateBackup protects the complete backup before publication', () async {
-    final keyStore = _MemoryKeyStore(_key());
-    final protector = DeviceBackupProtector(keyStore: keyStore);
-    final snapshotter = _FakeSnapshotter(_sqliteBytes());
-    final createBackup = CreateBackup(
-      snapshotter: snapshotter,
-      schemaVersion: 3,
-      storageProfile: 'production',
-      protector: protector,
-    );
-    final createdAt = DateTime.utc(2026, 8, 23, 12);
+  test(
+    'CreateBackup protects the complete backup before publication',
+    () async {
+      final keyStore = _MemoryKeyStore(_key());
+      final protector = DeviceBackupProtector(keyStore: keyStore);
+      final snapshotter = _FakeSnapshotter(_sqliteBytes());
+      final createBackup = CreateBackup(
+        snapshotter: snapshotter,
+        schemaVersion: 3,
+        storageProfile: 'production',
+        protector: protector,
+      );
+      final createdAt = DateTime.utc(2026, 8, 23, 12);
 
-    final publishedBytes = await createBackup(createdAtUtc: createdAt);
-    final clearBackup = await protector.unprotect(publishedBytes);
-    final inspection = const AulaRaizBackupCodec().inspect(clearBackup);
+      final publishedBytes = await createBackup(createdAtUtc: createdAt);
+      final clearBackup = await protector.unprotect(publishedBytes);
+      final inspection = const AulaRaizBackupCodec().inspect(clearBackup);
 
-    expect(snapshotter.calls, 1);
-    expect(
-      _startsWith(publishedBytes, utf8.encode('AULARAIZ_PROTECTED\n')),
-      isTrue,
-    );
-    expect(
-      _startsWith(publishedBytes, utf8.encode('AULARAIZ_BACKUP\n')),
-      isFalse,
-    );
-    expect(inspection.manifest.createdAtUtc, createdAt);
-    expect(inspection.manifest.schemaVersion, 3);
-    expect(inspection.manifest.storageProfile, 'production');
-    expect(inspection.databaseBytes, orderedEquals(_sqliteBytes()));
-  });
+      expect(snapshotter.calls, 1);
+      expect(
+        _startsWith(publishedBytes, utf8.encode('AULARAIZ_PROTECTED\n')),
+        isTrue,
+      );
+      expect(
+        _startsWith(publishedBytes, utf8.encode('AULARAIZ_BACKUP\n')),
+        isFalse,
+      );
+      expect(inspection.manifest.createdAtUtc, createdAt);
+      expect(inspection.manifest.schemaVersion, 3);
+      expect(inspection.manifest.storageProfile, 'production');
+      expect(inspection.databaseBytes, orderedEquals(_sqliteBytes()));
+    },
+  );
 }
 
 Uint8List _sqliteBytes() => Uint8List.fromList(<int>[

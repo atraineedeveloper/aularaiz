@@ -148,34 +148,40 @@ void main() {
     expect(encoded, isNot(contains('Ana Pérez')));
   });
 
-  test('recommendation targets appear only with personal-data opt-in', () async {
-    final result = await buildService().recommendations(
-      groupId: group.id,
-      referenceMonth: DateTime(2026, 9),
-      privacy: const AutomationPrivacy(includePersonalData: true),
-    );
-    final encoded = jsonEncode(result.toJson());
+  test(
+    'recommendation targets appear only with personal-data opt-in',
+    () async {
+      final result = await buildService().recommendations(
+        groupId: group.id,
+        referenceMonth: DateTime(2026, 9),
+        privacy: const AutomationPrivacy(includePersonalData: true),
+      );
+      final encoded = jsonEncode(result.toJson());
 
-    expect(encoded, contains('targets'));
-    expect(encoded, contains('Ana Pérez'));
-  });
+      expect(encoded, contains('targets'));
+      expect(encoded, contains('Ana Pérez'));
+    },
+  );
 
-  test('student note is dry-run by default and never echoes note text', () async {
-    const secretText = 'Seguimiento privado con la familia';
-    final result = await buildService().studentNote(
-      studentId: 'student-1',
-      kind: StudentRecordEntryKind.familyAgreement,
-      occurredAt: DateTime(2026, 9, 5),
-      text: secretText,
-    );
-    final encoded = jsonEncode(result.toJson());
+  test(
+    'student note is dry-run by default and never echoes note text',
+    () async {
+      const secretText = 'Seguimiento privado con la familia';
+      final result = await buildService().studentNote(
+        studentId: 'student-1',
+        kind: StudentRecordEntryKind.familyAgreement,
+        occurredAt: DateTime(2026, 9, 5),
+        text: secretText,
+      );
+      final encoded = jsonEncode(result.toJson());
 
-    expect(result.data['dry_run'], isTrue);
-    expect(result.data['applied'], isFalse);
-    expect(writes, 0);
-    expect(encoded, isNot(contains(secretText)));
-    expect(encoded, isNot(contains('Ana Pérez')));
-  });
+      expect(result.data['dry_run'], isTrue);
+      expect(result.data['applied'], isFalse);
+      expect(writes, 0);
+      expect(encoded, isNot(contains(secretText)));
+      expect(encoded, isNot(contains('Ana Pérez')));
+    },
+  );
 
   test('student note writes only after explicit apply', () async {
     final result = await buildService().studentNote(

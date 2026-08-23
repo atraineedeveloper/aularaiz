@@ -14,7 +14,7 @@ void main() {
   });
 
   test(
-    'current schema contains the Phase 2 baseline and v2 additions',
+    'current schema contains the primary baseline and later additions',
     () async {
       final rows = await database
           .customSelect(
@@ -53,7 +53,7 @@ void main() {
   );
 
   test(
-    'fresh database publishes schema version 2 with foreign keys on',
+    'fresh database publishes schema version 4 with foreign keys on',
     () async {
       final versionRow = await database
           .customSelect('PRAGMA user_version')
@@ -63,8 +63,8 @@ void main() {
           .getSingle();
 
       expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
-      expect(database.schemaVersion, 2);
-      expect(versionRow.read<int>('user_version'), 2);
+      expect(database.schemaVersion, 4);
+      expect(versionRow.read<int>('user_version'), 4);
       expect(foreignKeyRow.read<int>('foreign_keys'), 1);
     },
   );

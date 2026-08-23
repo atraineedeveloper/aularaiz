@@ -6,7 +6,7 @@ This repository is a clean-room rewrite. The previous `SistemaDocenteNEM` applic
 
 ## Current status
 
-**Phase 5 complete — Evaluation and student expediente. Phase 6 — Reports and interchange is next.**
+**Phase 6 complete — Reports and safe interchange. AulaRaíz Beta functional scope is implemented.**
 
 Implemented foundations and workflows now include:
 
@@ -19,11 +19,15 @@ Implemented foundations and workflows now include:
 - evaluation observations, filters and metrics;
 - pedagogical student expediente with strengths, difficulties, supports, chronological observations and family agreements;
 - related attendance and evaluation evidence inside the expediente;
+- individual and group monthly PDF reports;
+- CSV/XLSX student import with column mapping, preview, correction, validation and atomic confirmation;
+- CSV/XLSX group export with sensitive-data opt-in and formula-safe CSV output;
+- safe desktop file publication and Android sharing/export flow;
 - adaptive Windows/Android-oriented UI;
 - Spanish as the default language with optional English support;
 - automated Drift, formatting, analysis, tests and Android/Windows build validation in CI.
 
-The next milestone is **AulaRaíz Beta**, delivered by Phase 6 with reports and safe data interchange.
+The next implementation phase is **Phase 7 — Product UX and accessibility hardening**.
 
 ## Product direction
 

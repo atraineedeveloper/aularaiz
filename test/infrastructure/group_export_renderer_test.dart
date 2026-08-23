@@ -50,10 +50,7 @@ void main() {
 
   test('CSV neutralizes formula-like user text and excludes sensitive fields by default', () {
     const renderer = GroupExportRenderer(english: false);
-    final bytes = renderer.renderCsv(
-      report,
-      includeSensitiveFollowUp: false,
-    );
+    final bytes = renderer.renderCsv(report, includeSensitiveFollowUp: false);
     final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
     final rows = const CsvDecoder(fieldDelimiter: ';').convert(text);
 
@@ -66,15 +63,15 @@ void main() {
 
   test('CSV includes sensitive columns only after explicit opt-in', () {
     const renderer = GroupExportRenderer(english: false);
-    final bytes = renderer.renderCsv(
-      report,
-      includeSensitiveFollowUp: true,
-    );
+    final bytes = renderer.renderCsv(report, includeSensitiveFollowUp: true);
     final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
     final rows = const CsvDecoder(fieldDelimiter: ';').convert(text);
 
     expect(rows.first, hasLength(18));
-    expect(rows.first, containsAll(['Fortalezas', 'Dificultades', 'Apoyos y ajustes']));
+    expect(
+      rows.first,
+      containsAll(['Fortalezas', 'Dificultades', 'Apoyos y ajustes']),
+    );
     expect(rows[1][15], "'+SUM(1,1)");
     expect(rows[1][16], "'@cmd");
     expect(rows[1][17], "'-1+2");
@@ -82,10 +79,7 @@ void main() {
 
   test('XLSX stores formula-looking user input as text cells', () {
     const renderer = GroupExportRenderer(english: true);
-    final bytes = renderer.renderXlsx(
-      report,
-      includeSensitiveFollowUp: true,
-    );
+    final bytes = renderer.renderXlsx(report, includeSensitiveFollowUp: true);
     final workbook = Excel.decodeBytes(bytes);
     final sheet = workbook.tables['Students'];
 
@@ -94,7 +88,10 @@ void main() {
     expect(sheet.rows.first, hasLength(18));
     expect(sheet.rows[1][0]!.value, isA<IntCellValue>());
     expect(sheet.rows[1][1]!.value, isA<TextCellValue>());
-    expect((sheet.rows[1][1]!.value as TextCellValue).value, '=HYPERLINK("https://example.com")');
+    expect(
+      (sheet.rows[1][1]!.value as TextCellValue).value,
+      '=HYPERLINK("https://example.com")',
+    );
     expect(sheet.rows[1][15]!.value, isA<TextCellValue>());
     expect((sheet.rows[1][15]!.value as TextCellValue).value, '+SUM(1,1)');
   });

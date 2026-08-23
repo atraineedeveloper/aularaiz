@@ -1,4 +1,5 @@
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
@@ -27,6 +28,7 @@ import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/data/repositories/drift_activity_repository.dart';
 import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
@@ -39,6 +41,9 @@ import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart'
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
+import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
+import 'package:aularaiz/infrastructure/backup/drift_database_snapshotter.dart';
+import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -119,6 +124,22 @@ class AppDependencies extends StatelessWidget {
         ),
         Provider<ReportPublicationService>(
           create: (_) => const ReportPublicationService(),
+        ),
+        Provider<BackupRestoreGateway>(
+          create: (context) => PlatformBackupRestoreGateway(
+            createBackup: CreateBackup(
+              snapshotter: DriftDatabaseSnapshotter(
+                database: context.read<AppDatabase>(),
+              ),
+              schemaVersion: AppDatabase.currentSchemaVersion,
+              storageProfile: StorageProfile.production.name,
+            ),
+            restoreStagingService: RestoreStagingService(
+              profile: StorageProfile.production,
+              currentSchemaVersion: AppDatabase.currentSchemaVersion,
+            ),
+            publicationService: context.read<ReportPublicationService>(),
+          ),
         ),
         Provider<CreateInitialSchoolSetup>(
           create: (context) => CreateInitialSchoolSetup(

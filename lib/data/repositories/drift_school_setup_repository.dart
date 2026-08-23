@@ -4,7 +4,8 @@ import 'package:aularaiz/domain/school/school.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 import 'package:drift/drift.dart';
 
-final class DriftSchoolSetupRepository implements SchoolSetupRepository {
+final class DriftSchoolSetupRepository
+    implements SchoolSetupRepository, EditableSchoolSetupRepository {
   DriftSchoolSetupRepository(this.database);
 
   final AppDatabase database;

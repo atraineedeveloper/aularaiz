@@ -8,6 +8,7 @@ import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
+import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
@@ -18,11 +19,14 @@ import 'package:aularaiz/features/evaluation/presentation/evaluation_controller.
 import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
 import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
+import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
+import 'package:aularaiz/features/reports/presentation/reports_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/student_record/presentation/student_records_controller.dart';
 import 'package:aularaiz/features/student_record/presentation/student_records_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
+import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -140,6 +144,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                           _openEvaluation(group),
                                       onRecords: () =>
                                           _openStudentRecords(group),
+                                      onReports: () => _openReports(group),
                                     ),
                                   ),
                               ],
@@ -271,6 +276,23 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       ),
     );
   }
+
+  Future<void> _openReports(TeachingGroup group) async {
+    final projectionBuilder = context.read<ReportProjectionBuilder>();
+    final publicationService = context.read<ReportPublicationService>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => ReportsController(
+            projectionBuilder: projectionBuilder,
+            publicationService: publicationService,
+          ),
+          child: ReportsScreen(group: group),
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyGroups extends StatelessWidget {
@@ -312,6 +334,7 @@ class _GroupCard extends StatelessWidget {
     required this.onProjects,
     required this.onEvaluation,
     required this.onRecords,
+    required this.onReports,
   });
 
   final TeachingGroup group;
@@ -320,6 +343,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onProjects;
   final VoidCallback onEvaluation;
   final VoidCallback onRecords;
+  final VoidCallback onReports;
 
   @override
   Widget build(BuildContext context) {
@@ -386,6 +410,11 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onRecords,
                   icon: const Icon(Icons.folder_shared_outlined),
                   label: Text(l10n.openStudentRecords),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onReports,
+                  icon: const Icon(Icons.summarize_outlined),
+                  label: Text(l10n.openReports),
                 ),
                 OutlinedButton.icon(
                   onPressed: onStudents,

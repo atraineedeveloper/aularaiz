@@ -15,6 +15,7 @@ import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
+import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
@@ -34,6 +35,7 @@ import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart'
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
+import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -94,6 +96,21 @@ class AppDependencies extends StatelessWidget {
         Provider<StudentEnrollmentWriter>(
           create: (context) =>
               DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
+        ),
+        Provider<ReportProjectionBuilder>(
+          create: (context) => ReportProjectionBuilder(
+            schoolSetupRepository: context.read<SchoolSetupRepository>(),
+            enrollmentRepository: context.read<EnrollmentRepository>(),
+            studentRepository: context.read<StudentRepository>(),
+            attendanceRepository: context.read<AttendanceRepository>(),
+            projectRepository: context.read<ProjectRepository>(),
+            activityRepository: context.read<ActivityRepository>(),
+            evaluationRepository: context.read<EvaluationRepository>(),
+            studentRecordRepository: context.read<StudentRecordRepository>(),
+          ),
+        ),
+        Provider<ReportPublicationService>(
+          create: (_) => const ReportPublicationService(),
         ),
         Provider<CreateInitialSchoolSetup>(
           create: (context) => CreateInitialSchoolSetup(

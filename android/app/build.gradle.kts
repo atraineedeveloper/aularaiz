@@ -14,6 +14,23 @@ val keystoreProperties =
         }
     }
 
+val signingStoreFile =
+    System.getenv("ANDROID_KEYSTORE_PATH") ?: keystoreProperties.getProperty("storeFile")
+val signingStorePassword =
+    System.getenv("ANDROID_KEYSTORE_PASSWORD") ?:
+        keystoreProperties.getProperty("storePassword")
+val signingKeyAlias =
+    System.getenv("ANDROID_KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
+val signingKeyPassword =
+    System.getenv("ANDROID_KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
+val hasProductionSigning =
+    listOf(
+        signingStoreFile,
+        signingStorePassword,
+        signingKeyAlias,
+        signingKeyPassword,
+    ).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.mindtzijib.aularaiz"
     compileSdk = flutter.compileSdkVersion
@@ -33,25 +50,12 @@ android {
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasProductionSigning) {
             create("release") {
-                val storeFilePath =
-                    requireNotNull(keystoreProperties.getProperty("storeFile")) {
-                        "storeFile is missing from android/key.properties"
-                    }
-                storeFile = file(storeFilePath)
-                storePassword =
-                    requireNotNull(keystoreProperties.getProperty("storePassword")) {
-                        "storePassword is missing from android/key.properties"
-                    }
-                keyAlias =
-                    requireNotNull(keystoreProperties.getProperty("keyAlias")) {
-                        "keyAlias is missing from android/key.properties"
-                    }
-                keyPassword =
-                    requireNotNull(keystoreProperties.getProperty("keyPassword")) {
-                        "keyPassword is missing from android/key.properties"
-                    }
+                storeFile = file(signingStoreFile!!)
+                storePassword = signingStorePassword
+                keyAlias = signingKeyAlias
+                keyPassword = signingKeyPassword
             }
         }
     }
@@ -60,7 +64,7 @@ android {
         release {
             // Never fall back to the debug keystore for production builds.
             // Local unsigned release builds remain possible, while the release
-            // workflow injects android/key.properties and the production key.
+            // workflow injects the production signing values through secrets.
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }

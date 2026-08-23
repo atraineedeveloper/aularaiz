@@ -32,9 +32,13 @@ final class DriftDatabaseSnapshotter implements DatabaseSnapshotter {
 
     await _deleteIfPresent(snapshot);
     try {
-      await _database.customStatement('VACUUM INTO ?', <Object?>[snapshot.path]);
+      await _database.customStatement('VACUUM INTO ?', <Object?>[
+        snapshot.path,
+      ]);
       if (!await snapshot.exists()) {
-        throw StateError('SQLite did not create the requested backup snapshot.');
+        throw StateError(
+          'SQLite did not create the requested backup snapshot.',
+        );
       }
       final bytes = await snapshot.readAsBytes();
       if (bytes.isEmpty) {

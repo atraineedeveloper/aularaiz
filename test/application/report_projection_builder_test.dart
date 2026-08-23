@@ -44,7 +44,11 @@ void main() {
   late ReportProjectionBuilder builder;
 
   setUp(() {
-    school = School(id: 'school-1', name: 'Primaria de Prueba', cct: '27DPR0000X');
+    school = School(
+      id: 'school-1',
+      name: 'Primaria de Prueba',
+      cct: '27DPR0000X',
+    );
     schoolYear = SchoolYear(
       id: 'year-1',
       label: '2026-2027',
@@ -58,11 +62,7 @@ void main() {
       name: '5° A',
       grades: {PrimaryGrade.fifth},
     );
-    ana = Student(
-      id: 'student-ana',
-      givenNames: 'Ana',
-      firstSurname: 'López',
-    );
+    ana = Student(id: 'student-ana', givenNames: 'Ana', firstSurname: 'López');
     bruno = Student(
       id: 'student-bruno',
       givenNames: 'Bruno',
@@ -153,22 +153,25 @@ void main() {
     );
   });
 
-  test('excludes sensitive follow-up from individual report by default', () async {
-    final report = await builder.buildIndividual(
-      group: group,
-      studentId: ana.id,
-      referenceMonth: DateTime(2026, 8),
-    );
+  test(
+    'excludes sensitive follow-up from individual report by default',
+    () async {
+      final report = await builder.buildIndividual(
+        group: group,
+        studentId: ana.id,
+        referenceMonth: DateTime(2026, 8),
+      );
 
-    expect(report.student.strengths, isNull);
-    expect(report.student.difficulties, isNull);
-    expect(report.student.supports, isNull);
-    expect(report.followUp, isEmpty);
-    expect(report.evaluations.single.observation, isNull);
-    expect(report.student.attendance.present, 1);
-    expect(report.student.evaluation.delivered, 1);
-    expect(report.student.evaluation.sufficient, 1);
-  });
+      expect(report.student.strengths, isNull);
+      expect(report.student.difficulties, isNull);
+      expect(report.student.supports, isNull);
+      expect(report.followUp, isEmpty);
+      expect(report.evaluations.single.observation, isNull);
+      expect(report.student.attendance.present, 1);
+      expect(report.student.evaluation.delivered, 1);
+      expect(report.student.evaluation.sufficient, 1);
+    },
+  );
 
   test('includes sensitive follow-up only after explicit opt-in', () async {
     final report = await builder.buildIndividual(
@@ -194,7 +197,10 @@ void main() {
       referenceMonth: DateTime(2026, 8),
     );
 
-    expect(report.students.map((student) => student.studentId), [ana.id, bruno.id]);
+    expect(report.students.map((student) => student.studentId), [
+      ana.id,
+      bruno.id,
+    ]);
     final historical = report.students.singleWhere(
       (student) => student.studentId == bruno.id,
     );
@@ -224,10 +230,8 @@ final class _SchoolSetupRepository implements SchoolSetupRepository {
   Future<bool> hasInitialSetup() async => true;
 
   @override
-  Future<InitialSchoolSetup?> loadInitialSetup() async => (
-    school: school,
-    schoolYear: schoolYear,
-  );
+  Future<InitialSchoolSetup?> loadInitialSetup() async =>
+      (school: school, schoolYear: schoolYear);
 
   @override
   Future<void> saveInitialSetup({
@@ -279,7 +283,10 @@ final class _AttendanceRepository implements AttendanceRepository {
   final List<DailyAttendance> values;
 
   @override
-  Future<DailyAttendance?> findByGroupAndDate(String groupId, DateTime date) async {
+  Future<DailyAttendance?> findByGroupAndDate(
+    String groupId,
+    DateTime date,
+  ) async {
     for (final attendance in values) {
       if (attendance.groupId == groupId &&
           attendance.date.year == date.year &&
@@ -292,7 +299,10 @@ final class _AttendanceRepository implements AttendanceRepository {
   }
 
   @override
-  Future<List<DailyAttendance>> listForMonth(String groupId, DateTime month) async {
+  Future<List<DailyAttendance>> listForMonth(
+    String groupId,
+    DateTime month,
+  ) async {
     return values
         .where(
           (attendance) =>

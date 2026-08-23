@@ -19,14 +19,10 @@ final class AppAccessibilityFrame extends StatelessWidget {
       policy: ReadingOrderTraversalPolicy(),
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(
-            LogicalKeyboardKey.comma,
-            control: true,
-          ): onOpenSettings,
-          const SingleActivator(
-            LogicalKeyboardKey.arrowLeft,
-            alt: true,
-          ): onNavigateBack,
+          const SingleActivator(LogicalKeyboardKey.comma, control: true):
+              onOpenSettings,
+          const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true):
+              onNavigateBack,
         },
         child: Focus(autofocus: true, child: child),
       ),

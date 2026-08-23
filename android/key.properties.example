@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties for a local production-signed build.
+# Never commit android/key.properties or the keystore itself.
+storePassword=change-me
+keyPassword=change-me
+keyAlias=aularaiz
+storeFile=upload-keystore.jks

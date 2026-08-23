@@ -4,6 +4,7 @@ import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
+import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -121,6 +122,8 @@ Widget _host({required BackupRestoreGateway gateway, required Locale locale}) {
     value: gateway,
     child: MaterialApp(
       locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const Scaffold(
         body: SingleChildScrollView(
           padding: EdgeInsets.all(16),

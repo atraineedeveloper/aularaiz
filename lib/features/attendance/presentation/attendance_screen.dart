@@ -121,82 +121,110 @@ class _DailyAttendanceView extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 760;
-        return ListView(
-          padding: EdgeInsets.symmetric(
-            horizontal: wide ? 32 : 16,
-            vertical: 20,
-          ),
-          children: [
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1080),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Wrap(
-                      alignment: WrapAlignment.spaceBetween,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 16,
-                      runSpacing: 12,
+        final horizontalPadding = wide ? 32.0 : 16.0;
+
+        return CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                20,
+                horizontalPadding,
+                controller.rows.isEmpty ? 20 : 0,
+              ),
+              sliver: SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1080),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: () => _pickDate(context),
-                          icon: const Icon(Icons.event_rounded),
-                          label: Text(
-                            MaterialLocalizations.of(context)
-                                .formatFullDate(date),
-                          ),
-                        ),
                         Wrap(
-                          spacing: 10,
-                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 16,
+                          runSpacing: 12,
                           children: [
                             OutlinedButton.icon(
-                              onPressed: controller.rows.isEmpty
-                                  ? null
-                                  : controller.markAllPresent,
-                              icon: const Icon(Icons.done_all_rounded),
-                              label: Text(l10n.markAllPresent),
+                              onPressed: () => _pickDate(context),
+                              icon: const Icon(Icons.event_rounded),
+                              label: Text(
+                                MaterialLocalizations.of(context)
+                                    .formatFullDate(date),
+                              ),
                             ),
-                            FilledButton.icon(
-                              onPressed:
-                                  controller.isSaving || !controller.isDirty
-                                  ? null
-                                  : () => controller.save(),
-                              icon: controller.isSaving
-                                  ? const SizedBox.square(
-                                      dimension: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.save_rounded),
-                              label: Text(l10n.saveAttendance),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: controller.rows.isEmpty
+                                      ? null
+                                      : controller.markAllPresent,
+                                  icon: const Icon(Icons.done_all_rounded),
+                                  label: Text(l10n.markAllPresent),
+                                ),
+                                FilledButton.icon(
+                                  onPressed:
+                                      controller.isSaving || !controller.isDirty
+                                      ? null
+                                      : () => controller.save(),
+                                  icon: controller.isSaving
+                                      ? const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.save_rounded),
+                                  label: Text(l10n.saveAttendance),
+                                ),
+                              ],
                             ),
                           ],
                         ),
+                        const SizedBox(height: 18),
+                        _Metrics(controller: controller),
+                        if (controller.rows.isEmpty) ...[
+                          const SizedBox(height: 22),
+                          _EmptyState(message: l10n.noStudentsForDate),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 18),
-                    _Metrics(controller: controller),
-                    const SizedBox(height: 22),
-                    if (controller.rows.isEmpty)
-                      _EmptyState(message: l10n.noStudentsForDate)
-                    else
-                      for (final row in controller.rows) ...[
-                        _StudentAttendanceCard(
-                          row: row,
-                          compact: !wide,
-                          onChanged: (status) {
-                            controller.setStatus(row.studentId, status);
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-                  ],
+                  ),
                 ),
               ),
             ),
+            if (controller.rows.isNotEmpty)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  22,
+                  horizontalPadding,
+                  10,
+                ),
+                sliver: SliverList.builder(
+                  itemCount: controller.rows.length,
+                  itemBuilder: (context, index) {
+                    final row = controller.rows[index];
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1080),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _StudentAttendanceCard(
+                            row: row,
+                            compact: !wide,
+                            onChanged: (status) {
+                              controller.setStatus(row.studentId, status);
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         );
       },

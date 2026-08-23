@@ -44,12 +44,14 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     final controller = context.watch<SchoolSetupController>();
     final schoolYear = _schoolYear;
     final selectedState = _selectedState;
+    final compact = MediaQuery.sizeOf(context).width < 480;
+    final largeText = MediaQuery.textScalerOf(context).scale(16) >= 24;
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(compact ? 16 : 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: Form(
@@ -86,6 +88,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<SchoolOrganization>(
                       initialValue: _organization,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         labelText: l10n.schoolOrganization,
                       ),
@@ -93,7 +96,10 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                           .map(
                             (value) => DropdownMenuItem(
                               value: value,
-                              child: Text(_organizationLabel(value, l10n)),
+                              child: Text(
+                                _organizationLabel(value, l10n),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           )
                           .toList(growable: false),
@@ -204,21 +210,37 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                       ),
                     ],
                     const SizedBox(height: 28),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: FilledButton.icon(
+                    if (compact || largeText)
+                      FilledButton(
                         onPressed: controller.isSaving ? null : _submit,
-                        icon: controller.isSaving
+                        child: controller.isSaving
                             ? const SizedBox.square(
                                 dimension: 18,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.arrow_forward),
-                        label: Text(l10n.saveAndContinue),
+                            : Text(
+                                l10n.saveAndContinue,
+                                textAlign: TextAlign.center,
+                              ),
+                      )
+                    else
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: FilledButton.icon(
+                          onPressed: controller.isSaving ? null : _submit,
+                          icon: controller.isSaving
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.arrow_forward),
+                          label: Text(l10n.saveAndContinue),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

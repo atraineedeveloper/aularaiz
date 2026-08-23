@@ -1,3 +1,4 @@
+import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -344,7 +345,7 @@ class _StudentReportsList extends StatelessWidget {
     required this.onGenerate,
   });
 
-  final List<dynamic> students;
+  final List<StudentReportRow> students;
   final bool enabled;
   final ValueChanged<String> onGenerate;
 
@@ -370,7 +371,7 @@ class _StudentReportsList extends StatelessWidget {
               return Card(
                 child: ListTile(
                   leading: CircleAvatar(child: Text('${student.listNumber}')),
-                  title: Text(student.displayName as String),
+                  title: Text(student.displayName),
                   subtitle: Text(
                     '${student.grade.number}° · '
                     '${l10n.reportsAttendance}: ${student.attendance.totalMarked} · '
@@ -379,7 +380,7 @@ class _StudentReportsList extends StatelessWidget {
                   trailing: IconButton(
                     tooltip: l10n.reportsGeneratePdf,
                     onPressed: enabled
-                        ? () => onGenerate(student.studentId as String)
+                        ? () => onGenerate(student.studentId)
                         : null,
                     icon: const Icon(Icons.picture_as_pdf_outlined),
                   ),

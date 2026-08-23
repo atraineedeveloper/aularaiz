@@ -1,13 +1,17 @@
 export 'activities.dart';
 export 'activity_evaluations.dart';
+export 'activity_formative_fields.dart';
 export 'activity_grades.dart';
 export 'activity_roster.dart';
 export 'attendance_days.dart';
 export 'attendance_entries.dart';
 export 'enrollments.dart';
 export 'group_grades.dart';
+export 'project_articulating_axes.dart';
+export 'project_formative_fields.dart';
 export 'project_grades.dart';
 export 'projects.dart';
+export 'school_contexts.dart';
 export 'school_years.dart';
 export 'schools.dart';
 export 'student_record_entries.dart';

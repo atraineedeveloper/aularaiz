@@ -16,6 +16,7 @@ void main() {
     final gateway = _FakeBackupRestoreGateway(selection: selection);
 
     await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
+    await tester.pumpAndSettle();
 
     expect(find.text('Copia de seguridad y restauración'), findsOneWidget);
     expect(find.text('Crear copia de seguridad'), findsOneWidget);
@@ -24,7 +25,7 @@ void main() {
     await tester.tap(find.text('Elegir copia para restaurar'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Copia válida'), findsOneWidget);
+    expect(find.text('Copia reconocida'), findsOneWidget);
     expect(find.text('Versión de datos'), findsOneWidget);
     expect(find.text('Datos principales'), findsOneWidget);
     expect(find.text('Restaurar esta copia'), findsOneWidget);
@@ -54,6 +55,7 @@ void main() {
     final gateway = _FakeBackupRestoreGateway(selection: _selection());
 
     await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('en')));
+    await tester.pumpAndSettle();
 
     expect(find.text('Backup and restore'), findsOneWidget);
     expect(find.text('Create backup'), findsOneWidget);
@@ -72,6 +74,7 @@ void main() {
     );
 
     await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Elegir copia para restaurar'));
     await tester.pumpAndSettle();
 
@@ -80,6 +83,27 @@ void main() {
       findsOneWidget,
     );
     expect(gateway.stageCalls, 0);
+  });
+
+  testWidgets('existing pending restore is surfaced after reopening settings', (
+    tester,
+  ) async {
+    final gateway = _FakeBackupRestoreGateway(
+      selection: _selection(),
+      pendingRestore: true,
+    );
+
+    await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Cierra completamente AulaRaíz'),
+      findsOneWidget,
+    );
+    final createButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Crear copia de seguridad'),
+    );
+    expect(createButton.onPressed, isNull);
   });
 }
 
@@ -113,15 +137,26 @@ BackupSelection _selection() {
       databaseLength: 3,
     ),
   );
-  return BackupSelection(bytes: Uint8List.fromList(<int>[1, 2, 3]), preview: preview);
+  return BackupSelection(
+    bytes: Uint8List.fromList(<int>[1, 2, 3]),
+    preview: preview,
+  );
 }
 
 final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
-  _FakeBackupRestoreGateway({required this.selection, this.selectionError});
+  _FakeBackupRestoreGateway({
+    required this.selection,
+    this.selectionError,
+    this.pendingRestore = false,
+  });
 
   final BackupSelection selection;
   final Object? selectionError;
+  final bool pendingRestore;
   int stageCalls = 0;
+
+  @override
+  Future<bool> hasPendingRestore() async => pendingRestore;
 
   @override
   Future<bool> exportBackup() async => true;

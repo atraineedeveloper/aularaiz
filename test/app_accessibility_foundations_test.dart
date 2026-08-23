@@ -47,12 +47,18 @@ void main() {
 
       for (final theme in themes) {
         final scheme = theme.colorScheme;
-        expect(_contrastRatio(scheme.primary, scheme.onPrimary),
-            greaterThanOrEqualTo(4.5));
-        expect(_contrastRatio(scheme.secondary, scheme.onSecondary),
-            greaterThanOrEqualTo(4.5));
-        expect(_contrastRatio(scheme.surface, scheme.onSurface),
-            greaterThanOrEqualTo(4.5));
+        expect(
+          _contrastRatio(scheme.primary, scheme.onPrimary),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          _contrastRatio(scheme.secondary, scheme.onSecondary),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          _contrastRatio(scheme.surface, scheme.onSurface),
+          greaterThanOrEqualTo(4.5),
+        );
       }
     });
   });

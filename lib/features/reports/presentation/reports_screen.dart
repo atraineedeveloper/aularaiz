@@ -202,7 +202,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ReportPublishResult.cancelled => l10n.reportsCancelled,
       ReportPublishResult.failed => l10n.reportsError,
     };
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -301,7 +302,10 @@ class _SensitiveSwitch extends StatelessWidget {
 }
 
 class _GroupReportCard extends StatelessWidget {
-  const _GroupReportCard({required this.studentCount, required this.onGenerate});
+  const _GroupReportCard({
+    required this.studentCount,
+    required this.onGenerate,
+  });
 
   final int studentCount;
   final VoidCallback? onGenerate;

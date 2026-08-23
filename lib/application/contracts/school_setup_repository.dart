@@ -16,4 +16,6 @@ abstract interface class SchoolSetupRepository {
     required School school,
     required SchoolYear schoolYear,
   });
+
+  Future<void> updateSchool(School school);
 }

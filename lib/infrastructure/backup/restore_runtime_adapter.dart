@@ -16,7 +16,9 @@ final class RestoreRuntimeAdapter {
     };
     try {
       await database.customSelect('SELECT 1').get();
-      return DriftDatabaseSnapshotter(database: database).createSnapshot();
+      return await DriftDatabaseSnapshotter(
+        database: database,
+      ).createSnapshot();
     } finally {
       await database.close();
     }

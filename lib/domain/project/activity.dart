@@ -1,11 +1,13 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
 
 final class Activity {
   Activity({
     required this.id,
     required this.projectId,
     required this.title,
+    required this.formativeField,
     required Set<PrimaryGrade> targetGrades,
     required Iterable<ActivityParticipant> roster,
   }) : targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades),
@@ -39,6 +41,7 @@ final class Activity {
   final String id;
   final String projectId;
   final String title;
+  final FormativeField formativeField;
   final Set<PrimaryGrade> targetGrades;
   final Map<String, ActivityParticipant> roster;
 

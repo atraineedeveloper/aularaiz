@@ -57,7 +57,7 @@ void main() {
     expect(rows, hasLength(2));
     expect(rows.first, hasLength(15));
     expect(rows.first, isNot(contains('Fortalezas')));
-    expect(rows[1][0], 7);
+    expect(rows[1][0], '7');
     expect(rows[1][1], "'=HYPERLINK(\"https://example.com\")");
   });
 
@@ -89,10 +89,13 @@ void main() {
     expect(sheet.rows[1][0]!.value, isA<IntCellValue>());
     expect(sheet.rows[1][1]!.value, isA<TextCellValue>());
     expect(
-      (sheet.rows[1][1]!.value as TextCellValue).value,
+      (sheet.rows[1][1]!.value as TextCellValue).value.text,
       '=HYPERLINK("https://example.com")',
     );
     expect(sheet.rows[1][15]!.value, isA<TextCellValue>());
-    expect((sheet.rows[1][15]!.value as TextCellValue).value, '+SUM(1,1)');
+    expect(
+      (sheet.rows[1][15]!.value as TextCellValue).value.text,
+      '+SUM(1,1)',
+    );
   });
 }

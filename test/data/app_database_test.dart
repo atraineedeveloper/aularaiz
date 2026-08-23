@@ -13,7 +13,7 @@ void main() {
     await database.close();
   });
 
-  test('schema v1 creates the complete Phase 2 baseline', () async {
+  test('current schema contains the Phase 2 baseline and v2 additions', () async {
     final rows = await database
         .customSelect(
           "SELECT name FROM sqlite_master "
@@ -27,6 +27,7 @@ void main() {
       containsAll(<String>[
         'schools',
         'school_years',
+        'school_contexts',
         'teaching_groups',
         'group_grades',
         'students',
@@ -35,8 +36,11 @@ void main() {
         'attendance_entries',
         'projects',
         'project_grades',
+        'project_formative_fields',
+        'project_articulating_axes',
         'activities',
         'activity_grades',
+        'activity_formative_fields',
         'activity_roster',
         'activity_evaluations',
         'student_records',
@@ -46,7 +50,7 @@ void main() {
   });
 
   test(
-    'fresh database publishes schema version 1 with foreign keys on',
+    'fresh database publishes schema version 2 with foreign keys on',
     () async {
       final versionRow = await database
           .customSelect('PRAGMA user_version')
@@ -55,8 +59,9 @@ void main() {
           .customSelect('PRAGMA foreign_keys')
           .getSingle();
 
-      expect(database.schemaVersion, 1);
-      expect(versionRow.read<int>('user_version'), 1);
+      expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
+      expect(database.schemaVersion, 2);
+      expect(versionRow.read<int>('user_version'), 2);
       expect(foreignKeyRow.read<int>('foreign_keys'), 1);
     },
   );

@@ -1,6 +1,7 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 
 final class ReportPrivacyOptions {
   const ReportPrivacyOptions({this.includeSensitiveFollowUp = false});
@@ -47,9 +48,8 @@ final class EvaluationReportSummary {
 
   int get decidedDeliveries => delivered + notDelivered;
 
-  double? get deliveryCompliance => decidedDeliveries == 0
-      ? null
-      : delivered / decidedDeliveries;
+  double? get deliveryCompliance =>
+      decidedDeliveries == 0 ? null : delivered / decidedDeliveries;
 }
 
 final class ReportHeader {
@@ -114,16 +114,30 @@ final class EvaluationReportItem {
   final String? observation;
 }
 
+final class ReportFollowUpItem {
+  const ReportFollowUpItem({
+    required this.kind,
+    required this.occurredAt,
+    required this.text,
+  });
+
+  final StudentRecordEntryKind kind;
+  final DateTime occurredAt;
+  final String text;
+}
+
 final class IndividualReportData {
   const IndividualReportData({
     required this.header,
     required this.student,
     required this.evaluations,
+    required this.followUp,
   });
 
   final ReportHeader header;
   final StudentReportRow student;
   final List<EvaluationReportItem> evaluations;
+  final List<ReportFollowUpItem> followUp;
 }
 
 final class GroupReportData {

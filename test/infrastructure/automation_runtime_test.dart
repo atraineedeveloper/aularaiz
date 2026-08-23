@@ -29,11 +29,7 @@ void main() {
     );
     try {
       await DriftStudentRepository(database).save(
-        Student(
-          id: 'student-1',
-          givenNames: 'Ana',
-          firstSurname: 'Pérez',
-        ),
+        Student(id: 'student-1', givenNames: 'Ana', firstSurname: 'Pérez'),
       );
     } finally {
       await database.close();
@@ -55,46 +51,48 @@ void main() {
     expect(located?.absolute.path, databaseFile.absolute.path);
   });
 
-  test('dry-run does not write and explicit apply persists through use case', () async {
-    final runtime = await AutomationRuntime.open(
-      databaseFile: databaseFile,
-      profile: StorageProfile.production,
-    );
-    try {
-      final preview = await runtime.service.studentNote(
-        studentId: 'student-1',
-        kind: StudentRecordEntryKind.observation,
-        occurredAt: DateTime(2026, 9, 5),
-        text: 'Revisar avance lector',
+  test(
+    'dry-run does not write and explicit apply persists through use case',
+    () async {
+      final runtime = await AutomationRuntime.open(
+        databaseFile: databaseFile,
+        profile: StorageProfile.production,
       );
-      expect(preview.data['dry_run'], isTrue);
+      try {
+        final preview = await runtime.service.studentNote(
+          studentId: 'student-1',
+          kind: StudentRecordEntryKind.observation,
+          occurredAt: DateTime(2026, 9, 5),
+          text: 'Revisar avance lector',
+        );
+        expect(preview.data['dry_run'], isTrue);
 
-      final applied = await runtime.service.studentNote(
-        studentId: 'student-1',
-        kind: StudentRecordEntryKind.observation,
-        occurredAt: DateTime(2026, 9, 5),
-        text: 'Revisar avance lector',
-        apply: true,
-        privacy: const AutomationPrivacy(includePersonalData: true),
+        final applied = await runtime.service.studentNote(
+          studentId: 'student-1',
+          kind: StudentRecordEntryKind.observation,
+          occurredAt: DateTime(2026, 9, 5),
+          text: 'Revisar avance lector',
+          apply: true,
+          privacy: const AutomationPrivacy(includePersonalData: true),
+        );
+        expect(applied.data['applied'], isTrue);
+      } finally {
+        await runtime.close();
+      }
+
+      final verificationDatabase = AppDatabase.forTesting(
+        NativeDatabase(databaseFile),
+        storageProfile: StorageProfile.production,
       );
-      expect(applied.data['applied'], isTrue);
-    } finally {
-      await runtime.close();
-    }
-
-    final verificationDatabase = AppDatabase.forTesting(
-      NativeDatabase(databaseFile),
-      storageProfile: StorageProfile.production,
-    );
-    try {
-      final entries = await DriftStudentRecordRepository(
-        verificationDatabase,
-      ).listEntries('student-1');
-      expect(entries, hasLength(1));
-      expect(entries.single.text, 'Revisar avance lector');
-      expect(entries.single.kind, StudentRecordEntryKind.observation);
-    } finally {
-      await verificationDatabase.close();
-    }
-  });
+      try {
+        final entries = await DriftStudentRecordRepository(verificationDatabase)
+            .listEntries('student-1');
+        expect(entries, hasLength(1));
+        expect(entries.single.text, 'Revisar avance lector');
+        expect(entries.single.kind, StudentRecordEntryKind.observation);
+      } finally {
+        await verificationDatabase.close();
+      }
+    },
+  );
 }

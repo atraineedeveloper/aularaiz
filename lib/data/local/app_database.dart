@@ -58,10 +58,12 @@ final class AppDatabase extends _$AppDatabase {
     return AppDatabase._(executor, storageProfile: storageProfile);
   }
 
+  static const int currentSchemaVersion = 1;
+
   final StorageProfile? storageProfile;
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => currentSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

@@ -1,7 +1,11 @@
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/project.dart';
 
-enum ActivityViolation { projectMismatch, targetGradeOutsideProject }
+enum ActivityViolation {
+  projectMismatch,
+  targetGradeOutsideProject,
+  formativeFieldOutsideProject,
+}
 
 abstract final class ActivityPolicy {
   static Set<ActivityViolation> validate({
@@ -15,6 +19,9 @@ abstract final class ActivityPolicy {
     }
     if (!project.allowsActivityGrades(activity.targetGrades)) {
       violations.add(ActivityViolation.targetGradeOutsideProject);
+    }
+    if (!project.allowsActivityField(activity.formativeField)) {
+      violations.add(ActivityViolation.formativeFieldOutsideProject);
     }
 
     return Set<ActivityViolation>.unmodifiable(violations);

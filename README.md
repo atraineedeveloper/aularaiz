@@ -6,7 +6,7 @@ This repository is a clean-room rewrite. The previous `SistemaDocenteNEM` applic
 
 ## Current status
 
-**Phase 6 complete — Reports and safe interchange. AulaRaíz Beta functional scope is implemented.**
+**Phase 7 complete — Product UX and accessibility hardening. AulaRaíz Beta now includes cross-product resilience and accessibility hardening.**
 
 Implemented foundations and workflows now include:
 
@@ -25,9 +25,12 @@ Implemented foundations and workflows now include:
 - safe desktop file publication and Android sharing/export flow;
 - adaptive Windows/Android-oriented UI;
 - Spanish as the default language with optional English support;
+- cross-product keyboard/focus, semantics, touch-target, high-contrast and text-scaling hardening;
+- lazy rendering for large attendance/evaluation rosters and 30–40 student scenarios;
+- recoverable loading/error states for critical roster workflows;
 - automated Drift, formatting, analysis, tests and Android/Windows build validation in CI.
 
-The next implementation phase is **Phase 7 — Product UX and accessibility hardening**.
+The next implementation phase is **Phase 8 — Recovery, distribution and lifecycle**.
 
 ## Product direction
 

@@ -222,8 +222,9 @@ final class EvaluationController extends ChangeNotifier {
             project: project,
             activity: activity,
           );
-          if (activity.roster.isEmpty)
+          if (activity.roster.isEmpty) {
             option = await _repairEmptyRoster(option);
+          }
           options.add(option);
         }
       }

@@ -1,4 +1,5 @@
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
+import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
 import 'package:aularaiz/domain/evaluation/evaluation_state.dart';
 import 'package:aularaiz/domain/project/activity.dart';
@@ -259,8 +260,9 @@ class _EvaluationCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (row == null)
+    if (row == null) {
       return const SizedBox(width: 48, child: Center(child: Text('—')));
+    }
     return PopupMenuButton<Object>(
       enabled: !disabled,
       tooltip: _label(context, 'Evaluar', 'Evaluate'),
@@ -383,11 +385,14 @@ class _DetailedEditorState extends State<_DetailedEditor> {
                   ),
               ],
               onChanged: (value) {
-                if (value != null)
+                if (value != null) {
                   setState(() {
                     _delivery = value;
-                    if (value != DeliveryStatus.delivered) _achievement = null;
+                    if (value != DeliveryStatus.delivered) {
+                      _achievement = null;
+                    }
                   });
+                }
               },
             ),
             if (_delivery == DeliveryStatus.delivered) ...[
@@ -451,12 +456,17 @@ final class _DetailedDraft extends _QuickDraft {
   final String observation;
 }
 
-String _code(dynamic evaluation) {
-  if (evaluation.state == EvaluationState.pendingDeliveryDecision) return 'P';
-  if (evaluation.state == EvaluationState.notDelivered) return 'N';
-  if (evaluation.state == EvaluationState.deliveredAwaitingEvaluation)
+String _code(ActivityEvaluation evaluation) {
+  if (evaluation.state == EvaluationState.pendingDeliveryDecision) {
+    return 'P';
+  }
+  if (evaluation.state == EvaluationState.notDelivered) {
+    return 'N';
+  }
+  if (evaluation.state == EvaluationState.deliveredAwaitingEvaluation) {
     return 'T';
-  return switch (evaluation.achievement as AchievementLevel?) {
+  }
+  return switch (evaluation.achievement) {
     AchievementLevel.mastered => 'D',
     AchievementLevel.sufficient => 'S',
     AchievementLevel.inProgress => 'E',

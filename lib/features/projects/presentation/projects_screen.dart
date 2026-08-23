@@ -615,13 +615,13 @@ String _methodologyLabel(ProjectMethodology v, AppLocalizations l) =>
       ProjectMethodology.unspecified => l.methodologyUnspecified,
       ProjectMethodology.communityProjects => l.methodologyCommunityProjects,
       ProjectMethodology.inquirySteam => l.methodologyInquirySteam,
-      ProjectMethodology.problemBased => l.methodologyProblemBased,
+      ProjectMethodology.problemBasedLearning => l.methodologyProblemBased,
       ProjectMethodology.serviceLearning => l.methodologyServiceLearning,
     };
 String _fieldLabel(FormativeField v, AppLocalizations l) => switch (v) {
   FormativeField.unspecified => l.formativeFieldUnspecified,
   FormativeField.languages => l.formativeFieldLanguages,
-  FormativeField.knowledgeScientificThought =>
+  FormativeField.knowledgeAndScientificThought =>
     l.formativeFieldScientificThought,
   FormativeField.ethicsNatureAndSocieties => l.formativeFieldEthicsNature,
   FormativeField.humanAndCommunity => l.formativeFieldHumanCommunity,
@@ -632,8 +632,9 @@ String _axisLabel(ArticulatingAxis v, AppLocalizations l) => switch (v) {
   ArticulatingAxis.criticalInterculturality => l.axisCriticalInterculturality,
   ArticulatingAxis.genderEquality => l.axisGenderEquality,
   ArticulatingAxis.healthyLife => l.axisHealthyLife,
-  ArticulatingAxis.culturesReadingWriting => l.axisCulturesReadingWriting,
-  ArticulatingAxis.artsAestheticExperiences => l.axisArtsAesthetic,
+  ArticulatingAxis.culturesThroughReadingAndWriting =>
+    l.axisCulturesReadingWriting,
+  ArticulatingAxis.artsAndAestheticExperiences => l.axisArtsAesthetic,
 };
 String _gradeLabel(PrimaryGrade g, AppLocalizations l) => switch (g) {
   PrimaryGrade.first => l.grade1,

@@ -54,32 +54,41 @@ void main() {
     );
   });
 
-  test('activity field is independent while grades stay inside project scope', () {
-    final valid = Activity(
-      id: 'activity-1',
-      projectId: project.id,
-      title: 'Investigar',
-      formativeField: FormativeField.knowledgeAndScientificThought,
-      targetGrades: <PrimaryGrade>{PrimaryGrade.second},
-      roster: <ActivityParticipant>[
-        ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),
-      ],
-    );
-    final invalidGrade = Activity(
-      id: 'activity-2',
-      projectId: project.id,
-      title: 'Fuera de alcance',
-      formativeField: FormativeField.languages,
-      targetGrades: <PrimaryGrade>{PrimaryGrade.fourth},
-      roster: const <ActivityParticipant>[],
-    );
+  test(
+    'activity field is independent while grades stay inside project scope',
+    () {
+      final valid = Activity(
+        id: 'activity-1',
+        projectId: project.id,
+        title: 'Investigar',
+        formativeField: FormativeField.knowledgeAndScientificThought,
+        targetGrades: <PrimaryGrade>{PrimaryGrade.second},
+        roster: <ActivityParticipant>[
+          ActivityParticipant(
+            studentId: 'student-1',
+            grade: PrimaryGrade.second,
+          ),
+        ],
+      );
+      final invalidGrade = Activity(
+        id: 'activity-2',
+        projectId: project.id,
+        title: 'Fuera de alcance',
+        formativeField: FormativeField.languages,
+        targetGrades: <PrimaryGrade>{PrimaryGrade.fourth},
+        roster: const <ActivityParticipant>[],
+      );
 
-    expect(ActivityPolicy.validate(activity: valid, project: project), isEmpty);
-    expect(
-      ActivityPolicy.validate(activity: invalidGrade, project: project),
-      contains(ActivityViolation.targetGradeOutsideProject),
-    );
-  });
+      expect(
+        ActivityPolicy.validate(activity: valid, project: project),
+        isEmpty,
+      );
+      expect(
+        ActivityPolicy.validate(activity: invalidGrade, project: project),
+        contains(ActivityViolation.targetGradeOutsideProject),
+      );
+    },
+  );
 
   test('activity keeps identifier and normalized calendar date', () {
     final activity = Activity(

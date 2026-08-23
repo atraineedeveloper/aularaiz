@@ -129,32 +129,35 @@ void main() {
     );
   });
 
-  test('activity formative field is independent from project metadata', () async {
-    final project = Project(
-      id: 'project-1',
-      groupId: 'group-1',
-      title: 'Proyecto',
-      lifecycle: ProjectLifecycle.draft,
-      methodology: ProjectMethodology.communityProjects,
-      targetGrades: {PrimaryGrade.first},
-    );
-    final useCase = CreateActivity(
-      activityRepository: _MemoryActivityRepository(),
-      projectRepository: _MemoryProjectRepository(project),
-      enrollmentRepository: _MemoryEnrollmentRepository(const []),
-      idGenerator: _FixedIdGenerator(),
-    );
+  test(
+    'activity formative field is independent from project metadata',
+    () async {
+      final project = Project(
+        id: 'project-1',
+        groupId: 'group-1',
+        title: 'Proyecto',
+        lifecycle: ProjectLifecycle.draft,
+        methodology: ProjectMethodology.communityProjects,
+        targetGrades: {PrimaryGrade.first},
+      );
+      final useCase = CreateActivity(
+        activityRepository: _MemoryActivityRepository(),
+        projectRepository: _MemoryProjectRepository(project),
+        enrollmentRepository: _MemoryEnrollmentRepository(const []),
+        idGenerator: _FixedIdGenerator(),
+      );
 
-    final activity = await useCase(
-      projectId: project.id,
-      title: 'Necesidad de la escuela',
-      formativeField: FormativeField.humanAndCommunity,
-      targetGrades: {PrimaryGrade.first},
-      occursOn: DateTime(2026, 9, 16),
-    );
+      final activity = await useCase(
+        projectId: project.id,
+        title: 'Necesidad de la escuela',
+        formativeField: FormativeField.humanAndCommunity,
+        targetGrades: {PrimaryGrade.first},
+        occursOn: DateTime(2026, 9, 16),
+      );
 
-    expect(activity.formativeField, FormativeField.humanAndCommunity);
-  });
+      expect(activity.formativeField, FormativeField.humanAndCommunity);
+    },
+  );
 }
 
 Enrollment _enrollment(
@@ -185,7 +188,8 @@ final class _MemoryProjectRepository implements ProjectRepository {
   final Project project;
 
   @override
-  Future<Project?> findById(String id) async => id == project.id ? project : null;
+  Future<Project?> findById(String id) async =>
+      id == project.id ? project : null;
 
   @override
   Future<List<Project>> listForGroup(String groupId) async => [project];

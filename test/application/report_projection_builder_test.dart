@@ -91,7 +91,6 @@ void main() {
       title: 'Lectura comunitaria',
       lifecycle: ProjectLifecycle.inProgress,
       methodology: ProjectMethodology.communityProjects,
-      formativeFields: {FormativeField.languages},
       targetGrades: {PrimaryGrade.fifth},
     );
     activity = Activity(

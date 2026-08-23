@@ -9,52 +9,57 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('shows Spanish backup controls and requires restore confirmation', (
-    tester,
-  ) async {
-    final selection = _selection();
-    final gateway = _FakeBackupRestoreGateway(selection: selection);
+  testWidgets(
+    'shows Spanish backup controls and requires restore confirmation',
+    (tester) async {
+      final selection = _selection();
+      final gateway = _FakeBackupRestoreGateway(selection: selection);
 
-    await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _host(gateway: gateway, locale: const Locale('es')),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Copia de seguridad y restauración'), findsOneWidget);
-    expect(find.text('Crear copia de seguridad'), findsOneWidget);
-    expect(find.text('Elegir copia para restaurar'), findsOneWidget);
+      expect(find.text('Copia de seguridad y restauración'), findsOneWidget);
+      expect(find.text('Crear copia de seguridad'), findsOneWidget);
+      expect(find.text('Elegir copia para restaurar'), findsOneWidget);
 
-    await tester.tap(find.text('Elegir copia para restaurar'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Elegir copia para restaurar'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Copia reconocida'), findsOneWidget);
-    expect(find.text('Versión de datos'), findsOneWidget);
-    expect(find.text('Datos principales'), findsOneWidget);
-    expect(find.text('Restaurar esta copia'), findsOneWidget);
+      expect(find.text('Copia reconocida'), findsOneWidget);
+      expect(find.text('Versión de datos'), findsOneWidget);
+      expect(find.text('Datos principales'), findsOneWidget);
+      expect(find.text('Restaurar esta copia'), findsOneWidget);
 
-    await tester.tap(find.text('Restaurar esta copia'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Restaurar esta copia'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('¿Preparar esta restauración?'), findsOneWidget);
-    expect(gateway.stageCalls, 0);
+      expect(find.text('¿Preparar esta restauración?'), findsOneWidget);
+      expect(gateway.stageCalls, 0);
 
-    await tester.tap(find.text('Preparar restauración'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Preparar restauración'));
+      await tester.pumpAndSettle();
 
-    expect(gateway.stageCalls, 1);
-    expect(find.text('Restauración preparada'), findsOneWidget);
+      expect(gateway.stageCalls, 1);
+      expect(find.text('Restauración preparada'), findsOneWidget);
 
-    await tester.tap(find.text('Entendido'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Entendido'));
+      await tester.pumpAndSettle();
 
-    expect(
-      find.textContaining('Cierra completamente AulaRaíz'),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.textContaining('Cierra completamente AulaRaíz'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('shows English backup controls', (tester) async {
     final gateway = _FakeBackupRestoreGateway(selection: _selection());
 
-    await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('en')));
+    await tester.pumpWidget(
+      _host(gateway: gateway, locale: const Locale('en')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Backup and restore'), findsOneWidget);
@@ -73,7 +78,9 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
+    await tester.pumpWidget(
+      _host(gateway: gateway, locale: const Locale('es')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Elegir copia para restaurar'));
     await tester.pumpAndSettle();
@@ -93,7 +100,9 @@ void main() {
       pendingRestore: true,
     );
 
-    await tester.pumpWidget(_host(gateway: gateway, locale: const Locale('es')));
+    await tester.pumpWidget(
+      _host(gateway: gateway, locale: const Locale('es')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -107,10 +116,7 @@ void main() {
   });
 }
 
-Widget _host({
-  required BackupRestoreGateway gateway,
-  required Locale locale,
-}) {
+Widget _host({required BackupRestoreGateway gateway, required Locale locale}) {
   return Provider<BackupRestoreGateway>.value(
     value: gateway,
     child: MaterialApp(

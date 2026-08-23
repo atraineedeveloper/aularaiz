@@ -212,9 +212,8 @@ final class StudentImportPreviewBuilder {
 
   DateTime? _parseDate(String value) {
     final trimmed = value.trim();
-    final iso = RegExp(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$').firstMatch(
-      trimmed,
-    );
+    final iso = RegExp(r'^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$')
+        .firstMatch(trimmed);
     if (iso != null) {
       return _safeDate(
         int.parse(iso.group(1)!),
@@ -223,9 +222,8 @@ final class StudentImportPreviewBuilder {
       );
     }
 
-    final dmy = RegExp(r'^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$').firstMatch(
-      trimmed,
-    );
+    final dmy = RegExp(r'^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$')
+        .firstMatch(trimmed);
     if (dmy != null) {
       return _safeDate(
         int.parse(dmy.group(3)!),

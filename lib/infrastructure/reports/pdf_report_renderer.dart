@@ -4,6 +4,7 @@ import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -19,9 +20,11 @@ final class PdfReportRenderer {
       creator: 'AulaRaíz',
       subject: 'Classroom report',
     );
+    final theme = await _pdfTheme();
 
     document.addPage(
       pw.MultiPage(
+        theme: theme,
         pageFormat: PdfPageFormat.a4.landscape,
         margin: const pw.EdgeInsets.all(28),
         header: (_) => _header(report.header, labels, labels.groupReport),
@@ -48,9 +51,11 @@ final class PdfReportRenderer {
       creator: 'AulaRaíz',
       subject: 'Student report',
     );
+    final theme = await _pdfTheme();
 
     document.addPage(
       pw.MultiPage(
+        theme: theme,
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(32),
         header: (_) => _header(report.header, labels, labels.individualReport),
@@ -85,6 +90,16 @@ final class PdfReportRenderer {
     );
 
     return document.save();
+  }
+
+  Future<pw.ThemeData> _pdfTheme() async {
+    final regular = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/Montserrat-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/Montserrat-Bold.ttf'),
+    );
+    return pw.ThemeData.withFont(base: regular, bold: bold);
   }
 
   pw.Widget _header(ReportHeader header, _Labels labels, String title) {

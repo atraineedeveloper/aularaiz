@@ -2,10 +2,13 @@ import 'dart:io';
 
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/infrastructure/backup/drift_database_snapshotter.dart';
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   test('VACUUM INTO snapshot can be reopened and preserves data', () async {
     final tempDirectory = await Directory.systemTemp.createTemp(
       'aularaiz-backup-test-',

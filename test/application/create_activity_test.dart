@@ -60,6 +60,49 @@ void main() {
     },
   );
 
+  test(
+    'pre-cycle activity uses the next enrollment start for its roster',
+    () async {
+      final project = Project(
+        id: 'project-1',
+        groupId: 'group-1',
+        title: 'Agua comunitaria',
+        lifecycle: ProjectLifecycle.draft,
+        methodology: ProjectMethodology.communityProjects,
+        formativeFields: {FormativeField.languages},
+        targetGrades: {PrimaryGrade.first},
+      );
+      final activityRepository = _MemoryActivityRepository();
+      final useCase = CreateActivity(
+        activityRepository: activityRepository,
+        projectRepository: _MemoryProjectRepository(project),
+        enrollmentRepository: _MemoryEnrollmentRepository([
+          _enrollment(
+            'student-1',
+            PrimaryGrade.first,
+            startsOn: DateTime(2026, 8, 31),
+          ),
+          _enrollment(
+            'student-2',
+            PrimaryGrade.first,
+            startsOn: DateTime(2026, 8, 31),
+          ),
+        ]),
+        idGenerator: _FixedIdGenerator(),
+      );
+
+      final activity = await useCase(
+        projectId: project.id,
+        title: 'Actividad 1',
+        formativeField: FormativeField.languages,
+        targetGrades: {PrimaryGrade.first},
+        rosterDate: DateTime(2026, 8, 23),
+      );
+
+      expect(activity.roster.keys, <String>{'student-1', 'student-2'});
+    },
+  );
+
   test('activity rejects grades outside project scope', () async {
     final project = Project(
       id: 'project-1',
@@ -122,6 +165,7 @@ void main() {
 Enrollment _enrollment(
   String studentId,
   PrimaryGrade grade, {
+  DateTime? startsOn,
   DateTime? endsOn,
 }) {
   return Enrollment(
@@ -130,7 +174,7 @@ Enrollment _enrollment(
     groupId: 'group-1',
     grade: grade,
     listNumber: studentId.hashCode.abs() + 1,
-    startsOn: DateTime(2026, 8, 1),
+    startsOn: startsOn ?? DateTime(2026, 8, 1),
     endsOn: endsOn,
   );
 }

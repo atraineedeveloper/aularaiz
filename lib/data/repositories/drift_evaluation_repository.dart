@@ -44,7 +44,9 @@ final class DriftEvaluationRepository implements EvaluationRepository {
 
   @override
   Future<void> save(ActivityEvaluation evaluation) async {
-    await database.into(database.activityEvaluations).insertOnConflictUpdate(
+    await database
+        .into(database.activityEvaluations)
+        .insertOnConflictUpdate(
           ActivityEvaluationsCompanion(
             activityId: Value(evaluation.activityId),
             studentId: Value(evaluation.studentId),

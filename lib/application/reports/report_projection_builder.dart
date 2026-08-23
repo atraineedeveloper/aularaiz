@@ -160,7 +160,10 @@ final class ReportProjectionBuilder {
       }
     }
 
-    final attendance = await _attendanceRepository.listForMonth(group.id, month);
+    final attendance = await _attendanceRepository.listForMonth(
+      group.id,
+      month,
+    );
     final projects = await _projectRepository.listForGroup(group.id);
     final activities = <Activity>[];
     for (final project in projects) {

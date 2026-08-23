@@ -38,4 +38,4 @@ final class StagedRestore {
   final RestorePreview preview;
 }
 
-enum RestoreBootstrapOutcome { none, applied, rolledBack }
+enum RestoreBootstrapOutcome { none, applied, rolledBack, discarded }

@@ -91,13 +91,14 @@ void main() {
       title: 'Lectura comunitaria',
       lifecycle: ProjectLifecycle.inProgress,
       methodology: ProjectMethodology.communityProjects,
-      formativeField: FormativeField.languages,
+      formativeFields: {FormativeField.languages},
       targetGrades: {PrimaryGrade.fifth},
     );
     activity = Activity(
       id: 'activity-1',
       projectId: project.id,
       title: 'Comprensión del cuento',
+      formativeField: FormativeField.languages,
       targetGrades: {PrimaryGrade.fifth},
       roster: [
         ActivityParticipant(studentId: ana.id, grade: PrimaryGrade.fifth),
@@ -191,24 +192,27 @@ void main() {
     );
   });
 
-  test('keeps mid-month historical enrollment and counts unsaved evaluation as pending', () async {
-    final report = await builder.buildGroup(
-      group: group,
-      referenceMonth: DateTime(2026, 8),
-    );
+  test(
+    'keeps mid-month historical enrollment and counts unsaved evaluation as pending',
+    () async {
+      final report = await builder.buildGroup(
+        group: group,
+        referenceMonth: DateTime(2026, 8),
+      );
 
-    expect(report.students.map((student) => student.studentId), [
-      ana.id,
-      bruno.id,
-    ]);
-    final historical = report.students.singleWhere(
-      (student) => student.studentId == bruno.id,
-    );
-    expect(historical.attendance.absent, 1);
-    expect(historical.evaluation.pending, 1);
-    expect(historical.evaluation.notDelivered, 0);
-    expect(historical.evaluation.evaluated, 0);
-  });
+      expect(report.students.map((student) => student.studentId), [
+        ana.id,
+        bruno.id,
+      ]);
+      final historical = report.students.singleWhere(
+        (student) => student.studentId == bruno.id,
+      );
+      expect(historical.attendance.absent, 1);
+      expect(historical.evaluation.pending, 1);
+      expect(historical.evaluation.notDelivered, 0);
+      expect(historical.evaluation.evaluated, 0);
+    },
+  );
 
   test('excludes enrollment after its historical month ends', () async {
     final report = await builder.buildGroup(
@@ -226,12 +230,20 @@ final class _SchoolSetupRepository implements SchoolSetupRepository {
   final School school;
   final SchoolYear schoolYear;
 
+  InitialSchoolSetup get _setup => (school: school, schoolYear: schoolYear);
+
   @override
   Future<bool> hasInitialSetup() async => true;
 
   @override
-  Future<InitialSchoolSetup?> loadInitialSetup() async =>
-      (school: school, schoolYear: schoolYear);
+  Future<InitialSchoolSetup?> loadInitialSetup() async => _setup;
+
+  @override
+  Future<List<InitialSchoolSetup>> listSetups() async => [_setup];
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async =>
+      schoolId == school.id ? _setup : null;
 
   @override
   Future<void> saveInitialSetup({

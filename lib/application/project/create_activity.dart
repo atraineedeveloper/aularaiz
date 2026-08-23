@@ -29,39 +29,34 @@ final class CreateActivity {
     required String title,
     required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
-    required DateTime rosterDate,
+    required DateTime occursOn,
   }) async {
     final project = await _projectRepository.findById(projectId);
     if (project == null) throw StateError('Project does not exist.');
     if (!project.allowsActivityGrades(targetGrades)) {
       throw ArgumentError('Activity grades must be inside the project scope.');
     }
-    if (!project.allowsActivityField(formativeField)) {
-      throw ArgumentError(
-        'Activity formative field must be included in the project.',
-      );
-    }
 
-    final enrollments = await _enrollmentRepository.findByGroupId(
-      project.groupId,
-    );
+    final existing = await _activityRepository.listForProject(projectId);
+    final identifier = _nextIdentifier(existing);
+    final normalizedDate = DateTime(occursOn.year, occursOn.month, occursOn.day);
+    final enrollments = await _enrollmentRepository.findByGroupId(project.groupId);
     final eligible = enrollments
         .where((enrollment) => targetGrades.contains(enrollment.grade))
         .toList();
-    final effectiveRosterDate = _effectiveRosterDate(eligible, rosterDate);
+    final effectiveRosterDate = _effectiveRosterDate(eligible, normalizedDate);
     final roster = <ActivityParticipant>[
       for (final enrollment in eligible)
         if (enrollment.isActiveOn(effectiveRosterDate))
-          ActivityParticipant(
-            studentId: enrollment.studentId,
-            grade: enrollment.grade,
-          ),
+          ActivityParticipant(studentId: enrollment.studentId, grade: enrollment.grade),
     ];
 
     final activity = Activity(
       id: _idGenerator.newId(),
       projectId: projectId,
+      identifier: identifier,
       title: title,
+      occursOn: normalizedDate,
       formativeField: formativeField,
       targetGrades: targetGrades,
       roster: roster,
@@ -70,18 +65,24 @@ final class CreateActivity {
     return activity;
   }
 
-  DateTime _effectiveRosterDate(List<Enrollment> eligible, DateTime requested) {
-    final normalized = DateTime(requested.year, requested.month, requested.day);
-    if (eligible.any((enrollment) => enrollment.isActiveOn(normalized))) {
-      return normalized;
+  String _nextIdentifier(List<Activity> activities) {
+    var maximum = 0;
+    for (final activity in activities) {
+      final value = activity.identifier?.trim().toUpperCase();
+      if (value == null || !value.startsWith('A')) continue;
+      final parsed = int.tryParse(value.substring(1));
+      if (parsed != null && parsed > maximum) maximum = parsed;
     }
+    return 'A${maximum + 1}';
+  }
 
-    final upcoming =
-        eligible
-            .map((enrollment) => enrollment.startsOn)
-            .where((date) => date.isAfter(normalized))
-            .toList()
-          ..sort();
-    return upcoming.isEmpty ? normalized : upcoming.first;
+  DateTime _effectiveRosterDate(List<Enrollment> eligible, DateTime requested) {
+    if (eligible.any((enrollment) => enrollment.isActiveOn(requested))) return requested;
+    final upcoming = eligible
+        .map((enrollment) => enrollment.startsOn)
+        .where((date) => date.isAfter(requested))
+        .toList()
+      ..sort();
+    return upcoming.isEmpty ? requested : upcoming.first;
   }
 }

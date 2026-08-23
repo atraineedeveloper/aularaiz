@@ -1,5 +1,6 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
+import 'package:aularaiz/domain/project/articulating_axis.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
@@ -11,9 +12,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ProjectsScreen extends StatefulWidget {
-  const ProjectsScreen({required this.group, super.key});
+  const ProjectsScreen({
+    required this.group,
+    required this.onEvaluateActivity,
+    super.key,
+  });
 
   final TeachingGroup group;
+  final ValueChanged<Activity> onEvaluateActivity;
 
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
@@ -61,7 +67,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: controller.isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
                 children: [
                   Center(
                     child: ConstrainedBox(
@@ -94,6 +100,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 onAddActivity: () {
                                   _createActivity(context, project);
                                 },
+                                onEvaluateActivity: widget.onEvaluateActivity,
                               ),
                               const SizedBox(height: 14),
                             ],
@@ -116,7 +123,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     await context.read<ProjectsController>().createProject(
       title: draft.title,
       methodology: draft.methodology,
-      formativeField: draft.formativeField,
+      formativeFields: draft.formativeFields,
+      articulatingAxes: draft.articulatingAxes,
       targetGrades: draft.targetGrades,
     );
   }
@@ -130,6 +138,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     await context.read<ProjectsController>().createActivity(
       project: project,
       title: draft.title,
+      formativeField: draft.formativeField,
       targetGrades: draft.targetGrades,
     );
   }
@@ -142,6 +151,7 @@ class _ProjectCard extends StatelessWidget {
     required this.isSaving,
     required this.onLifecycleChanged,
     required this.onAddActivity,
+    required this.onEvaluateActivity,
   });
 
   final Project project;
@@ -149,12 +159,17 @@ class _ProjectCard extends StatelessWidget {
   final bool isSaving;
   final ValueChanged<ProjectLifecycle> onLifecycleChanged;
   final VoidCallback onAddActivity;
+  final ValueChanged<Activity> onEvaluateActivity;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final grades = project.targetGrades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));
+    final fields = project.formativeFields.toList()
+      ..sort((left, right) => left.index.compareTo(right.index));
+    final axes = project.articulatingAxes.toList()
+      ..sort((left, right) => left.index.compareTo(right.index));
 
     return Card(
       child: Padding(
@@ -196,16 +211,43 @@ class _ProjectCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 14),
+            Text(
+              _methodologyLabel(project.methodology, l10n),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                Chip(label: Text(_methodologyLabel(project.methodology, l10n))),
-                Chip(label: Text(_fieldLabel(project.formativeField, l10n))),
+                for (final field in fields)
+                  Chip(
+                    avatar: const Icon(Icons.category_outlined, size: 18),
+                    label: Text(_fieldLabel(field, l10n)),
+                  ),
                 for (final grade in grades)
                   Chip(label: Text(_gradeLabel(grade, l10n))),
               ],
             ),
+            if (axes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                l10n.articulatingAxes,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final axis in axes)
+                    Chip(
+                      avatar: const Icon(Icons.hub_outlined, size: 18),
+                      label: Text(_axisLabel(axis, l10n)),
+                    ),
+                ],
+              ),
+            ],
             const Divider(height: 30),
             Row(
               children: [
@@ -229,12 +271,39 @@ class _ProjectCard extends StatelessWidget {
               )
             else
               for (final activity in activities)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.assignment_outlined),
-                  title: Text(activity.title),
-                  subtitle: Text(
-                    l10n.activityRosterCount(activity.roster.length),
+                Card.outlined(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        const Icon(Icons.assignment_outlined),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(minWidth: 220),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                activity.title,
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${_fieldLabel(activity.formativeField, l10n)} · ${l10n.activityRosterCount(activity.roster.length)}',
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: () => onEvaluateActivity(activity),
+                          icon: const Icon(Icons.assignment_turned_in_outlined),
+                          label: Text(l10n.evaluateActivity),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
           ],
@@ -283,8 +352,10 @@ class _ProjectDialogState extends State<_ProjectDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   ProjectMethodology _methodology = ProjectMethodology.communityProjects;
-  FormativeField _field = FormativeField.languages;
-  final Set<PrimaryGrade> _grades = {};
+  final Set<FormativeField> _fields = <FormativeField>{};
+  final Set<ArticulatingAxis> _axes = <ArticulatingAxis>{};
+  final Set<PrimaryGrade> _grades = <PrimaryGrade>{};
+  bool _fieldsError = false;
   bool _gradesError = false;
 
   @override
@@ -298,11 +369,14 @@ class _ProjectDialogState extends State<_ProjectDialog> {
     final l10n = AppLocalizations.of(context);
     final availableGrades = widget.group.grades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));
+    final fields = FormativeField.values
+        .where((value) => value != FormativeField.unspecified)
+        .toList(growable: false);
 
     return AlertDialog(
       title: Text(l10n.createProject),
       content: SizedBox(
-        width: 560,
+        width: 680,
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -320,35 +394,88 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                 const SizedBox(height: 14),
                 DropdownButtonFormField<ProjectMethodology>(
                   initialValue: _methodology,
+                  isExpanded: true,
                   decoration: InputDecoration(labelText: l10n.methodology),
                   items: [
                     for (final value in ProjectMethodology.values)
                       DropdownMenuItem(
                         value: value,
-                        child: Text(_methodologyLabel(value, l10n)),
+                        child: Text(
+                          _methodologyLabel(value, l10n),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: (value) {
                     if (value != null) setState(() => _methodology = value);
                   },
                 ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<FormativeField>(
-                  initialValue: _field,
-                  decoration: InputDecoration(labelText: l10n.formativeField),
-                  items: [
-                    for (final value in FormativeField.values)
-                      DropdownMenuItem(
-                        value: value,
-                        child: Text(_fieldLabel(value, l10n)),
+                const SizedBox(height: 18),
+                Text(
+                  l10n.formativeFields,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final field in fields)
+                      FilterChip(
+                        label: Text(_fieldLabel(field, l10n)),
+                        selected: _fields.contains(field),
+                        onSelected: (selected) {
+                          setState(() {
+                            selected
+                                ? _fields.add(field)
+                                : _fields.remove(field);
+                            _fieldsError = false;
+                          });
+                        },
                       ),
                   ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _field = value);
-                  },
+                ),
+                if (_fieldsError) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.selectAtLeastOneField,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 18),
+                Text(
+                  l10n.articulatingAxes,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.articulatingAxesHelp,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final axis in ArticulatingAxis.values)
+                      FilterChip(
+                        label: Text(_axisLabel(axis, l10n)),
+                        selected: _axes.contains(axis),
+                        onSelected: (selected) {
+                          setState(() {
+                            selected ? _axes.add(axis) : _axes.remove(axis);
+                          });
+                        },
+                      ),
+                  ],
                 ),
                 const SizedBox(height: 18),
-                Text(l10n.grades),
+                Text(
+                  l10n.grades,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -394,14 +521,19 @@ class _ProjectDialogState extends State<_ProjectDialog> {
   }
 
   void _submit() {
+    final hasFields = _fields.isNotEmpty;
     final hasGrades = _grades.isNotEmpty;
-    setState(() => _gradesError = !hasGrades);
-    if (!_formKey.currentState!.validate() || !hasGrades) return;
+    setState(() {
+      _fieldsError = !hasFields;
+      _gradesError = !hasGrades;
+    });
+    if (!_formKey.currentState!.validate() || !hasFields || !hasGrades) return;
     Navigator.of(context).pop(
       _ProjectDraft(
         title: _titleController.text.trim(),
         methodology: _methodology,
-        formativeField: _field,
+        formativeFields: Set<FormativeField>.of(_fields),
+        articulatingAxes: Set<ArticulatingAxis>.of(_axes),
         targetGrades: Set<PrimaryGrade>.of(_grades),
       ),
     );
@@ -420,8 +552,17 @@ class _ActivityDialog extends StatefulWidget {
 class _ActivityDialogState extends State<_ActivityDialog> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final Set<PrimaryGrade> _grades = {};
+  final Set<PrimaryGrade> _grades = <PrimaryGrade>{};
+  late FormativeField _field;
   bool _gradesError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final fields = widget.project.formativeFields.toList()
+      ..sort((left, right) => left.index.compareTo(right.index));
+    _field = fields.first;
+  }
 
   @override
   void dispose() {
@@ -434,58 +575,83 @@ class _ActivityDialogState extends State<_ActivityDialog> {
     final l10n = AppLocalizations.of(context);
     final availableGrades = widget.project.targetGrades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));
+    final availableFields = widget.project.formativeFields.toList()
+      ..sort((left, right) => left.index.compareTo(right.index));
 
     return AlertDialog(
       title: Text(l10n.addActivity),
       content: SizedBox(
-        width: 520,
+        width: 560,
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _titleController,
-                autofocus: true,
-                decoration: InputDecoration(labelText: l10n.activityTitle),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? l10n.requiredField
-                    : null,
-              ),
-              const SizedBox(height: 18),
-              Text(l10n.activityGradeScope),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final grade in availableGrades)
-                    FilterChip(
-                      label: Text(_gradeLabel(grade, l10n)),
-                      selected: _grades.contains(grade),
-                      onSelected: (selected) {
-                        setState(() {
-                          selected ? _grades.add(grade) : _grades.remove(grade);
-                          _gradesError = false;
-                        });
-                      },
-                    ),
-                ],
-              ),
-              if (_gradesError) ...[
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: _titleController,
+                  autofocus: true,
+                  decoration: InputDecoration(labelText: l10n.activityTitle),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? l10n.requiredField
+                      : null,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<FormativeField>(
+                  initialValue: _field,
+                  decoration: InputDecoration(
+                    labelText: l10n.activityFormativeField,
+                  ),
+                  items: [
+                    for (final field in availableFields)
+                      DropdownMenuItem(
+                        value: field,
+                        child: Text(_fieldLabel(field, l10n)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _field = value);
+                  },
+                ),
+                const SizedBox(height: 18),
+                Text(l10n.activityGradeScope),
                 const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final grade in availableGrades)
+                      FilterChip(
+                        label: Text(_gradeLabel(grade, l10n)),
+                        selected: _grades.contains(grade),
+                        onSelected: (selected) {
+                          setState(() {
+                            selected
+                                ? _grades.add(grade)
+                                : _grades.remove(grade);
+                            _gradesError = false;
+                          });
+                        },
+                      ),
+                  ],
+                ),
+                if (_gradesError) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.selectAtLeastOneGrade,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 Text(
-                  l10n.selectAtLeastOneGrade,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  l10n.activityRosterSnapshotHelp,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
-              const SizedBox(height: 12),
-              Text(
-                l10n.activityRosterSnapshotHelp,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -506,6 +672,7 @@ class _ActivityDialogState extends State<_ActivityDialog> {
     Navigator.of(context).pop(
       _ActivityDraft(
         title: _titleController.text.trim(),
+        formativeField: _field,
         targetGrades: Set<PrimaryGrade>.of(_grades),
       ),
     );
@@ -516,20 +683,27 @@ final class _ProjectDraft {
   const _ProjectDraft({
     required this.title,
     required this.methodology,
-    required this.formativeField,
+    required this.formativeFields,
+    required this.articulatingAxes,
     required this.targetGrades,
   });
 
   final String title;
   final ProjectMethodology methodology;
-  final FormativeField formativeField;
+  final Set<FormativeField> formativeFields;
+  final Set<ArticulatingAxis> articulatingAxes;
   final Set<PrimaryGrade> targetGrades;
 }
 
 final class _ActivityDraft {
-  const _ActivityDraft({required this.title, required this.targetGrades});
+  const _ActivityDraft({
+    required this.title,
+    required this.formativeField,
+    required this.targetGrades,
+  });
 
   final String title;
+  final FormativeField formativeField;
   final Set<PrimaryGrade> targetGrades;
 }
 
@@ -563,4 +737,17 @@ String _fieldLabel(FormativeField field, AppLocalizations l10n) =>
       FormativeField.ethicsNatureAndSocieties =>
         l10n.formativeFieldEthicsNature,
       FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
+    };
+
+String _axisLabel(ArticulatingAxis axis, AppLocalizations l10n) =>
+    switch (axis) {
+      ArticulatingAxis.inclusion => l10n.axisInclusion,
+      ArticulatingAxis.criticalThinking => l10n.axisCriticalThinking,
+      ArticulatingAxis.criticalInterculturality =>
+        l10n.axisCriticalInterculturality,
+      ArticulatingAxis.genderEquality => l10n.axisGenderEquality,
+      ArticulatingAxis.healthyLife => l10n.axisHealthyLife,
+      ArticulatingAxis.culturesThroughReadingAndWriting =>
+        l10n.axisCulturesReadingWriting,
+      ArticulatingAxis.artsAndAestheticExperiences => l10n.axisArtsAesthetic,
     };

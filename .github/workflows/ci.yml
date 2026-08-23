@@ -21,15 +21,14 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: dart run build_runner build
-      - name: Verify Drift migration artifacts
+      - name: Verify Drift schema snapshot
         run: |
-          dart run drift_dev make-migrations
-          drift_status="$(git status --porcelain -- drift_schemas test/drift lib/data/local/app_database.steps.dart)"
-          if [ -n "$drift_status" ]; then
-            echo "::error::Drift migration artifacts are out of date. Run 'dart run drift_dev make-migrations' and commit the generated files."
-            printf '%s\n' "$drift_status"
-            exit 1
-          fi
+          set -euo pipefail
+          schema_dir="$(mktemp -d)"
+          dart run drift_dev schema dump lib/data/local/app_database.dart "$schema_dir/"
+          diff -u \
+            drift_schemas/app_database/drift_schema_v2.json \
+            "$schema_dir/drift_schema_v2.json"
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

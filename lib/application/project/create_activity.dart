@@ -5,6 +5,7 @@ import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
 
 final class CreateActivity {
   CreateActivity({
@@ -25,6 +26,7 @@ final class CreateActivity {
   Future<Activity> call({
     required String projectId,
     required String title,
+    required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
     required DateTime rosterDate,
   }) async {
@@ -32,6 +34,11 @@ final class CreateActivity {
     if (project == null) throw StateError('Project does not exist.');
     if (!project.allowsActivityGrades(targetGrades)) {
       throw ArgumentError('Activity grades must be inside the project scope.');
+    }
+    if (!project.allowsActivityField(formativeField)) {
+      throw ArgumentError(
+        'Activity formative field must be included in the project.',
+      );
     }
 
     final enrollments = await _enrollmentRepository.findByGroupId(
@@ -54,6 +61,7 @@ final class CreateActivity {
       id: _idGenerator.newId(),
       projectId: projectId,
       title: title,
+      formativeField: formativeField,
       targetGrades: targetGrades,
       roster: roster,
     );

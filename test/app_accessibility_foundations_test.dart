@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('accessible theme foundations', () {
     test('interactive controls keep at least 48 by 48 logical pixels', () {
-      final theme = AppTheme.light(AppPalette.government2024);
+      final theme = AppTheme.light(AppPalette.mexico);
       const emptyStates = <WidgetState>{};
 
       final sizes = <Size?>[
@@ -28,7 +28,7 @@ void main() {
     });
 
     test('focused fields use a clear two-pixel primary outline', () {
-      final theme = AppTheme.light(AppPalette.government2024);
+      final theme = AppTheme.light(AppPalette.mexico);
       final focused = theme.inputDecorationTheme.focusedBorder;
 
       expect(focused, isA<OutlineInputBorder>());
@@ -39,10 +39,10 @@ void main() {
 
     test('light, dark and high-contrast themes preserve readable pairs', () {
       final themes = <ThemeData>[
-        AppTheme.light(AppPalette.government2024),
-        AppTheme.dark(AppPalette.government2024),
-        AppTheme.highContrastLight(AppPalette.government2024),
-        AppTheme.highContrastDark(AppPalette.government2024),
+        AppTheme.light(AppPalette.mexico),
+        AppTheme.dark(AppPalette.mexico),
+        AppTheme.highContrastLight(AppPalette.mexico),
+        AppTheme.highContrastDark(AppPalette.mexico),
       ];
 
       for (final theme in themes) {

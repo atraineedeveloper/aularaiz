@@ -6,6 +6,7 @@ import 'package:aularaiz/domain/evaluation/evaluation_policy.dart';
 import 'package:aularaiz/domain/evaluation/evaluation_state.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -13,6 +14,7 @@ void main() {
     id: 'activity-1',
     projectId: 'project-1',
     title: 'Producto final',
+    formativeField: FormativeField.languages,
     targetGrades: <PrimaryGrade>{PrimaryGrade.second},
     roster: <ActivityParticipant>[
       ActivityParticipant(studentId: 'student-1', grade: PrimaryGrade.second),

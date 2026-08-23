@@ -29,21 +29,27 @@ final class SchoolWorkspaceController extends ChangeNotifier {
   List<TeachingGroup> get groups => _groups;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
+  bool get canCreateGroup => _groups.isEmpty;
   Object? get error => _error;
 
-  Future<void> load() async {
+  Future<void> load(String schoolId) async {
     if (_isLoading) return;
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final setup = await _setupRepository.loadInitialSetup();
+      final setup = await _setupRepository.loadForSchool(schoolId);
       if (setup == null) {
-        throw StateError('Initial school setup is missing.');
+        throw StateError('Selected school setup is missing.');
       }
       _setup = setup;
-      _groups = await _groupRepository.listForSchoolYear(setup.schoolYear.id);
+      final allGroups = await _groupRepository.listForSchoolYear(
+        setup.schoolYear.id,
+      );
+      _groups = List<TeachingGroup>.unmodifiable(
+        allGroups.where((group) => group.schoolId == setup.school.id),
+      );
     } catch (error) {
       _error = error;
     } finally {
@@ -59,7 +65,7 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     ClassSchedule? schedule,
   }) async {
     final setup = _setup;
-    if (setup == null || _isSaving) return false;
+    if (setup == null || _isSaving || !canCreateGroup) return false;
 
     _isSaving = true;
     _error = null;
@@ -74,7 +80,12 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         shift: shift,
         schedule: schedule,
       );
-      _groups = await _groupRepository.listForSchoolYear(setup.schoolYear.id);
+      final allGroups = await _groupRepository.listForSchoolYear(
+        setup.schoolYear.id,
+      );
+      _groups = List<TeachingGroup>.unmodifiable(
+        allGroups.where((group) => group.schoolId == setup.school.id),
+      );
       return true;
     } catch (error) {
       _error = error;

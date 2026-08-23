@@ -24,8 +24,14 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   SchoolOrganization _organization = SchoolOrganization.unspecified;
   String? _stateCode;
   String? _municipality;
+  late String _schoolYearLabel =
+      SchoolYearCatalog.currentBasicEducation().label;
 
-  SchoolYearPreset get _schoolYear => SchoolYearCatalog.currentBasicEducation();
+  SchoolYearPreset get _schoolYear =>
+      SchoolYearCatalog.basicEducationOptions.firstWhere(
+        (value) => value.label == _schoolYearLabel,
+        orElse: SchoolYearCatalog.currentBasicEducation,
+      );
 
   MexicoStateOption? get _selectedState =>
       _stateCode == null ? null : MexicoGeographyCatalog.byCode(_stateCode!);
@@ -42,12 +48,14 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<SchoolSetupController>();
-    final schoolYear = _schoolYear;
     final selectedState = _selectedState;
     final compact = MediaQuery.sizeOf(context).width < 480;
     final largeText = MediaQuery.textScalerOf(context).scale(16) >= 24;
 
     return Scaffold(
+      appBar: Navigator.of(context).canPop()
+          ? AppBar(title: Text(l10n.setupTitle))
+          : null,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -191,14 +199,27 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                       controller: _localityController,
                       enabled: !controller.isSaving,
                       decoration: InputDecoration(labelText: l10n.locality),
-                      textInputAction: TextInputAction.done,
+                      textInputAction: TextInputAction.next,
                     ),
-                    const SizedBox(height: 28),
-                    _SchoolYearCard(
-                      schoolYear: schoolYear,
-                      title: l10n.schoolYear,
-                      startLabel: l10n.startDate,
-                      endLabel: l10n.endDate,
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _schoolYearLabel,
+                      decoration: InputDecoration(labelText: l10n.schoolYear),
+                      items: [
+                        for (final option
+                            in SchoolYearCatalog.basicEducationOptions)
+                          DropdownMenuItem(
+                            value: option.label,
+                            child: Text(option.label),
+                          ),
+                      ],
+                      onChanged: controller.isSaving
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setState(() => _schoolYearLabel = value);
+                              }
+                            },
                     ),
                     if (controller.error != null) ...[
                       const SizedBox(height: 16),
@@ -306,54 +327,5 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       SchoolOrganization.fiveTeacher => l10n.organizationFiveTeacher,
       SchoolOrganization.complete => l10n.organizationComplete,
     };
-  }
-}
-
-class _SchoolYearCard extends StatelessWidget {
-  const _SchoolYearCard({
-    required this.schoolYear,
-    required this.title,
-    required this.startLabel,
-    required this.endLabel,
-  });
-
-  final SchoolYearPreset schoolYear;
-  final String title;
-  final String startLabel;
-  final String endLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final dates = MaterialLocalizations.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.school_outlined,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '$title ${schoolYear.label}',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text('$startLabel: ${dates.formatMediumDate(schoolYear.startsOn)}'),
-            const SizedBox(height: 4),
-            Text('$endLabel: ${dates.formatMediumDate(schoolYear.endsOn)}'),
-          ],
-        ),
-      ),
-    );
   }
 }

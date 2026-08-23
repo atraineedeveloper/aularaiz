@@ -4,6 +4,7 @@ import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
+import 'package:aularaiz/domain/project/articulating_axis.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
@@ -64,7 +65,8 @@ final class ProjectsController extends ChangeNotifier {
   Future<bool> createProject({
     required String title,
     required ProjectMethodology methodology,
-    required FormativeField formativeField,
+    required Set<FormativeField> formativeFields,
+    required Set<ArticulatingAxis> articulatingAxes,
     required Set<PrimaryGrade> targetGrades,
   }) async {
     final group = _group;
@@ -74,7 +76,8 @@ final class ProjectsController extends ChangeNotifier {
         groupId: group.id,
         title: title,
         methodology: methodology,
-        formativeField: formativeField,
+        formativeFields: formativeFields,
+        articulatingAxes: articulatingAxes,
         targetGrades: targetGrades,
       );
     });
@@ -90,7 +93,8 @@ final class ProjectsController extends ChangeNotifier {
           title: project.title,
           lifecycle: lifecycle,
           methodology: project.methodology,
-          formativeField: project.formativeField,
+          formativeFields: project.formativeFields,
+          articulatingAxes: project.articulatingAxes,
           targetGrades: project.targetGrades,
         ),
       );
@@ -100,6 +104,7 @@ final class ProjectsController extends ChangeNotifier {
   Future<bool> createActivity({
     required Project project,
     required String title,
+    required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
   }) async {
     if (_isSaving) return false;
@@ -107,6 +112,7 @@ final class ProjectsController extends ChangeNotifier {
       await _createActivity(
         projectId: project.id,
         title: title,
+        formativeField: formativeField,
         targetGrades: targetGrades,
         rosterDate: DateTime.now(),
       );

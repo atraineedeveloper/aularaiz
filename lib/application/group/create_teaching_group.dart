@@ -23,11 +23,10 @@ final class CreateTeachingGroup {
     ClassSchedule? schedule,
   }) async {
     final existing = await _repository.listForSchoolYear(schoolYearId);
-    final normalizedName = name.trim().toLowerCase();
-    if (existing.any(
-      (group) => group.name.trim().toLowerCase() == normalizedName,
-    )) {
-      throw StateError('A group with the same name already exists.');
+    if (existing.any((group) => group.schoolId == schoolId)) {
+      throw StateError(
+        'A primary teacher can manage only one group for this school year.',
+      );
     }
 
     final group = TeachingGroup(

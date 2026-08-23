@@ -269,6 +269,16 @@ final class _SchoolSetupRepository implements SchoolSetupRepository {
   Future<InitialSchoolSetup?> loadInitialSetup() async => setup;
 
   @override
+  Future<List<InitialSchoolSetup>> listSetups() async =>
+      setup == null ? const [] : [setup!];
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async {
+    final value = setup;
+    return value != null && value.school.id == schoolId ? value : null;
+  }
+
+  @override
   Future<void> saveInitialSetup({
     required School school,
     required SchoolYear schoolYear,

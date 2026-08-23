@@ -13,40 +13,47 @@ void main() {
     await database.close();
   });
 
-  test('schema v1 creates the complete Phase 2 baseline', () async {
-    final rows = await database
-        .customSelect(
-          "SELECT name FROM sqlite_master "
-          "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
-        )
-        .get();
-    final tableNames = rows.map((row) => row.read<String>('name')).toSet();
+  test(
+    'current schema contains the Phase 2 baseline and v2 additions',
+    () async {
+      final rows = await database
+          .customSelect(
+            "SELECT name FROM sqlite_master "
+            "WHERE type = 'table' AND name NOT LIKE 'sqlite_%'",
+          )
+          .get();
+      final tableNames = rows.map((row) => row.read<String>('name')).toSet();
 
-    expect(
-      tableNames,
-      containsAll(<String>[
-        'schools',
-        'school_years',
-        'teaching_groups',
-        'group_grades',
-        'students',
-        'enrollments',
-        'attendance_days',
-        'attendance_entries',
-        'projects',
-        'project_grades',
-        'activities',
-        'activity_grades',
-        'activity_roster',
-        'activity_evaluations',
-        'student_records',
-        'student_record_entries',
-      ]),
-    );
-  });
+      expect(
+        tableNames,
+        containsAll(<String>[
+          'schools',
+          'school_years',
+          'school_contexts',
+          'teaching_groups',
+          'group_grades',
+          'students',
+          'enrollments',
+          'attendance_days',
+          'attendance_entries',
+          'projects',
+          'project_grades',
+          'project_formative_fields',
+          'project_articulating_axes',
+          'activities',
+          'activity_grades',
+          'activity_formative_fields',
+          'activity_roster',
+          'activity_evaluations',
+          'student_records',
+          'student_record_entries',
+        ]),
+      );
+    },
+  );
 
   test(
-    'fresh database publishes schema version 1 with foreign keys on',
+    'fresh database publishes schema version 2 with foreign keys on',
     () async {
       final versionRow = await database
           .customSelect('PRAGMA user_version')
@@ -55,8 +62,9 @@ void main() {
           .customSelect('PRAGMA foreign_keys')
           .getSingle();
 
-      expect(database.schemaVersion, 1);
-      expect(versionRow.read<int>('user_version'), 1);
+      expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
+      expect(database.schemaVersion, 2);
+      expect(versionRow.read<int>('user_version'), 2);
       expect(foreignKeyRow.read<int>('foreign_keys'), 1);
     },
   );

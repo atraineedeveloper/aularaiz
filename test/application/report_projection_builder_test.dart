@@ -91,13 +91,14 @@ void main() {
       title: 'Lectura comunitaria',
       lifecycle: ProjectLifecycle.inProgress,
       methodology: ProjectMethodology.communityProjects,
-      formativeField: FormativeField.languages,
+      formativeFields: {FormativeField.languages},
       targetGrades: {PrimaryGrade.fifth},
     );
     activity = Activity(
       id: 'activity-1',
       projectId: project.id,
       title: 'Comprensión del cuento',
+      formativeField: FormativeField.languages,
       targetGrades: {PrimaryGrade.fifth},
       roster: [
         ActivityParticipant(studentId: ana.id, grade: PrimaryGrade.fifth),
@@ -226,12 +227,20 @@ final class _SchoolSetupRepository implements SchoolSetupRepository {
   final School school;
   final SchoolYear schoolYear;
 
+  InitialSchoolSetup get _setup => (school: school, schoolYear: schoolYear);
+
   @override
   Future<bool> hasInitialSetup() async => true;
 
   @override
-  Future<InitialSchoolSetup?> loadInitialSetup() async =>
-      (school: school, schoolYear: schoolYear);
+  Future<InitialSchoolSetup?> loadInitialSetup() async => _setup;
+
+  @override
+  Future<List<InitialSchoolSetup>> listSetups() async => [_setup];
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async =>
+      schoolId == school.id ? _setup : null;
 
   @override
   Future<void> saveInitialSetup({

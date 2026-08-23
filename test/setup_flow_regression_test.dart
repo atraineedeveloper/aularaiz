@@ -14,7 +14,7 @@ import 'package:provider/provider.dart';
 
 void main() {
   testWidgets(
-    'creating a school opens workspace without framework exceptions',
+    'creating a school returns to school selection without framework exceptions',
     (tester) async {
       final setupRepository = _MemorySchoolSetupRepository();
       final groupRepository = _MemoryTeachingGroupRepository();
@@ -138,6 +138,16 @@ final class _MemorySchoolSetupRepository implements SchoolSetupRepository {
 
   @override
   Future<InitialSchoolSetup?> loadInitialSetup() async => _setup;
+
+  @override
+  Future<List<InitialSchoolSetup>> listSetups() async =>
+      _setup == null ? const [] : [_setup!];
+
+  @override
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId) async {
+    final setup = _setup;
+    return setup != null && setup.school.id == schoolId ? setup : null;
+  }
 
   @override
   Future<void> saveInitialSetup({

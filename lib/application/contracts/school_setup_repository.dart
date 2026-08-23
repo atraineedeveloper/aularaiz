@@ -8,6 +8,10 @@ abstract interface class SchoolSetupRepository {
 
   Future<InitialSchoolSetup?> loadInitialSetup();
 
+  Future<List<InitialSchoolSetup>> listSetups();
+
+  Future<InitialSchoolSetup?> loadForSchool(String schoolId);
+
   Future<void> saveInitialSetup({
     required School school,
     required SchoolYear schoolYear,

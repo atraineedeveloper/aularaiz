@@ -25,8 +25,21 @@ final class CreateInitialSchoolSetup {
     required DateTime startsOn,
     required DateTime endsOn,
   }) async {
-    if (await _repository.hasInitialSetup()) {
-      throw StateError('Initial school setup already exists.');
+    final normalizedName = schoolName.trim().toLowerCase();
+    final existing = await _repository.listSetups();
+    if (existing.any(
+      (setup) => setup.school.name.trim().toLowerCase() == normalizedName,
+    )) {
+      throw StateError('A school with the same name already exists.');
+    }
+
+    final normalizedCct = cct?.trim().toUpperCase();
+    if (normalizedCct != null &&
+        normalizedCct.isNotEmpty &&
+        existing.any(
+          (setup) => setup.school.cct?.trim().toUpperCase() == normalizedCct,
+        )) {
+      throw StateError('A school with the same CCT already exists.');
     }
 
     final school = School(

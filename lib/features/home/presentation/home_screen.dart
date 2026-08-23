@@ -2,12 +2,14 @@ import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/features/school_selection/presentation/school_selection_screen.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,20 +20,22 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<bool>? _setupFuture;
+  Future<List<InitialSchoolSetup>>? _setupsFuture;
+  String? _selectedSchoolId;
+  bool _creatingSchool = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _setupFuture ??= context.read<SchoolSetupRepository>().hasInitialSetup();
+    _setupsFuture ??= context.read<SchoolSetupRepository>().listSetups();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return FutureBuilder<bool>(
-      future: _setupFuture,
+    return FutureBuilder<List<InitialSchoolSetup>>(
+      future: _setupsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Scaffold(
@@ -52,11 +56,27 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (snapshot.data != true) {
+        final setups = snapshot.data ?? const <InitialSchoolSetup>[];
+        if (setups.isEmpty || _creatingSchool) {
           return ChangeNotifierProvider(
             create: (context) =>
                 SchoolSetupController(context.read<CreateInitialSchoolSetup>()),
-            child: SchoolSetupScreen(onCompleted: _refreshSetupState),
+            child: SchoolSetupScreen(onCompleted: _schoolSaved),
+          );
+        }
+
+        final selectedSchoolId = _selectedSchoolId;
+        if (selectedSchoolId == null ||
+            !setups.any((setup) => setup.school.id == selectedSchoolId)) {
+          return SchoolSelectionScreen(
+            setups: setups,
+            onSelect: (schoolId) {
+              setState(() => _selectedSchoolId = schoolId);
+            },
+            onCreateSchool: () {
+              setState(() => _creatingSchool = true);
+            },
+            onOpenSettings: () => context.push('/settings'),
           );
         }
 
@@ -66,15 +86,22 @@ class _HomeScreenState extends State<HomeScreen> {
             groupRepository: context.read<TeachingGroupRepository>(),
             createTeachingGroup: context.read<CreateTeachingGroup>(),
           ),
-          child: const SchoolWorkspaceScreen(),
+          child: SchoolWorkspaceScreen(
+            schoolId: selectedSchoolId,
+            onChooseSchool: () {
+              setState(() => _selectedSchoolId = null);
+            },
+          ),
         );
       },
     );
   }
 
-  void _refreshSetupState() {
+  void _schoolSaved() {
     setState(() {
-      _setupFuture = context.read<SchoolSetupRepository>().hasInitialSetup();
+      _creatingSchool = false;
+      _selectedSchoolId = null;
+      _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
     });
   }
 }

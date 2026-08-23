@@ -1,5 +1,4 @@
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
-import 'package:aularaiz/app/theme/app_palette.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/features/settings/presentation/update_section.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -47,31 +46,6 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 _SettingsSection(
-                  icon: Icons.palette_outlined,
-                  title: l10n.colorPalette,
-                  subtitle: l10n.paletteDescription,
-                  child: Column(
-                    children: [
-                      _PaletteTile(
-                        palette: AppPalette.government2024,
-                        title: l10n.palette2024,
-                        selected: settings.palette == AppPalette.government2024,
-                        onTap: () =>
-                            settings.setPalette(AppPalette.government2024),
-                      ),
-                      const SizedBox(height: 12),
-                      _PaletteTile(
-                        palette: AppPalette.government2018,
-                        title: l10n.palette2018,
-                        selected: settings.palette == AppPalette.government2018,
-                        onTap: () =>
-                            settings.setPalette(AppPalette.government2018),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _SettingsSection(
                   icon: Icons.contrast_rounded,
                   title: l10n.appearance,
                   child: SegmentedButton<ThemeMode>(
@@ -102,15 +76,6 @@ class SettingsScreen extends StatelessWidget {
                 const BackupRestoreSection(),
                 const SizedBox(height: 20),
                 const UpdateSection(),
-                const SizedBox(height: 20),
-                _SettingsSection(
-                  icon: Icons.text_fields_rounded,
-                  title: l10n.typography,
-                  child: Text(
-                    'Montserrat',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ),
               ],
             ),
           ),
@@ -125,12 +90,10 @@ class _SettingsSection extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.child,
-    this.subtitle,
   });
 
   final IconData icon;
   final String title;
-  final String? subtitle;
   final Widget child;
 
   @override
@@ -157,21 +120,9 @@ class _SettingsSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle!,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
               ],
@@ -179,82 +130,6 @@ class _SettingsSection extends StatelessWidget {
             const SizedBox(height: 20),
             child,
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PaletteTile extends StatelessWidget {
-  const _PaletteTile({
-    required this.palette,
-    required this.title,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppPalette palette;
-  final String title;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return Semantics(
-      button: true,
-      selected: selected,
-      label: title,
-      onTap: onTap,
-      child: ExcludeSemantics(
-        child: Material(
-          color: selected ? scheme.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          children: [
-                            for (final color in palette.swatches)
-                              Container(
-                                width: 34,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    selected
-                        ? Icons.check_circle_rounded
-                        : Icons.circle_outlined,
-                    color: selected ? scheme.primary : scheme.outline,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

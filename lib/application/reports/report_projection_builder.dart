@@ -138,13 +138,13 @@ final class ReportProjectionBuilder {
     TeachingGroup group,
     DateTime referenceMonth,
   ) async {
-    final setup = await _schoolSetupRepository.loadInitialSetup();
+    final setup = await _schoolSetupRepository.loadForSchool(group.schoolId);
     if (setup == null) {
       throw StateError('School setup does not exist.');
     }
     if (setup.school.id != group.schoolId ||
         setup.schoolYear.id != group.schoolYearId) {
-      throw StateError('Group does not belong to the active school setup.');
+      throw StateError('Group does not belong to the selected school setup.');
     }
 
     final month = DateTime(referenceMonth.year, referenceMonth.month);

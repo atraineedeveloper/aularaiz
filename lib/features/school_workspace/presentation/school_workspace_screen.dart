@@ -19,6 +19,8 @@ import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
 import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
+import 'package:aularaiz/features/student_record/presentation/student_records_controller.dart';
+import 'package:aularaiz/features/student_record/presentation/student_records_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -136,6 +138,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                       onProjects: () => _openProjects(group),
                                       onEvaluation: () =>
                                           _openEvaluation(group),
+                                      onRecords: () =>
+                                          _openStudentRecords(group),
                                     ),
                                   ),
                               ],
@@ -250,6 +254,23 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       ),
     );
   }
+
+  Future<void> _openStudentRecords(TeachingGroup group) async {
+    final enrollmentRepository = context.read<EnrollmentRepository>();
+    final studentRepository = context.read<StudentRepository>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => StudentRecordsController(
+            enrollmentRepository: enrollmentRepository,
+            studentRepository: studentRepository,
+          ),
+          child: StudentRecordsScreen(group: group),
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptyGroups extends StatelessWidget {
@@ -290,6 +311,7 @@ class _GroupCard extends StatelessWidget {
     required this.onAttendance,
     required this.onProjects,
     required this.onEvaluation,
+    required this.onRecords,
   });
 
   final TeachingGroup group;
@@ -297,6 +319,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onAttendance;
   final VoidCallback onProjects;
   final VoidCallback onEvaluation;
+  final VoidCallback onRecords;
 
   @override
   Widget build(BuildContext context) {
@@ -358,6 +381,11 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onEvaluation,
                   icon: const Icon(Icons.assignment_turned_in_outlined),
                   label: Text(l10n.openEvaluation),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onRecords,
+                  icon: const Icon(Icons.folder_shared_outlined),
+                  label: Text(l10n.openStudentRecords),
                 ),
                 OutlinedButton.icon(
                   onPressed: onStudents,

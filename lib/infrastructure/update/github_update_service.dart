@@ -95,11 +95,27 @@ final class GithubUpdateService {
       throw StateError('The verified update installer no longer exists.');
     }
 
+    await _verifyAuthenticodeSignature(installer);
     await Process.start(
       installer.path,
       const <String>[],
       mode: ProcessStartMode.detached,
     );
+  }
+
+  Future<void> _verifyAuthenticodeSignature(File installer) async {
+    final result = await Process.run('powershell.exe', <String>[
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      r'''$signature = Get-AuthenticodeSignature -LiteralPath $args[0]; if ($signature.Status -ne 'Valid') { Write-Error "Invalid Authenticode signature: $($signature.Status)"; exit 1 }''',
+      installer.path,
+    ]);
+    if (result.exitCode != 0) {
+      throw const FormatException(
+        'Downloaded installer did not have a valid Authenticode signature.',
+      );
+    }
   }
 
   Future<String> _getText(

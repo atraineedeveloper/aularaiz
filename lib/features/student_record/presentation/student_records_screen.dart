@@ -73,9 +73,7 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
                       )
                     : LayoutBuilder(
                         builder: (context, constraints) {
-                          final columns = constraints.maxWidth >= 1000
-                              ? 2
-                              : 1;
+                          final columns = constraints.maxWidth >= 1000 ? 2 : 1;
                           final width =
                               (constraints.maxWidth - (columns - 1) * 12) /
                               columns;

@@ -59,8 +59,7 @@ void main() {
       await database.customStatement('DROP TABLE school_contexts');
 
       final onUpgrade = database.migration.onUpgrade;
-      expect(onUpgrade, isNotNull);
-      await onUpgrade!(Migrator(database), 1, 2);
+      await onUpgrade(Migrator(database), 1, 2);
 
       final contextRows = await database.customSelect('''
       SELECT school_id, school_year_id FROM school_contexts

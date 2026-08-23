@@ -42,10 +42,7 @@ final class ProjectsController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   Object? get error => _error;
-
-  List<Activity> activitiesFor(String projectId) {
-    return _activities[projectId] ?? const [];
-  }
+  List<Activity> activitiesFor(String projectId) => _activities[projectId] ?? const [];
 
   Future<void> load(TeachingGroup group) async {
     _group = group;
@@ -65,7 +62,6 @@ final class ProjectsController extends ChangeNotifier {
   Future<bool> createProject({
     required String title,
     required ProjectMethodology methodology,
-    required Set<FormativeField> formativeFields,
     required Set<ArticulatingAxis> articulatingAxes,
     required Set<PrimaryGrade> targetGrades,
   }) async {
@@ -76,7 +72,6 @@ final class ProjectsController extends ChangeNotifier {
         groupId: group.id,
         title: title,
         methodology: methodology,
-        formativeFields: formativeFields,
         articulatingAxes: articulatingAxes,
         targetGrades: targetGrades,
       );
@@ -93,7 +88,6 @@ final class ProjectsController extends ChangeNotifier {
           title: project.title,
           lifecycle: lifecycle,
           methodology: project.methodology,
-          formativeFields: project.formativeFields,
           articulatingAxes: project.articulatingAxes,
           targetGrades: project.targetGrades,
         ),
@@ -106,6 +100,7 @@ final class ProjectsController extends ChangeNotifier {
     required String title,
     required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
+    required DateTime occursOn,
   }) async {
     if (_isSaving) return false;
     return _mutate(() async {
@@ -114,7 +109,7 @@ final class ProjectsController extends ChangeNotifier {
         title: title,
         formativeField: formativeField,
         targetGrades: targetGrades,
-        rosterDate: DateTime.now(),
+        occursOn: occursOn,
       );
     });
   }
@@ -142,9 +137,7 @@ final class ProjectsController extends ChangeNotifier {
     final projects = await _projectRepository.listForGroup(group.id);
     final activities = <String, List<Activity>>{};
     for (final project in projects) {
-      activities[project.id] = await _activityRepository.listForProject(
-        project.id,
-      );
+      activities[project.id] = await _activityRepository.listForProject(project.id);
     }
     _projects = List<Project>.unmodifiable(projects);
     _activities = Map<String, List<Activity>>.unmodifiable(activities);

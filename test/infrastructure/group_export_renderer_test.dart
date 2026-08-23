@@ -93,9 +93,6 @@ void main() {
       '=HYPERLINK("https://example.com")',
     );
     expect(sheet.rows[1][15]!.value, isA<TextCellValue>());
-    expect(
-      (sheet.rows[1][15]!.value as TextCellValue).value.text,
-      '+SUM(1,1)',
-    );
+    expect((sheet.rows[1][15]!.value as TextCellValue).value.text, '+SUM(1,1)');
   });
 }

@@ -22,7 +22,10 @@ void main() {
         title: 'Comunidad y agua',
         lifecycle: ProjectLifecycle.inProgress,
         methodology: ProjectMethodology.communityProjects,
-        formativeField: FormativeField.ethicsNatureAndSocieties,
+        formativeFields: {
+          FormativeField.ethicsNatureAndSocieties,
+          FormativeField.languages,
+        },
         targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
       );
       final activityRepository = _MemoryActivityRepository();
@@ -45,10 +48,12 @@ void main() {
       final activity = await useCase(
         projectId: project.id,
         title: 'Mapa de fuentes de agua',
+        formativeField: FormativeField.ethicsNatureAndSocieties,
         targetGrades: {PrimaryGrade.first},
         rosterDate: DateTime(2026, 8, 22),
       );
 
+      expect(activity.formativeField, FormativeField.ethicsNatureAndSocieties);
       expect(activity.roster.keys, <String>{'first-active'});
       expect(activity.roster['first-active']?.grade, PrimaryGrade.first);
       expect(activityRepository.saved?.roster.keys, <String>{'first-active'});
@@ -62,7 +67,7 @@ void main() {
       title: 'Proyecto',
       lifecycle: ProjectLifecycle.draft,
       methodology: ProjectMethodology.unspecified,
-      formativeField: FormativeField.unspecified,
+      formativeFields: {FormativeField.languages},
       targetGrades: {PrimaryGrade.first},
     );
     final useCase = CreateActivity(
@@ -76,7 +81,37 @@ void main() {
       () => useCase(
         projectId: project.id,
         title: 'Fuera de alcance',
+        formativeField: FormativeField.languages,
         targetGrades: {PrimaryGrade.second},
+        rosterDate: DateTime(2026, 8, 22),
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('activity rejects a formative field outside project scope', () async {
+    final project = Project(
+      id: 'project-1',
+      groupId: 'group-1',
+      title: 'Proyecto',
+      lifecycle: ProjectLifecycle.draft,
+      methodology: ProjectMethodology.communityProjects,
+      formativeFields: {FormativeField.languages},
+      targetGrades: {PrimaryGrade.first},
+    );
+    final useCase = CreateActivity(
+      activityRepository: _MemoryActivityRepository(),
+      projectRepository: _MemoryProjectRepository(project),
+      enrollmentRepository: _MemoryEnrollmentRepository(const []),
+      idGenerator: _FixedIdGenerator(),
+    );
+
+    expect(
+      () => useCase(
+        projectId: project.id,
+        title: 'Fuera de campo',
+        formativeField: FormativeField.humanAndCommunity,
+        targetGrades: {PrimaryGrade.first},
         rosterDate: DateTime(2026, 8, 22),
       ),
       throwsArgumentError,

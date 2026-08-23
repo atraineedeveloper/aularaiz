@@ -6,9 +6,12 @@ extension ReportsLocalization on AppLocalizations {
   String get reportsTitle => _reportsEnglish ? 'Reports' : 'Reportes';
   String get openReports => _reportsEnglish ? 'Reports' : 'Reportes';
   String get reportsMonth => _reportsEnglish ? 'Report month' : 'Mes del reporte';
-  String get reportsPreviousMonth => _reportsEnglish ? 'Previous month' : 'Mes anterior';
-  String get reportsNextMonth => _reportsEnglish ? 'Next month' : 'Mes siguiente';
-  String get reportsGroupTitle => _reportsEnglish ? 'Group report' : 'Reporte grupal';
+  String get reportsPreviousMonth =>
+      _reportsEnglish ? 'Previous month' : 'Mes anterior';
+  String get reportsNextMonth =>
+      _reportsEnglish ? 'Next month' : 'Mes siguiente';
+  String get reportsGroupTitle =>
+      _reportsEnglish ? 'Group report' : 'Reporte grupal';
   String get reportsGroupDescription => _reportsEnglish
       ? 'Attendance and formative evaluation summary for the group.'
       : 'Resumen de asistencia y evaluación formativa del grupo.';
@@ -17,7 +20,8 @@ extension ReportsLocalization on AppLocalizations {
   String get reportsIndividualDescription => _reportsEnglish
       ? 'Generate one PDF for a student in this month.'
       : 'Genera un PDF de un alumno para este mes.';
-  String get reportsGeneratePdf => _reportsEnglish ? 'Generate PDF' : 'Generar PDF';
+  String get reportsGeneratePdf =>
+      _reportsEnglish ? 'Generate PDF' : 'Generar PDF';
   String get reportsSensitiveTitle => _reportsEnglish
       ? 'Include sensitive follow-up'
       : 'Incluir seguimiento sensible';
@@ -36,9 +40,11 @@ extension ReportsLocalization on AppLocalizations {
   String get reportsNoStudents => _reportsEnglish
       ? 'There are no students with enrollment history for this month.'
       : 'No hay alumnos con historial de inscripción durante este mes.';
-  String get reportsPublished =>
-      _reportsEnglish ? 'Report published successfully.' : 'Reporte publicado correctamente.';
-  String get reportsCancelled => _reportsEnglish ? 'Operation cancelled.' : 'Operación cancelada.';
+  String get reportsPublished => _reportsEnglish
+      ? 'Report published successfully.'
+      : 'Reporte publicado correctamente.';
+  String get reportsCancelled =>
+      _reportsEnglish ? 'Operation cancelled.' : 'Operación cancelada.';
   String get reportsError => _reportsEnglish
       ? 'The report could not be generated.'
       : 'No se pudo generar el reporte.';
@@ -48,4 +54,5 @@ extension ReportsLocalization on AppLocalizations {
   String get reportsAttendance => _reportsEnglish ? 'Attendance' : 'Asistencia';
   String get reportsEvaluated => _reportsEnglish ? 'Evaluated' : 'Evaluadas';
   String get reportsDelivered => _reportsEnglish ? 'Delivered' : 'Entregadas';
+  String get reportsStudents => _reportsEnglish ? 'students' : 'alumnos';
 }

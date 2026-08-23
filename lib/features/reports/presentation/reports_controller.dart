@@ -116,8 +116,7 @@ final class ReportsController extends ChangeNotifier {
             includeSensitiveFollowUp: sensitive,
           ),
           fileName: 'aularaiz-grupo-${_monthKey()}.xlsx',
-          mimeType:
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           extension: 'xlsx',
           typeLabel: 'Excel',
         ),

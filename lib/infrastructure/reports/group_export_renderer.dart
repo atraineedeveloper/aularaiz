@@ -45,15 +45,17 @@ final class GroupExportRenderer {
     for (final row in rows) {
       workbook.appendRow(
         sheetName,
-        row.map<CellValue?>((value) {
-          return switch (value) {
-            int value => IntCellValue(value),
-            double value => DoubleCellValue(value),
-            String value => TextCellValue(value),
-            null => null,
-            _ => TextCellValue(value.toString()),
-          };
-        }).toList(growable: false),
+        row
+            .map<CellValue?>((value) {
+              return switch (value) {
+                int value => IntCellValue(value),
+                double value => DoubleCellValue(value),
+                String value => TextCellValue(value),
+                null => null,
+                _ => TextCellValue(value.toString()),
+              };
+            })
+            .toList(growable: false),
       );
     }
 
@@ -100,9 +102,11 @@ final class GroupExportRenderer {
       }
       rows.add(
         formulaSafe
-            ? values.map<Object?>((value) {
-                return value is String ? _formulaSafe(value) : value;
-              }).toList(growable: false)
+            ? values
+                  .map<Object?>((value) {
+                    return value is String ? _formulaSafe(value) : value;
+                  })
+                  .toList(growable: false)
             : values,
       );
     }

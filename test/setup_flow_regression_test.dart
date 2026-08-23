@@ -21,29 +21,10 @@ void main() {
       final ids = _TestIdGenerator();
 
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            Provider<SchoolSetupRepository>.value(value: setupRepository),
-            Provider<TeachingGroupRepository>.value(value: groupRepository),
-            Provider<CreateInitialSchoolSetup>(
-              create: (_) => CreateInitialSchoolSetup(
-                repository: setupRepository,
-                idGenerator: ids,
-              ),
-            ),
-            Provider<CreateTeachingGroup>(
-              create: (_) => CreateTeachingGroup(
-                repository: groupRepository,
-                idGenerator: ids,
-              ),
-            ),
-          ],
-          child: MaterialApp(
-            locale: const Locale('es'),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: const HomeScreen(),
-          ),
+        _testApp(
+          setupRepository: setupRepository,
+          groupRepository: groupRepository,
+          ids: ids,
         ),
       );
       await tester.pumpAndSettle();
@@ -77,6 +58,77 @@ void main() {
       expect(find.text('Primaria de prueba'), findsOneWidget);
       expect(find.text('Configura tu escuela'), findsNothing);
     },
+  );
+
+  testWidgets('school setup supports 200 percent text on a narrow phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final setupRepository = _MemorySchoolSetupRepository();
+    final groupRepository = _MemoryTeachingGroupRepository();
+    final ids = _TestIdGenerator();
+
+    await tester.pumpWidget(
+      _testApp(
+        setupRepository: setupRepository,
+        groupRepository: groupRepository,
+        ids: ids,
+        textScaler: TextScaler.linear(2),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Configura tu escuela'), findsOneWidget);
+
+    final submit = find.text('Guardar y continuar');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+
+    expect(submit, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+Widget _testApp({
+  required _MemorySchoolSetupRepository setupRepository,
+  required _MemoryTeachingGroupRepository groupRepository,
+  required _TestIdGenerator ids,
+  TextScaler? textScaler,
+}) {
+  return MultiProvider(
+    providers: [
+      Provider<SchoolSetupRepository>.value(value: setupRepository),
+      Provider<TeachingGroupRepository>.value(value: groupRepository),
+      Provider<CreateInitialSchoolSetup>(
+        create: (_) => CreateInitialSchoolSetup(
+          repository: setupRepository,
+          idGenerator: ids,
+        ),
+      ),
+      Provider<CreateTeachingGroup>(
+        create: (_) => CreateTeachingGroup(
+          repository: groupRepository,
+          idGenerator: ids,
+        ),
+      ),
+    ],
+    child: MaterialApp(
+      locale: const Locale('es'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      builder: textScaler == null
+          ? null
+          : (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+              child: child!,
+            ),
+      home: const HomeScreen(),
+    ),
   );
 }
 

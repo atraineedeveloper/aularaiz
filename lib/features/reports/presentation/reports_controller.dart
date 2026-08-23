@@ -1,11 +1,14 @@
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/infrastructure/reports/group_export_renderer.dart';
 import 'package:aularaiz/infrastructure/reports/pdf_report_renderer.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:flutter/foundation.dart';
 
 export 'package:aularaiz/features/reports/presentation/reports_localization.dart';
+export 'package:aularaiz/infrastructure/reports/group_export_renderer.dart'
+    show GroupExportFormat;
 
 enum ReportPublishResult { published, cancelled, failed }
 
@@ -76,6 +79,49 @@ final class ReportsController extends ChangeNotifier {
         bytes: bytes,
         fileName: 'aularaiz-reporte-grupal-${_monthKey()}.pdf',
       );
+    });
+  }
+
+  Future<ReportPublishResult> publishGroupExport({
+    required GroupExportFormat format,
+    required bool english,
+  }) async {
+    final group = _group;
+    if (group == null || _isPublishing) return ReportPublishResult.failed;
+    return _publish(() async {
+      final report = await _projectionBuilder.buildGroup(
+        group: group,
+        referenceMonth: _referenceMonth,
+        privacy: ReportPrivacyOptions(
+          includeSensitiveFollowUp: _includeSensitiveFollowUp,
+        ),
+      );
+      final renderer = GroupExportRenderer(english: english);
+      final sensitive = _includeSensitiveFollowUp;
+
+      return switch (format) {
+        GroupExportFormat.csv => _publicationService.publishFile(
+          bytes: renderer.renderCsv(
+            report,
+            includeSensitiveFollowUp: sensitive,
+          ),
+          fileName: 'aularaiz-grupo-${_monthKey()}.csv',
+          mimeType: 'text/csv',
+          extension: 'csv',
+          typeLabel: 'CSV',
+        ),
+        GroupExportFormat.xlsx => _publicationService.publishFile(
+          bytes: renderer.renderXlsx(
+            report,
+            includeSensitiveFollowUp: sensitive,
+          ),
+          fileName: 'aularaiz-grupo-${_monthKey()}.xlsx',
+          mimeType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          extension: 'xlsx',
+          typeLabel: 'Excel',
+        ),
+      };
     });
   }
 

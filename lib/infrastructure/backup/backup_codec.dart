@@ -184,6 +184,7 @@ final class BackupCodec {
             'Password-protected backup has no encryption metadata.',
           );
         }
+
         final memory = _requiredInt(encryption, 'memory');
         final iterations = _requiredInt(encryption, 'iterations');
         final parallelism = _requiredInt(encryption, 'parallelism');
@@ -202,7 +203,9 @@ final class BackupCodec {
         final salt = _decodeBase64Field(encryption, 'salt');
         final nonce = _decodeBase64Field(encryption, 'nonce');
         final mac = _decodeBase64Field(encryption, 'mac');
-        if (salt.length != _saltLength || nonce.length != 12 || mac.length != 16) {
+        if (salt.length != _saltLength ||
+            nonce.length != 12 ||
+            mac.length != 16) {
           throw const BackupFormatException('Invalid encryption metadata.');
         }
 
@@ -243,11 +246,14 @@ final class BackupCodec {
       if (_requiredString(decoded, 'format') != _format) {
         throw const BackupFormatException('Unknown backup format.');
       }
+
       final formatVersion = _requiredInt(decoded, 'formatVersion');
       if (formatVersion != _formatVersion) {
         throw const BackupFormatException('Unsupported backup version.');
       }
-      final createdAt = DateTime.tryParse(_requiredString(decoded, 'createdAt'));
+      final createdAt = DateTime.tryParse(
+        _requiredString(decoded, 'createdAt'),
+      );
       if (createdAt == null) {
         throw const BackupFormatException('Invalid backup creation date.');
       }
@@ -259,13 +265,13 @@ final class BackupCodec {
       if (storageProfile.isEmpty) {
         throw const BackupFormatException('Invalid storage profile.');
       }
-      final protectionName = _requiredString(decoded, 'protection');
-      final protection = BackupProtection.values
-          .where((value) => value.name == protectionName)
-          .firstOrNull;
-      if (protection == null) {
-        throw const BackupFormatException('Unsupported backup protection.');
-      }
+      final protection = switch (_requiredString(decoded, 'protection')) {
+        'none' => BackupProtection.none,
+        'password' => BackupProtection.password,
+        _ => throw const BackupFormatException(
+          'Unsupported backup protection.',
+        ),
+      };
 
       final payload = _decodeBase64Field(decoded, 'payload');
       final payloadLength = _requiredInt(decoded, 'payloadLength');
@@ -390,10 +396,7 @@ final class BackupCodec {
     return value;
   }
 
-  static Uint8List _decodeBase64Field(
-    Map<String, dynamic> json,
-    String key,
-  ) {
+  static Uint8List _decodeBase64Field(Map<String, dynamic> json, String key) {
     final value = _requiredString(json, key);
     return Uint8List.fromList(base64Decode(value));
   }

@@ -52,6 +52,8 @@ jobs:
       - run: dart run build_runner build
       - run: flutter gen-l10n
       - run: flutter build apk --debug
+      - name: Validate release App Bundle build
+        run: flutter build appbundle --release
 
   windows-build:
     runs-on: windows-latest
@@ -67,3 +69,17 @@ jobs:
       - run: dart run build_runner build
       - run: flutter gen-l10n
       - run: flutter build windows --release
+      - name: Validate Windows installer build
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          $versionLine = Get-Content pubspec.yaml |
+            Where-Object { $_ -match '^version:' } |
+            Select-Object -First 1
+          $version = (($versionLine -replace '^version:\s*', '') -split '\+')[0]
+          $sourceDir = (Resolve-Path 'build\windows\x64\runner\Release').Path
+          $outputDir = Join-Path $PWD 'build\installer-validation'
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$version" "/DSourceDir=$sourceDir" "/DOutputDir=$outputDir" 'windows\installer\AulaRaiz.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows installer validation failed.' }

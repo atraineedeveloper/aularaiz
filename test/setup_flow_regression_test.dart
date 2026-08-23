@@ -111,10 +111,8 @@ Widget _testApp({
         ),
       ),
       Provider<CreateTeachingGroup>(
-        create: (_) => CreateTeachingGroup(
-          repository: groupRepository,
-          idGenerator: ids,
-        ),
+        create: (_) =>
+            CreateTeachingGroup(repository: groupRepository, idGenerator: ids),
       ),
     ],
     child: MaterialApp(

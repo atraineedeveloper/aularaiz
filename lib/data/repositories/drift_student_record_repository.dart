@@ -61,7 +61,9 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
 
   @override
   Future<void> addEntry(StudentRecordEntry entry) async {
-    await database.into(database.studentRecordEntries).insert(
+    await database
+        .into(database.studentRecordEntries)
+        .insert(
           StudentRecordEntriesCompanion(
             id: Value(entry.id),
             studentId: Value(entry.studentId),

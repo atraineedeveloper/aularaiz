@@ -84,17 +84,20 @@ final class EvaluationController extends ChangeNotifier {
     required StudentRepository studentRepository,
     required EvaluationRepository evaluationRepository,
     required SaveActivityEvaluation saveActivityEvaluation,
+    String? initialActivityId,
   }) : _projectRepository = projectRepository,
        _activityRepository = activityRepository,
        _studentRepository = studentRepository,
        _evaluationRepository = evaluationRepository,
-       _saveActivityEvaluation = saveActivityEvaluation;
+       _saveActivityEvaluation = saveActivityEvaluation,
+       _initialActivityId = initialActivityId;
 
   final ProjectRepository _projectRepository;
   final ActivityRepository _activityRepository;
   final StudentRepository _studentRepository;
   final EvaluationRepository _evaluationRepository;
   final SaveActivityEvaluation _saveActivityEvaluation;
+  final String? _initialActivityId;
 
   TeachingGroup? _group;
   List<EvaluationActivityOption> _options = const [];
@@ -160,10 +163,7 @@ final class EvaluationController extends ChangeNotifier {
     );
   }
 
-  Future<void> load(
-    TeachingGroup group, {
-    String? initialActivityId,
-  }) async {
+  Future<void> load(TeachingGroup group) async {
     _group = group;
     _isLoading = true;
     _error = null;
@@ -182,13 +182,15 @@ final class EvaluationController extends ChangeNotifier {
       _options = List<EvaluationActivityOption>.unmodifiable(options);
       if (options.isEmpty) {
         _selected = null;
-      } else if (initialActivityId == null) {
-        _selected = options.first;
       } else {
-        _selected = options
-            .where((option) => option.activity.id == initialActivityId)
-            .firstOrNull;
-        _selected ??= options.first;
+        _selected = _initialActivityId == null
+            ? options.first
+            : options
+                      .where(
+                        (option) => option.activity.id == _initialActivityId,
+                      )
+                      .firstOrNull ??
+                  options.first;
       }
       await _loadSelectedRows();
     } catch (error) {

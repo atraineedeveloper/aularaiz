@@ -5,7 +5,8 @@ extension ReportsLocalization on AppLocalizations {
 
   String get reportsTitle => _reportsEnglish ? 'Reports' : 'Reportes';
   String get openReports => _reportsEnglish ? 'Reports' : 'Reportes';
-  String get reportsMonth => _reportsEnglish ? 'Report month' : 'Mes del reporte';
+  String get reportsMonth =>
+      _reportsEnglish ? 'Report month' : 'Mes del reporte';
   String get reportsPreviousMonth =>
       _reportsEnglish ? 'Previous month' : 'Mes anterior';
   String get reportsNextMonth =>

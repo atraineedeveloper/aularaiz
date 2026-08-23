@@ -16,10 +16,19 @@ import 'package:flutter/foundation.dart';
 
 export 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';
 
-enum EvaluationFilter { all, pending, awaitingEvaluation, notDelivered, evaluated }
+enum EvaluationFilter {
+  all,
+  pending,
+  awaitingEvaluation,
+  notDelivered,
+  evaluated,
+}
 
 final class EvaluationActivityOption {
-  const EvaluationActivityOption({required this.project, required this.activity});
+  const EvaluationActivityOption({
+    required this.project,
+    required this.activity,
+  });
 
   final Project project;
   final Activity activity;
@@ -162,7 +171,9 @@ final class EvaluationController extends ChangeNotifier {
       for (final project in projects) {
         final activities = await _activityRepository.listForProject(project.id);
         for (final activity in activities) {
-          options.add(EvaluationActivityOption(project: project, activity: activity));
+          options.add(
+            EvaluationActivityOption(project: project, activity: activity),
+          );
         }
       }
       _options = List<EvaluationActivityOption>.unmodifiable(options);

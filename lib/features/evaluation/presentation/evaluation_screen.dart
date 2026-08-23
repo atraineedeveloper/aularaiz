@@ -125,24 +125,10 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                             final columns = constraints.maxWidth >= 1000
                                 ? 2
                                 : 1;
-                            final width =
-                                (constraints.maxWidth - (columns - 1) * 12) /
-                                columns;
-                            return SingleChildScrollView(
-                              child: Wrap(
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  for (final row in controller.visibleRows)
-                                    SizedBox(
-                                      width: width,
-                                      child: _EvaluationCard(
-                                        row: row,
-                                        onEdit: () => _edit(row),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                            return _LazyEvaluationList(
+                              rows: controller.visibleRows,
+                              columns: columns,
+                              onEdit: _edit,
                             );
                           },
                         ),
@@ -178,6 +164,47 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
       deliveryStatus: draft.deliveryStatus,
       achievement: draft.achievement,
       observation: draft.observation,
+    );
+  }
+}
+
+class _LazyEvaluationList extends StatelessWidget {
+  const _LazyEvaluationList({
+    required this.rows,
+    required this.columns,
+    required this.onEdit,
+  });
+
+  final List<EvaluationStudentRow> rows;
+  final int columns;
+  final ValueChanged<EvaluationStudentRow> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final rowCount = (rows.length / columns).ceil();
+
+    return ListView.separated(
+      itemCount: rowCount,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, rowIndex) {
+        final startIndex = rowIndex * columns;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var column = 0; column < columns; column++) ...[
+              if (column > 0) const SizedBox(width: 12),
+              Expanded(
+                child: startIndex + column < rows.length
+                    ? _EvaluationCard(
+                        row: rows[startIndex + column],
+                        onEdit: () => onEdit(rows[startIndex + column]),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

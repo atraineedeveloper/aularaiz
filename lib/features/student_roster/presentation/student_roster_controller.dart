@@ -7,6 +7,7 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:flutter/foundation.dart';
 
 enum StudentRosterFailureKind { load, mutation }
@@ -89,6 +90,7 @@ final class StudentRosterController extends ChangeNotifier {
     required String givenNames,
     required String firstSurname,
     String? secondSurname,
+    StudentSex? sex,
     DateTime? birthDate,
     required PrimaryGrade grade,
     required int listNumber,
@@ -102,6 +104,7 @@ final class StudentRosterController extends ChangeNotifier {
         givenNames: givenNames,
         firstSurname: firstSurname,
         secondSurname: secondSurname,
+        sex: sex,
         birthDate: birthDate,
         grade: grade,
         listNumber: listNumber,
@@ -117,6 +120,7 @@ final class StudentRosterController extends ChangeNotifier {
     required String givenNames,
     required String firstSurname,
     String? secondSurname,
+    StudentSex? sex,
     DateTime? birthDate,
   }) async {
     if (_isSaving) return false;
@@ -128,6 +132,7 @@ final class StudentRosterController extends ChangeNotifier {
           givenNames: givenNames,
           firstSurname: firstSurname,
           secondSurname: _optional(secondSurname),
+          sex: sex,
           birthDate: birthDate,
         ),
       );

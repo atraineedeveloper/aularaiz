@@ -6,6 +6,7 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
+import 'package:aularaiz/domain/student/enrollment.dart';
 
 final class CreateActivity {
   CreateActivity({
@@ -44,18 +45,18 @@ final class CreateActivity {
     final enrollments = await _enrollmentRepository.findByGroupId(
       project.groupId,
     );
-    final roster = <ActivityParticipant>[];
-    for (final enrollment in enrollments) {
-      if (enrollment.isActiveOn(rosterDate) &&
-          targetGrades.contains(enrollment.grade)) {
-        roster.add(
+    final eligible = enrollments
+        .where((enrollment) => targetGrades.contains(enrollment.grade))
+        .toList();
+    final effectiveRosterDate = _effectiveRosterDate(eligible, rosterDate);
+    final roster = <ActivityParticipant>[
+      for (final enrollment in eligible)
+        if (enrollment.isActiveOn(effectiveRosterDate))
           ActivityParticipant(
             studentId: enrollment.studentId,
             grade: enrollment.grade,
           ),
-        );
-      }
-    }
+    ];
 
     final activity = Activity(
       id: _idGenerator.newId(),
@@ -67,5 +68,22 @@ final class CreateActivity {
     );
     await _activityRepository.save(activity);
     return activity;
+  }
+
+  DateTime _effectiveRosterDate(
+    List<Enrollment> eligible,
+    DateTime requested,
+  ) {
+    final normalized = DateTime(requested.year, requested.month, requested.day);
+    if (eligible.any((enrollment) => enrollment.isActiveOn(normalized))) {
+      return normalized;
+    }
+
+    final upcoming = eligible
+        .map((enrollment) => enrollment.startsOn)
+        .where((date) => date.isAfter(normalized))
+        .toList()
+      ..sort();
+    return upcoming.isEmpty ? normalized : upcoming.first;
   }
 }

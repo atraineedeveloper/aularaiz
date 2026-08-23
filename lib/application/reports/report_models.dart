@@ -1,6 +1,7 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 
 final class ReportPrivacyOptions {
@@ -82,6 +83,7 @@ final class StudentReportRow {
     required this.grade,
     required this.attendance,
     required this.evaluation,
+    this.sex,
     this.strengths,
     this.difficulties,
     this.supports,
@@ -91,6 +93,7 @@ final class StudentReportRow {
   final String displayName;
   final int listNumber;
   final PrimaryGrade grade;
+  final StudentSex? sex;
   final AttendanceReportSummary attendance;
   final EvaluationReportSummary evaluation;
   final String? strengths;

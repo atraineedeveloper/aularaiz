@@ -189,6 +189,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
     );
     if (confirmed != true || !mounted) return;
 
+    var prepared = false;
     await _runBusy(() async {
       await context.read<BackupRestoreGateway>().stageRestore(selection);
       if (!mounted) return;
@@ -198,21 +199,24 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
         _status = null;
         _statusIsError = false;
       });
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(strings.preparedTitle),
-          content: Text(strings.preparedBody),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(strings.understood),
-            ),
-          ],
-        ),
-      );
+      prepared = true;
     });
+    if (!mounted || !prepared) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.preparedTitle),
+        content: Text(strings.preparedBody),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(strings.understood),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _runBusy(Future<void> Function() action) async {

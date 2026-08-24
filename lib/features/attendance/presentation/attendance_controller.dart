@@ -20,6 +20,25 @@ final class MonthlyAttendanceStudent {
   final int listNumber;
 }
 
+final class MonthlyAttendanceSummary {
+  const MonthlyAttendanceSummary({
+    required this.recorded,
+    required this.present,
+    required this.absent,
+    required this.late,
+    required this.justified,
+  });
+
+  final int recorded;
+  final int present;
+  final int absent;
+  final int late;
+  final int justified;
+
+  int get attended => present + late;
+  double? get rate => recorded == 0 ? null : attended / recorded;
+}
+
 final class AttendanceController extends ChangeNotifier {
   AttendanceController({
     required AttendanceRepository attendanceRepository,
@@ -76,6 +95,60 @@ final class AttendanceController extends ChangeNotifier {
       ..._draftDays.keys,
     };
     return dates.length;
+  }
+
+  MonthlyAttendanceSummary summaryFor(String studentId) {
+    var present = 0;
+    var absent = 0;
+    var late = 0;
+    var justified = 0;
+
+    for (final date in monthDates) {
+      if (!isStudentActiveOn(studentId, date)) continue;
+      final status = statusFor(studentId, date);
+      if (status == null) continue;
+      switch (status) {
+        case AttendanceStatus.present:
+          present += 1;
+        case AttendanceStatus.absent:
+          absent += 1;
+        case AttendanceStatus.late:
+          late += 1;
+        case AttendanceStatus.justifiedAbsence:
+          justified += 1;
+      }
+    }
+
+    return MonthlyAttendanceSummary(
+      recorded: present + absent + late + justified,
+      present: present,
+      absent: absent,
+      late: late,
+      justified: justified,
+    );
+  }
+
+  MonthlyAttendanceSummary get groupSummary {
+    var recorded = 0;
+    var present = 0;
+    var absent = 0;
+    var late = 0;
+    var justified = 0;
+    for (final student in _monthStudents) {
+      final summary = summaryFor(student.studentId);
+      recorded += summary.recorded;
+      present += summary.present;
+      absent += summary.absent;
+      late += summary.late;
+      justified += summary.justified;
+    }
+    return MonthlyAttendanceSummary(
+      recorded: recorded,
+      present: present,
+      absent: absent,
+      late: late,
+      justified: justified,
+    );
   }
 
   Future<void> load(TeachingGroup group) async {

@@ -160,12 +160,14 @@ void main() {
   test('CSV projects and activities include richer planning fields', () {
     const renderer = GroupExportRenderer(english: false);
 
-    final projectText = utf8.decode(
-      renderer.renderCsv(
-        buildData(sensitive: false),
-        dataset: GroupExportDataset.projects,
-      ),
-    ).replaceFirst('\ufeff', '');
+    final projectText = utf8
+        .decode(
+          renderer.renderCsv(
+            buildData(sensitive: false),
+            dataset: GroupExportDataset.projects,
+          ),
+        )
+        .replaceFirst('\ufeff', '');
     final projectRows = const CsvDecoder().convert(projectText);
     expect(
       projectRows.first,
@@ -180,12 +182,14 @@ void main() {
     expect(projectRows[1], contains('2026-08-10'));
     expect(projectRows[1], contains('2026-09-15'));
 
-    final activityText = utf8.decode(
-      renderer.renderCsv(
-        buildData(sensitive: false),
-        dataset: GroupExportDataset.activities,
-      ),
-    ).replaceFirst('\ufeff', '');
+    final activityText = utf8
+        .decode(
+          renderer.renderCsv(
+            buildData(sensitive: false),
+            dataset: GroupExportDataset.activities,
+          ),
+        )
+        .replaceFirst('\ufeff', '');
     final activityRows = const CsvDecoder().convert(activityText);
     expect(
       activityRows.first,

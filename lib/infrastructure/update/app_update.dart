@@ -57,9 +57,8 @@ bool mayLaunchUnsignedBetaInstaller({
 }) {
   if (signatureStatus != 'NotSigned') return false;
 
-  final match = RegExp(
-    r'^AulaRaiz-Setup-(\d+\.\d+\.\d+)\.exe$',
-  ).firstMatch(installerFileName);
+  final match = RegExp(r'^AulaRaiz-Setup-(\d+\.\d+\.\d+)\.exe$')
+      .firstMatch(installerFileName);
   if (match == null) return false;
 
   return SemanticVersion.parse(match.group(1)!).major == 0;

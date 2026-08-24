@@ -100,7 +100,8 @@ final class ProjectsController extends ChangeNotifier {
   }) async {
     if (_isSaving) return false;
     final activityGrades = <PrimaryGrade>{
-      for (final activity in activitiesFor(project.id)) ...activity.targetGrades,
+      for (final activity in activitiesFor(project.id))
+        ...activity.targetGrades,
     };
     if (!targetGrades.containsAll(activityGrades)) {
       _error = StateError(

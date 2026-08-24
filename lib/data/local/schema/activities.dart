@@ -11,7 +11,9 @@ class Activities extends Table {
   )();
   late final identifier = text().nullable()();
   late final title = text()();
+  late final description = text().nullable()();
   late final occursOn = dateTime().nullable()();
+  late final generalObservations = text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

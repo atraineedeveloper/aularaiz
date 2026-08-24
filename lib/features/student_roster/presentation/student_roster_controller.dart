@@ -2,6 +2,7 @@ import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
+import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
@@ -27,14 +28,19 @@ final class StudentRosterController extends ChangeNotifier {
     required EnrollmentRepository enrollmentRepository,
     required CreateStudentInGroup createStudentInGroup,
     required ReactivateStudentInGroup reactivateStudentInGroup,
+    DeactivateStudentInGroup? deactivateStudentInGroup,
   }) : _studentRepository = studentRepository,
        _enrollmentRepository = enrollmentRepository,
        _createStudentInGroup = createStudentInGroup,
+       _deactivateStudentInGroup =
+           deactivateStudentInGroup ??
+           DeactivateStudentInGroup(enrollmentRepository: enrollmentRepository),
        _reactivateStudentInGroup = reactivateStudentInGroup;
 
   final StudentRepository _studentRepository;
   final EnrollmentRepository _enrollmentRepository;
   final CreateStudentInGroup _createStudentInGroup;
+  final DeactivateStudentInGroup _deactivateStudentInGroup;
   final ReactivateStudentInGroup _reactivateStudentInGroup;
 
   TeachingGroup? _group;
@@ -145,19 +151,10 @@ final class StudentRosterController extends ChangeNotifier {
     if (!entry.isActive || _isSaving) return false;
 
     return _runMutation(() async {
-      final effectiveEnd = endsOn.isBefore(entry.enrollment.startsOn)
-          ? entry.enrollment.startsOn
-          : endsOn;
-      await _enrollmentRepository.save(
-        Enrollment(
-          id: entry.enrollment.id,
-          studentId: entry.enrollment.studentId,
-          groupId: entry.enrollment.groupId,
-          grade: entry.enrollment.grade,
-          listNumber: entry.enrollment.listNumber,
-          startsOn: entry.enrollment.startsOn,
-          endsOn: effectiveEnd,
-        ),
+      await _deactivateStudentInGroup(
+        studentId: entry.student.id,
+        groupId: entry.enrollment.groupId,
+        endsOn: endsOn,
       );
       await _reloadEntries();
       return true;

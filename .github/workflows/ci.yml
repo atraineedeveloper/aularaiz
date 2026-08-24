@@ -66,6 +66,8 @@ jobs:
               payload = json.load(handle)
           assert payload['schema'] == 'aularaiz.automation/v1'
           assert payload['kind'] == 'help'
+          commands = {command['name'] for command in payload['data']['commands']}
+          assert {'attendance-set', 'student-deactivate', 'student-reactivate'} <= commands
           PY
       - name: Validate update coordinator entrypoint
         shell: bash
@@ -84,6 +86,8 @@ jobs:
               payload = json.load(handle)
           assert payload['schema'] == 'aularaiz.automation/v1'
           assert payload['kind'] == 'help'
+          commands = {command['name'] for command in payload['data']['commands']}
+          assert {'attendance-set', 'student-deactivate', 'student-reactivate'} <= commands
           PY
 
   android-build:

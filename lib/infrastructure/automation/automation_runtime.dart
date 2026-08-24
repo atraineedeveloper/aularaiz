@@ -1,7 +1,13 @@
 import 'dart:io';
 
+import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
+import 'package:aularaiz/application/attendance/set_student_attendance_status.dart';
+import 'package:aularaiz/application/automation/automation_mutation_service.dart';
 import 'package:aularaiz/application/automation/automation_service.dart';
+import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
+import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
+import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
@@ -12,6 +18,7 @@ import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_evaluation_repository.dart';
 import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
+import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
@@ -57,10 +64,15 @@ final class AutomationDatabaseLocator {
 }
 
 final class AutomationRuntime {
-  AutomationRuntime._({required this.database, required this.service});
+  AutomationRuntime._({
+    required this.database,
+    required this.service,
+    required this.mutations,
+  });
 
   final AppDatabase database;
   final AutomationService service;
+  final AutomationMutationService mutations;
 
   static Future<AutomationRuntime> open({
     required File databaseFile,
@@ -78,7 +90,9 @@ final class AutomationRuntime {
       storageProfile: profile,
     );
 
+    final idGenerator = UuidIdGenerator();
     final schoolSetupRepository = DriftSchoolSetupRepository(database);
+    final schoolYearRepository = DriftSchoolYearRepository(database);
     final teachingGroupRepository = DriftTeachingGroupRepository(database);
     final studentRepository = DriftStudentRepository(database);
     final enrollmentRepository = DriftEnrollmentRepository(database);
@@ -101,7 +115,29 @@ final class AutomationRuntime {
     final addStudentRecordEntry = AddStudentRecordEntry(
       studentRepository: studentRepository,
       studentRecordRepository: studentRecordRepository,
-      idGenerator: UuidIdGenerator(),
+      idGenerator: idGenerator,
+    );
+    final buildDailyAttendance = BuildDailyAttendance(
+      attendanceRepository: attendanceRepository,
+      enrollmentRepository: enrollmentRepository,
+      idGenerator: idGenerator,
+    );
+    final setStudentAttendanceStatus = SetStudentAttendanceStatus(
+      buildDailyAttendance: buildDailyAttendance,
+      attendanceRepository: attendanceRepository,
+    );
+    final enrollStudent = EnrollStudent(
+      enrollmentRepository: enrollmentRepository,
+      schoolYearRepository: schoolYearRepository,
+      studentRepository: studentRepository,
+      teachingGroupRepository: teachingGroupRepository,
+    );
+    final deactivateStudentInGroup = DeactivateStudentInGroup(
+      enrollmentRepository: enrollmentRepository,
+    );
+    final reactivateStudentInGroup = ReactivateStudentInGroup(
+      enrollStudent: enrollStudent,
+      idGenerator: idGenerator,
     );
 
     return AutomationRuntime._(
@@ -130,6 +166,14 @@ final class AutomationRuntime {
                 text: text,
               );
             },
+      ),
+      mutations: AutomationMutationService(
+        teachingGroupRepository: teachingGroupRepository,
+        studentRepository: studentRepository,
+        enrollmentRepository: enrollmentRepository,
+        setStudentAttendanceStatus: setStudentAttendanceStatus,
+        deactivateStudentInGroup: deactivateStudentInGroup,
+        reactivateStudentInGroup: reactivateStudentInGroup,
       ),
     );
   }

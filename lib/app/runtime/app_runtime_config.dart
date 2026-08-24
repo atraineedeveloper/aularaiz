@@ -7,8 +7,8 @@ final class AppRuntimeConfig {
   });
 
   const AppRuntimeConfig.production()
-      : storageProfile = StorageProfile.production,
-        resetDemo = false;
+    : storageProfile = StorageProfile.production,
+      resetDemo = false;
 
   final StorageProfile storageProfile;
   final bool resetDemo;
@@ -16,7 +16,9 @@ final class AppRuntimeConfig {
   bool get isDemo => storageProfile == StorageProfile.demo;
 
   static AppRuntimeConfig fromArguments(Iterable<String> arguments) {
-    final normalized = arguments.map((value) => value.trim().toLowerCase()).toSet();
+    final normalized = arguments
+        .map((value) => value.trim().toLowerCase())
+        .toSet();
     final resetDemo = normalized.contains('--demo-reset');
     final demo = resetDemo || normalized.contains('--demo');
 

@@ -5,6 +5,7 @@ class SchoolSelectionScreen extends StatelessWidget {
   const SchoolSelectionScreen({
     required this.setups,
     required this.onSelect,
+    required this.onDeleteSchool,
     required this.onCreateSchool,
     required this.onOpenSettings,
     super.key,
@@ -12,6 +13,7 @@ class SchoolSelectionScreen extends StatelessWidget {
 
   final List<InitialSchoolSetup> setups;
   final ValueChanged<String> onSelect;
+  final Future<void> Function(String schoolId) onDeleteSchool;
   final VoidCallback onCreateSchool;
   final VoidCallback onOpenSettings;
 
@@ -107,7 +109,17 @@ class SchoolSelectionScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: english
+                                  ? 'Delete school'
+                                  : 'Eliminar escuela',
+                              onPressed: () => _confirmDelete(context, setup),
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
                             Icon(
                               Icons.chevron_right_rounded,
                               color: Theme.of(context).colorScheme.primary,
@@ -125,5 +137,43 @@ class SchoolSelectionScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    InitialSchoolSetup setup,
+  ) async {
+    final english = Localizations.localeOf(context).languageCode == 'en';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: Text(english ? 'Delete school?' : '¿Eliminar escuela?'),
+        content: Text(
+          english
+              ? 'This will permanently delete “${setup.school.name}”, its class, attendance, projects, activities and evaluations. This action cannot be undone.'
+              : 'Se eliminará permanentemente “${setup.school.name}”, su grupo, asistencias, proyectos, actividades y evaluaciones. Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(english ? 'Cancel' : 'Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(english ? 'Delete' : 'Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await onDeleteSchool(setup.school.id);
   }
 }

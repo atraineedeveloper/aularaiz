@@ -22,6 +22,10 @@ abstract interface class EditableSchoolSetupRepository {
   Future<void> updateSchool(School school);
 }
 
+abstract interface class DeletableSchoolSetupRepository {
+  Future<void> deleteSchool(String schoolId);
+}
+
 extension SchoolSetupRepositoryEditing on SchoolSetupRepository {
   Future<void> updateSchool(School school) {
     final repository = this;
@@ -29,5 +33,15 @@ extension SchoolSetupRepositoryEditing on SchoolSetupRepository {
       return repository.updateSchool(school);
     }
     throw UnsupportedError('This school repository does not support editing.');
+  }
+}
+
+extension SchoolSetupRepositoryDeletion on SchoolSetupRepository {
+  Future<void> deleteSchool(String schoolId) {
+    final repository = this;
+    if (repository is DeletableSchoolSetupRepository) {
+      return repository.deleteSchool(schoolId);
+    }
+    throw UnsupportedError('This school repository does not support deletion.');
   }
 }

@@ -96,6 +96,7 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final month = controller.selectedMonth;
+    final groupRate = controller.groupSummary.rate;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -135,33 +136,53 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                       ),
                     ],
                   ),
-                  FilledButton.icon(
-                    onPressed: controller.isSaving || !controller.isDirty
-                        ? null
-                        : () async {
-                            final saved = await controller.saveMonth();
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  saved
-                                      ? _label(
-                                          context,
-                                          'Asistencia guardada.',
-                                          'Attendance saved.',
-                                        )
-                                      : l10n.attendanceLoadError,
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (groupRate != null)
+                        Chip(
+                          avatar: const Icon(Icons.insights_rounded, size: 18),
+                          label: Text(
+                            _label(
+                              context,
+                              'Asistencia del grupo: ${(groupRate * 100).round()}%',
+                              'Class attendance: ${(groupRate * 100).round()}%',
+                            ),
+                          ),
+                        ),
+                      FilledButton.icon(
+                        onPressed: controller.isSaving || !controller.isDirty
+                            ? null
+                            : () async {
+                                final saved = await controller.saveMonth();
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      saved
+                                          ? _label(
+                                              context,
+                                              'Asistencia guardada.',
+                                              'Attendance saved.',
+                                            )
+                                          : l10n.attendanceLoadError,
+                                    ),
+                                  ),
+                                );
+                              },
+                        icon: controller.isSaving
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
                                 ),
-                              ),
-                            );
-                          },
-                    icon: controller.isSaving
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.save_rounded),
-                    label: Text(l10n.saveAttendance),
+                              )
+                            : const Icon(Icons.save_rounded),
+                        label: Text(l10n.saveAttendance),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -213,6 +234,16 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                                         controller.markDayPresent(date),
                                   ),
                                 ),
+                              DataColumn(
+                                numeric: true,
+                                label: SizedBox(
+                                  width: 76,
+                                  child: Text(
+                                    _label(context, '% Asist.', '% Attend.'),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
                             ],
                             rows: [
                               for (final student in controller.monthStudents)
@@ -246,6 +277,13 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                                               ),
                                         ),
                                       ),
+                                    DataCell(
+                                      _AttendanceRateCell(
+                                        summary: controller.summaryFor(
+                                          student.studentId,
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                             ],
@@ -256,11 +294,47 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 10),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _LegendItem(
+                    status: AttendanceStatus.present,
+                    label: _label(context, 'P = Presente', 'P = Present'),
+                  ),
+                  _LegendItem(
+                    status: AttendanceStatus.absent,
+                    label: _label(context, 'A = Ausente', 'A = Absent'),
+                  ),
+                  _LegendItem(
+                    status: AttendanceStatus.late,
+                    label: _label(context, 'R = Retardo', 'R = Late'),
+                  ),
+                  _LegendItem(
+                    status: AttendanceStatus.justifiedAbsence,
+                    label: _label(
+                      context,
+                      'J = Falta justificada',
+                      'J = Justified absence',
+                    ),
+                  ),
+                  Text(
+                    _label(
+                      context,
+                      '— = no inscrito / sin pase de lista',
+                      '— = not enrolled / no attendance saved',
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
               Text(
                 _label(
                   context,
-                  'P = Presente · A = Ausente · R = Retardo · J = Falta justificada · — = no inscrito / sin pase de lista',
-                  'P = Present · A = Absent · R = Late · J = Justified absence · — = not enrolled / no attendance saved',
+                  'El porcentaje cuenta Presente y Retardo como asistencia y usa sólo los días con pase de lista registrado.',
+                  'The percentage counts Present and Late as attendance and uses only days with recorded attendance.',
                 ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -360,6 +434,8 @@ class _AttendanceCell extends StatelessWidget {
       return const SizedBox(width: 40, child: Center(child: Text('—')));
     }
 
+    final background = _statusBackground(context, status);
+    final foreground = _statusForeground(context, status);
     return PopupMenuButton<AttendanceStatus>(
       tooltip: _label(context, 'Cambiar asistencia', 'Change attendance'),
       onSelected: onChanged,
@@ -376,23 +452,137 @@ class _AttendanceCell extends StatelessWidget {
             ),
           ),
       ],
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
         width: 40,
         height: 40,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+            color: foreground.withValues(alpha: status == null ? 0.18 : 0.35),
+          ),
+        ),
         child: Center(
           child: status == null
-              ? const Text('—')
+              ? Text('—', style: TextStyle(color: foreground))
               : Tooltip(
                   message: _statusLabel(status!, AppLocalizations.of(context)),
                   child: Text(
                     _statusCode(status!),
-                    style: Theme.of(context).textTheme.labelLarge,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
         ),
       ),
     );
   }
+}
+
+class _AttendanceRateCell extends StatelessWidget {
+  const _AttendanceRateCell({required this.summary});
+
+  final MonthlyAttendanceSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final rate = summary.rate;
+    if (rate == null) {
+      return SizedBox(
+        width: 76,
+        child: Center(
+          child: Text('—', style: Theme.of(context).textTheme.labelLarge),
+        ),
+      );
+    }
+    final percent = (rate * 100).round();
+    return Tooltip(
+      message: _label(
+        context,
+        '${summary.attended} asistencias de ${summary.recorded} registros',
+        '${summary.attended} attended of ${summary.recorded} records',
+      ),
+      child: Container(
+        width: 76,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: _rateColor(context, rate).withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          '$percent%',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: _rateColor(context, rate),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  const _LegendItem({required this.status, required this.label});
+
+  final AttendanceStatus status;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(
+            color: _statusBackground(context, status),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: _statusForeground(context, status).withValues(alpha: 0.35),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+}
+
+Color _statusBackground(BuildContext context, AttendanceStatus? status) {
+  if (status == null) {
+    return Theme.of(context).colorScheme.surfaceContainerHighest;
+  }
+  return switch (status) {
+    AttendanceStatus.present => Colors.green.withValues(alpha: 0.18),
+    AttendanceStatus.absent => Theme.of(context).colorScheme.errorContainer,
+    AttendanceStatus.late => Colors.orange.withValues(alpha: 0.22),
+    AttendanceStatus.justifiedAbsence => Colors.blue.withValues(alpha: 0.18),
+  };
+}
+
+Color _statusForeground(BuildContext context, AttendanceStatus? status) {
+  if (status == null) {
+    return Theme.of(context).colorScheme.onSurfaceVariant;
+  }
+  return switch (status) {
+    AttendanceStatus.present => Colors.green.shade800,
+    AttendanceStatus.absent => Theme.of(context).colorScheme.onErrorContainer,
+    AttendanceStatus.late => Colors.orange.shade900,
+    AttendanceStatus.justifiedAbsence => Colors.blue.shade800,
+  };
+}
+
+Color _rateColor(BuildContext context, double rate) {
+  if (rate >= 0.9) return Colors.green.shade700;
+  if (rate >= 0.8) return Colors.blue.shade700;
+  if (rate >= 0.7) return Colors.orange.shade800;
+  return Theme.of(context).colorScheme.error;
 }
 
 String _weekdayLabel(BuildContext context, DateTime date) {

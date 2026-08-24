@@ -4,7 +4,8 @@ import 'package:aularaiz/domain/school/class_schedule.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:drift/drift.dart';
 
-final class DriftTeachingGroupRepository implements TeachingGroupRepository {
+final class DriftTeachingGroupRepository
+    implements TeachingGroupRepository, DeletableTeachingGroupRepository {
   DriftTeachingGroupRepository(this.database);
 
   final AppDatabase database;
@@ -76,6 +77,105 @@ final class DriftTeachingGroupRepository implements TeachingGroupRepository {
         }
       });
     });
+  }
+
+  @override
+  Future<void> deleteGroup(String groupId) async {
+    await database.transaction(() async {
+      final exists =
+          await (database.select(database.teachingGroups)
+                ..where((table) => table.id.equals(groupId))
+                ..limit(1))
+              .getSingleOrNull();
+      if (exists == null) throw StateError('Teaching group does not exist.');
+      await _deleteGroupData(groupId);
+      await _deleteOrphanStudents();
+    });
+  }
+
+  Future<void> _deleteGroupData(String groupId) async {
+    const activityIds = '''
+      SELECT a.id
+      FROM activities a
+      INNER JOIN projects p ON p.id = a.project_id
+      WHERE p.group_id = ?
+    ''';
+    const projectIds = 'SELECT id FROM projects WHERE group_id = ?';
+
+    for (final table in <String>[
+      'activity_evaluations',
+      'activity_roster',
+      'activity_grades',
+      'activity_formative_fields',
+    ]) {
+      await database.customStatement(
+        'DELETE FROM $table WHERE activity_id IN ($activityIds)',
+        <Object?>[groupId],
+      );
+    }
+    await database.customStatement(
+      'DELETE FROM activities WHERE project_id IN ($projectIds)',
+      <Object?>[groupId],
+    );
+    for (final table in <String>[
+      'project_articulating_axes',
+      'project_formative_fields',
+      'project_grades',
+    ]) {
+      await database.customStatement(
+        'DELETE FROM $table WHERE project_id IN ($projectIds)',
+        <Object?>[groupId],
+      );
+    }
+    await database.customStatement(
+      'DELETE FROM projects WHERE group_id = ?',
+      <Object?>[groupId],
+    );
+    await database.customStatement(
+      'DELETE FROM attendance_days WHERE group_id = ?',
+      <Object?>[groupId],
+    );
+    await database.customStatement(
+      'DELETE FROM enrollments WHERE group_id = ?',
+      <Object?>[groupId],
+    );
+    await database.customStatement(
+      'DELETE FROM group_grades WHERE group_id = ?',
+      <Object?>[groupId],
+    );
+    final deleted = await database.customUpdate(
+      'DELETE FROM teaching_groups WHERE id = ?',
+      variables: <Variable<Object>>[Variable<String>(groupId)],
+      updates: {database.teachingGroups},
+    );
+    if (deleted != 1) throw StateError('Teaching group could not be deleted.');
+  }
+
+  Future<void> _deleteOrphanStudents() async {
+    const orphanStudents = '''
+      SELECT s.id FROM students s
+      WHERE NOT EXISTS (
+        SELECT 1 FROM enrollments e WHERE e.student_id = s.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM attendance_entries ae WHERE ae.student_id = s.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM activity_roster ar WHERE ar.student_id = s.id
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM activity_evaluations av WHERE av.student_id = s.id
+      )
+    ''';
+    await database.customStatement(
+      'DELETE FROM student_record_entries WHERE student_id IN ($orphanStudents)',
+    );
+    await database.customStatement(
+      'DELETE FROM student_records WHERE student_id IN ($orphanStudents)',
+    );
+    await database.customStatement(
+      'DELETE FROM students WHERE id IN ($orphanStudents)',
+    );
   }
 
   Future<TeachingGroup> _toDomain(TeachingGroupRow row) async {

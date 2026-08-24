@@ -7,3 +7,17 @@ abstract interface class TeachingGroupRepository {
 
   Future<void> save(TeachingGroup group);
 }
+
+abstract interface class DeletableTeachingGroupRepository {
+  Future<void> deleteGroup(String groupId);
+}
+
+extension TeachingGroupRepositoryDeletion on TeachingGroupRepository {
+  Future<void> deleteGroup(String groupId) {
+    final repository = this;
+    if (repository is DeletableTeachingGroupRepository) {
+      return repository.deleteGroup(groupId);
+    }
+    throw UnsupportedError('This group repository does not support deletion.');
+  }
+}

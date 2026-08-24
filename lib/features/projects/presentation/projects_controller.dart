@@ -115,6 +115,44 @@ final class ProjectsController extends ChangeNotifier {
     });
   }
 
+  Future<bool> updateActivity({
+    required Activity activity,
+    required String title,
+    required FormativeField formativeField,
+    required Set<PrimaryGrade> targetGrades,
+    required DateTime occursOn,
+  }) async {
+    if (_isSaving) return false;
+    if (activity.roster.values.any(
+      (participant) => !targetGrades.contains(participant.grade),
+    )) {
+      _error = StateError(
+        'Cannot remove a grade that is part of the historical activity roster.',
+      );
+      notifyListeners();
+      return false;
+    }
+    return _mutate(() async {
+      await _activityRepository.save(
+        Activity(
+          id: activity.id,
+          projectId: activity.projectId,
+          identifier: activity.identifier,
+          title: title,
+          occursOn: occursOn,
+          formativeField: formativeField,
+          targetGrades: targetGrades,
+          roster: activity.roster.values,
+        ),
+      );
+    });
+  }
+
+  Future<bool> deleteActivity(Activity activity) async {
+    if (_isSaving) return false;
+    return _mutate(() => _activityRepository.deleteActivity(activity.id));
+  }
+
   Future<bool> _mutate(Future<void> Function() mutation) async {
     _isSaving = true;
     _error = null;

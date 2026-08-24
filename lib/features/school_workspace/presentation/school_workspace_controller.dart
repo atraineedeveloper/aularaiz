@@ -156,6 +156,26 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     }
   }
 
+  Future<bool> deleteGroup(TeachingGroup group) async {
+    if (_isSaving) return false;
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _groupRepository.deleteGroup(group.id);
+      _groups = List<TeachingGroup>.unmodifiable(
+        _groups.where((current) => current.id != group.id),
+      );
+      return true;
+    } catch (error) {
+      _error = error;
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> _reloadGroups(InitialSchoolSetup setup) async {
     final allGroups = await _groupRepository.listForSchoolYear(
       setup.schoolYear.id,

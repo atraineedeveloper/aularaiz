@@ -73,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelect: (schoolId) {
               setState(() => _selectedSchoolId = schoolId);
             },
+            onDeleteSchool: _deleteSchool,
             onCreateSchool: () {
               setState(() => _creatingSchool = true);
             },
@@ -95,6 +96,31 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  Future<void> _deleteSchool(String schoolId) async {
+    try {
+      await context.read<SchoolSetupRepository>().deleteSchool(schoolId);
+      if (!mounted) return;
+      setState(() {
+        if (_selectedSchoolId == schoolId) _selectedSchoolId = null;
+        _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            Localizations.localeOf(context).languageCode == 'en'
+                ? 'School deleted.'
+                : 'Escuela eliminada.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).setupSaveError)),
+      );
+    }
   }
 
   void _schoolSaved() {

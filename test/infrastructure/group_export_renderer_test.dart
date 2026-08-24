@@ -55,14 +55,18 @@ void main() {
           status: 'present',
         ),
       ],
-      projects: const [
+      projects: [
         GroupExportProjectRow(
           projectId: 'project-1',
           title: 'Mi comunidad',
+          description: 'Investigar necesidades del entorno.',
+          startsOn: DateTime(2026, 8, 10),
+          endsOn: DateTime(2026, 9, 15),
+          observations: 'Coordinar una salida de campo.',
           lifecycle: 'inProgress',
           methodology: 'communityProjects',
-          targetGrades: [5],
-          articulatingAxes: ['criticalThinking', 'inclusion'],
+          targetGrades: const [5],
+          articulatingAxes: const ['criticalThinking', 'inclusion'],
         ),
       ],
       activities: [
@@ -72,7 +76,9 @@ void main() {
           activityId: 'activity-1',
           identifier: 'A-001',
           title: 'Mapa comunitario',
+          description: 'Identificar espacios y necesidades del entorno.',
           occursOn: DateTime(2026, 8, 20),
+          generalObservations: 'Trabajar por equipos de cuatro.',
           formativeField: 'humanAndCommunity',
           targetGrades: const [5],
           participantCount: 1,
@@ -149,6 +155,47 @@ void main() {
     expect(rows[1][12], "'+SUM(1,1)");
     expect(rows[1][13], "'@cmd");
     expect(rows[1][14], "'-1+2");
+  });
+
+  test('CSV projects and activities include richer planning fields', () {
+    const renderer = GroupExportRenderer(english: false);
+
+    final projectText = utf8.decode(
+      renderer.renderCsv(
+        buildData(sensitive: false),
+        dataset: GroupExportDataset.projects,
+      ),
+    ).replaceFirst('\ufeff', '');
+    final projectRows = const CsvDecoder().convert(projectText);
+    expect(
+      projectRows.first,
+      containsAll([
+        'Descripción',
+        'Fecha de inicio',
+        'Fecha de fin',
+        'Observaciones',
+      ]),
+    );
+    expect(projectRows[1], contains('Investigar necesidades del entorno.'));
+    expect(projectRows[1], contains('2026-08-10'));
+    expect(projectRows[1], contains('2026-09-15'));
+
+    final activityText = utf8.decode(
+      renderer.renderCsv(
+        buildData(sensitive: false),
+        dataset: GroupExportDataset.activities,
+      ),
+    ).replaceFirst('\ufeff', '');
+    final activityRows = const CsvDecoder().convert(activityText);
+    expect(
+      activityRows.first,
+      containsAll(['Descripción / instrucciones', 'Observaciones generales']),
+    );
+    expect(
+      activityRows[1],
+      contains('Identificar espacios y necesidades del entorno.'),
+    );
+    expect(activityRows[1], contains('Trabajar por equipos de cuatro.'));
   });
 
   test('XLSX contains all teacher-facing datasets as separate sheets', () {

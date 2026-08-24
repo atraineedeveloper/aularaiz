@@ -15,7 +15,8 @@ class AulaRaizApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettingsController>();
-    final runtime = context.watch<AppRuntimeConfig>();
+    final runtime =
+        context.watch<AppRuntimeConfig?>() ?? const AppRuntimeConfig.production();
     const palette = AppPalette.mexico;
 
     return MaterialApp.router(

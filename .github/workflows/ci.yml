@@ -40,6 +40,14 @@ jobs:
             done <<< "$untracked"
             exit 1
           fi
+      - name: Upload Drift snapshots on mismatch
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: drift-schema-snapshots
+          path: drift_schemas/app_database/drift_schema_v*.json
+          if-no-files-found: ignore
+          retention-days: 1
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

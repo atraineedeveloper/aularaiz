@@ -41,7 +41,7 @@ final class EnrollStudent {
   final StudentRepository studentRepository;
   final TeachingGroupRepository teachingGroupRepository;
 
-  Future<EnrollStudentResult> call(Enrollment candidate) async {
+  Future<EnrollStudentResult> validate(Enrollment candidate) async {
     final student = await studentRepository.findById(candidate.studentId);
     if (student == null) {
       return const EnrollStudentMissingReference(EnrollmentReference.student);
@@ -78,7 +78,14 @@ final class EnrollStudent {
       return EnrollStudentRejected(violations);
     }
 
-    await enrollmentRepository.save(candidate);
     return const EnrollStudentSucceeded();
+  }
+
+  Future<EnrollStudentResult> call(Enrollment candidate) async {
+    final validation = await validate(candidate);
+    if (validation is! EnrollStudentSucceeded) return validation;
+
+    await enrollmentRepository.save(candidate);
+    return validation;
   }
 }

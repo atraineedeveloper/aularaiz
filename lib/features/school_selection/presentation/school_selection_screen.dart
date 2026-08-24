@@ -111,7 +111,9 @@ class SchoolSelectionScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              tooltip: english ? 'Delete school' : 'Eliminar escuela',
+                              tooltip: english
+                                  ? 'Delete school'
+                                  : 'Eliminar escuela',
                               onPressed: () => _confirmDelete(context, setup),
                               icon: Icon(
                                 Icons.delete_outline_rounded,

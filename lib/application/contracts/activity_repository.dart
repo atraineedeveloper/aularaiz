@@ -18,6 +18,8 @@ extension ActivityRepositoryDeletion on ActivityRepository {
     if (repository is DeletableActivityRepository) {
       return repository.deleteActivity(activityId);
     }
-    throw UnsupportedError('This activity repository does not support deletion.');
+    throw UnsupportedError(
+      'This activity repository does not support deletion.',
+    );
   }
 }

@@ -494,10 +494,7 @@ class _AttendanceRateCell extends StatelessWidget {
       return SizedBox(
         width: 76,
         child: Center(
-          child: Text(
-            '—',
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
+          child: Text('—', style: Theme.of(context).textTheme.labelLarge),
         ),
       );
     }

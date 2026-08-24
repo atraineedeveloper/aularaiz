@@ -283,9 +283,9 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final deleted = await context
-        .read<SchoolWorkspaceController>()
-        .deleteGroup(group);
+    final deleted = await context.read<SchoolWorkspaceController>().deleteGroup(
+      group,
+    );
     if (mounted && deleted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

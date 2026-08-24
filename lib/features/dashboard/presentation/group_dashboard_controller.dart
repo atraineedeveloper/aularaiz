@@ -108,7 +108,9 @@ final class GroupDashboardController extends ChangeNotifier {
         for (final level in AchievementLevel.values) level: 0,
       };
       for (final activityId in activities) {
-        final evaluations = await _evaluationRepository.listForActivity(activityId);
+        final evaluations = await _evaluationRepository.listForActivity(
+          activityId,
+        );
         for (final evaluation in evaluations) {
           switch (evaluation.deliveryStatus) {
             case DeliveryStatus.pending:
@@ -173,12 +175,13 @@ final class GroupDashboardController extends ChangeNotifier {
     for (final day in days) {
       for (final entry in day.entries.values) {
         if (!enrolledStudentIds.contains(entry.studentId)) continue;
-        final countsAsAttended = entry.status == AttendanceStatus.present ||
+        final countsAsAttended =
+            entry.status == AttendanceStatus.present ||
             entry.status == AttendanceStatus.late;
         recorded += 1;
         if (countsAsAttended) attended += 1;
-        final current = perStudent[entry.studentId] ??
-            (recorded: 0, attended: 0);
+        final current =
+            perStudent[entry.studentId] ?? (recorded: 0, attended: 0);
         perStudent[entry.studentId] = (
           recorded: current.recorded + 1,
           attended: current.attended + (countsAsAttended ? 1 : 0),

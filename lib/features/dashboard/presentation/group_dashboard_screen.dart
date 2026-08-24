@@ -118,11 +118,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                               children: [
                                 _MetricCard(
                                   icon: Icons.groups_rounded,
-                                  label: _label(
-                                    context,
-                                    'Alumnos',
-                                    'Students',
-                                  ),
+                                  label: _label(context, 'Alumnos', 'Students'),
                                   value: '${controller.studentCount}',
                                   detail: _label(
                                     context,
@@ -335,9 +331,8 @@ class _MetricCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
               Text(detail, style: Theme.of(context).textTheme.bodySmall),
@@ -401,10 +396,7 @@ class _AchievementRow extends StatelessWidget {
           SizedBox(width: 170, child: Text(label)),
           Expanded(child: LinearProgressIndicator(value: rate)),
           const SizedBox(width: 12),
-          SizedBox(
-            width: 42,
-            child: Text('$count', textAlign: TextAlign.end),
-          ),
+          SizedBox(width: 42, child: Text('$count', textAlign: TextAlign.end)),
         ],
       ),
     );
@@ -414,16 +406,19 @@ class _AchievementRow extends StatelessWidget {
 String _percent(double? value) =>
     value == null ? '—' : '${(value * 100).round()}%';
 
-String _achievementLabel(BuildContext context, AchievementLevel level) =>
-    switch (level) {
-      AchievementLevel.mastered => _label(context, 'Dominado', 'Mastered'),
-      AchievementLevel.sufficient =>
-        _label(context, 'Suficiente', 'Sufficient'),
-      AchievementLevel.inProgress =>
-        _label(context, 'En proceso', 'In progress'),
-      AchievementLevel.requiresSupport =>
-        _label(context, 'Requiere apoyo', 'Requires support'),
-    };
+String _achievementLabel(
+  BuildContext context,
+  AchievementLevel level,
+) => switch (level) {
+  AchievementLevel.mastered => _label(context, 'Dominado', 'Mastered'),
+  AchievementLevel.sufficient => _label(context, 'Suficiente', 'Sufficient'),
+  AchievementLevel.inProgress => _label(context, 'En proceso', 'In progress'),
+  AchievementLevel.requiresSupport => _label(
+    context,
+    'Requiere apoyo',
+    'Requires support',
+  ),
+};
 
 String _label(BuildContext context, String es, String en) =>
     Localizations.localeOf(context).languageCode == 'en' ? en : es;

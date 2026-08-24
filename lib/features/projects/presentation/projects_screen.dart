@@ -95,7 +95,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             for (final project in controller.projects) ...[
                               _ProjectCard(
                                 project: project,
-                                activities: controller.activitiesFor(project.id),
+                                activities: controller.activitiesFor(
+                                  project.id,
+                                ),
                                 isSaving: controller.isSaving,
                                 onLifecycleChanged: (value) =>
                                     controller.setLifecycle(project, value),
@@ -155,10 +157,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   ) async {
     final draft = await showDialog<_ActivityDraft>(
       context: context,
-      builder: (_) => _ActivityDialog(
-        project: project,
-        initialActivity: activity,
-      ),
+      builder: (_) =>
+          _ActivityDialog(project: project, initialActivity: activity),
     );
     if (draft == null || !context.mounted) return;
     final saved = await context.read<ProjectsController>().updateActivity(
@@ -187,7 +187,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
           Icons.warning_amber_rounded,
           color: Theme.of(context).colorScheme.error,
         ),
-        title: Text(_label(context, '¿Eliminar actividad?', 'Delete activity?')),
+        title: Text(
+          _label(context, '¿Eliminar actividad?', 'Delete activity?'),
+        ),
         content: Text(
           _label(
             context,
@@ -351,7 +353,9 @@ class _ProjectCard extends StatelessWidget {
                                   '${_dateLabel(context, activity.occursOn)} · ${_fieldLabel(activity.formativeField, l10n)}',
                                 ),
                                 Text(
-                                  l10n.activityRosterCount(activity.roster.length),
+                                  l10n.activityRosterCount(
+                                    activity.roster.length,
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
@@ -482,7 +486,10 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                Text(l10n.grades, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  l10n.grades,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -502,7 +509,9 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                 if (_gradeError)
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
               ],
             ),
@@ -662,7 +671,9 @@ class _ActivityDialogState extends State<_ActivityDialog> {
                 if (_gradeError)
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 const SizedBox(height: 12),
                 Text(
@@ -772,7 +783,8 @@ String _fieldLabel(FormativeField value, AppLocalizations l10n) =>
       FormativeField.languages => l10n.formativeFieldLanguages,
       FormativeField.knowledgeAndScientificThought =>
         l10n.formativeFieldScientificThought,
-      FormativeField.ethicsNatureAndSocieties => l10n.formativeFieldEthicsNature,
+      FormativeField.ethicsNatureAndSocieties =>
+        l10n.formativeFieldEthicsNature,
       FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
     };
 
@@ -786,15 +798,15 @@ String _axisLabel(ArticulatingAxis value, AppLocalizations l10n) =>
       ArticulatingAxis.healthyLife => l10n.axisHealthyLife,
       ArticulatingAxis.culturesThroughReadingAndWriting =>
         l10n.axisCulturesReadingWriting,
-      ArticulatingAxis.artsAndAestheticExperiences =>
-        l10n.axisArtsAesthetic,
+      ArticulatingAxis.artsAndAestheticExperiences => l10n.axisArtsAesthetic,
     };
 
-String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) => switch (grade) {
-  PrimaryGrade.first => l10n.grade1,
-  PrimaryGrade.second => l10n.grade2,
-  PrimaryGrade.third => l10n.grade3,
-  PrimaryGrade.fourth => l10n.grade4,
-  PrimaryGrade.fifth => l10n.grade5,
-  PrimaryGrade.sixth => l10n.grade6,
-};
+String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) =>
+    switch (grade) {
+      PrimaryGrade.first => l10n.grade1,
+      PrimaryGrade.second => l10n.grade2,
+      PrimaryGrade.third => l10n.grade3,
+      PrimaryGrade.fourth => l10n.grade4,
+      PrimaryGrade.fifth => l10n.grade5,
+      PrimaryGrade.sixth => l10n.grade6,
+    };

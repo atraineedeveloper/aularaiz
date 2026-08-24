@@ -129,10 +129,12 @@ final class DriftSchoolSetupRepository
       final schoolYearIds = contextRows.map((row) => row.schoolYearId).toSet();
 
       const groupIds = 'SELECT id FROM teaching_groups WHERE school_id = ?';
-      const projectIds = '''
+      const projectIds =
+          '''
         SELECT id FROM projects WHERE group_id IN ($groupIds)
       ''';
-      const activityIds = '''
+      const activityIds =
+          '''
         SELECT id FROM activities WHERE project_id IN ($projectIds)
       ''';
 
@@ -181,12 +183,12 @@ final class DriftSchoolSetupRepository
         'DELETE FROM teaching_groups WHERE school_id = ?',
         <Object?>[schoolId],
       );
-      await (database.delete(database.schoolContexts)
-            ..where((table) => table.schoolId.equals(schoolId)))
-          .go();
-      await (database.delete(database.schools)
-            ..where((table) => table.id.equals(schoolId)))
-          .go();
+      await (database.delete(
+        database.schoolContexts,
+      )..where((table) => table.schoolId.equals(schoolId))).go();
+      await (database.delete(
+        database.schools,
+      )..where((table) => table.id.equals(schoolId))).go();
 
       await _deleteOrphanStudents();
       for (final schoolYearId in schoolYearIds) {
@@ -201,9 +203,9 @@ final class DriftSchoolSetupRepository
                   ..limit(1))
                 .getSingleOrNull();
         if (contextReference == null && groupReference == null) {
-          await (database.delete(database.schoolYears)
-                ..where((table) => table.id.equals(schoolYearId)))
-              .go();
+          await (database.delete(
+            database.schoolYears,
+          )..where((table) => table.id.equals(schoolYearId))).go();
         }
       }
     });

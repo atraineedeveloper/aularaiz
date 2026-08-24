@@ -5,9 +5,9 @@ La Fase 9 añade una interfaz de automatización local para AulaRaíz sin conver
 ## Principios
 
 - **Local primero:** el agente no realiza llamadas de red. Lee y, cuando se autoriza, escribe únicamente en la base local de AulaRaíz.
-- **Mismos límites que la UI:** las consultas se construyen con repositorios y proyecciones de aplicación; las mutaciones pasan por casos de uso existentes.
-- **Datos minimizados por defecto:** ningún comando de grupo devuelve nombres o identificadores de alumnos salvo que se use `--include-personal-data`.
-- **Mutaciones en dry-run:** `student-note` sólo previsualiza la operación mientras no se indique `--apply`.
+- **Mismos límites que la UI:** las consultas se construyen con repositorios y proyecciones de aplicación; las mutaciones pasan por casos de uso de aplicación compartidos con la interfaz.
+- **Datos minimizados por defecto:** ningún comando devuelve identidad del alumno salvo que se use `--include-personal-data`.
+- **Mutaciones en dry-run:** `student-note`, `attendance-set`, `student-deactivate` y `student-reactivate` validan la operación pero no escriben mientras no se indique `--apply`.
 - **Sin eco de texto sensible:** el contenido de una observación o acuerdo familiar nunca se reproduce en la salida JSON; sólo se informa su longitud.
 - **Entrada sensible por stdin:** `--text-stdin` evita colocar observaciones/acuerdos en la línea de comandos o en el historial del shell.
 - **Recomendaciones con evidencia:** cada sugerencia contiene una métrica y un umbral observable. Son señales para revisión docente, no diagnósticos ni decisiones automáticas.
@@ -69,19 +69,11 @@ Por defecto sólo devuelve conteos agregados de asistencia y evaluación. Para u
 .\tool\aularaiz-agent.ps1 recommend --group group-id --month 2026-09 --pretty
 ```
 
-Las reglas iniciales señalan únicamente patrones verificables:
-
-- dos o más faltas en el mes;
-- dos o más retardos;
-- evaluaciones marcadas como `requiresSupport`;
-- actividades no entregadas;
-- dos o más evaluaciones pendientes.
-
-La salida agregada informa cuántos alumnos activan cada señal. Los nombres/IDs de los alumnos afectados sólo aparecen con `--include-personal-data`.
+Las reglas iniciales señalan únicamente patrones verificables: dos o más faltas en el mes; dos o más retardos; evaluaciones marcadas como `requiresSupport`; actividades no entregadas; o dos o más evaluaciones pendientes. Los nombres/IDs sólo aparecen con `--include-personal-data`.
 
 ### Agregar una observación o acuerdo familiar
 
-Dry-run por defecto. Para texto sensible se recomienda stdin, de modo que el contenido no forme parte del historial de comandos:
+Dry-run por defecto. Para texto sensible se recomienda stdin:
 
 ```powershell
 $note = Read-Host "Texto de la observación"
@@ -93,23 +85,54 @@ $note | .\tool\aularaiz-agent.ps1 student-note `
   --pretty
 ```
 
-Para escribir realmente se añade `--apply`:
+Para escribir realmente se añade `--apply`. Tipos admitidos: `observation` y `family-agreement`. También se admite `--text "..."`, aunque puede quedar visible en el historial del shell.
+
+### Registrar o corregir asistencia
 
 ```powershell
-$note = Read-Host "Texto de la observación"
-$note | .\tool\aularaiz-agent.ps1 student-note `
+.\tool\aularaiz-agent.ps1 attendance-set `
+  --group group-id `
   --student student-id `
-  --kind observation `
-  --text-stdin `
-  --date 2026-09-05 `
+  --date 2026-09-08 `
+  --status absent `
+  --pretty
+```
+
+Estados admitidos: `present`, `absent`, `late` y `justified-absence`. El dry-run construye o recupera la asistencia histórica de la fecha y verifica que el alumno pertenezca a ese roster. Sólo `--apply` guarda el cambio:
+
+```powershell
+.\tool\aularaiz-agent.ps1 attendance-set `
+  --group group-id `
+  --student student-id `
+  --date 2026-09-08 `
+  --status absent `
   --apply
 ```
 
-También se admite `--text "..."` para automatizaciones controladas, pero puede quedar visible en el historial del shell o en información del proceso y no es la opción recomendada para contenido P3.
+### Desactivar un alumno del grupo
 
-Tipos admitidos: `observation` y `family-agreement`.
+```powershell
+.\tool\aularaiz-agent.ps1 student-deactivate `
+  --group group-id `
+  --student student-id `
+  --date 2026-09-30 `
+  --pretty
+```
 
-El servicio valida primero que el alumno exista y después, sólo con `--apply`, ejecuta `AddStudentRecordEntry`. No se expone una mutación genérica de SQL.
+Si se omite `--date`, se usa la fecha local actual. El caso de uso exige una matrícula activa y conserva el historial; nunca elimina al alumno ni sus evidencias. Añadir `--apply` persiste la fecha de baja.
+
+### Reactivar un alumno
+
+```powershell
+.\tool\aularaiz-agent.ps1 student-reactivate `
+  --group group-id `
+  --student student-id `
+  --grade 5 `
+  --list-number 12 `
+  --pretty
+```
+
+Por defecto la nueva matrícula empieza al día siguiente de la baja anterior. Puede indicarse `--date YYYY-MM-DD`. Tanto el dry-run como el apply pasan por la misma política de matrícula de AulaRaíz, que valida grado, ciclo escolar, solapamientos y número de lista. Sólo `--apply` crea la nueva matrícula.
 
 ## Descubrimiento de la base
 
@@ -129,22 +152,17 @@ El ejecutable de producción `aularaiz-agent.exe` se compila como binario indepe
 | --- | --- | --- | --- |
 | `status` | estado de configuración, ciclo, conteo de grupos, capacidades | No aplica | No |
 | `groups` | ID/nombre de grupo, grados, turno | No aplica; no contiene alumnos | No |
-| `group-summary` | conteos agregados de asistencia/evaluación | `--include-personal-data` añade ID, nombre, lista, grado y métricas por alumno | No |
-| `recommend` | códigos de señal, métricas, umbrales y número de afectados | `--include-personal-data` añade los alumnos asociados a cada evidencia | No |
-| `student-note` | tipo, fecha, longitud del texto y estado dry-run/aplicado | `--include-personal-data` añade identidad del alumno; el texto nunca se devuelve | Sí, sólo con `--apply` |
+| `group-summary` | conteos agregados de asistencia/evaluación | añade ID, nombre, lista, grado y métricas por alumno | No |
+| `recommend` | códigos de señal, métricas, umbrales y número de afectados | añade los alumnos asociados a cada evidencia | No |
+| `student-note` | tipo, fecha, longitud del texto y estado dry-run/aplicado | añade identidad; el texto nunca se devuelve | Sí, sólo con `--apply` |
+| `attendance-set` | grupo, fecha, estado anterior/nuevo y dry-run/aplicado | añade identidad del alumno | Sí, sólo con `--apply` |
+| `student-deactivate` | grupo, fecha de baja, grado y dry-run/aplicado | añade identidad y número de lista | Sí, sólo con `--apply` |
+| `student-reactivate` | grupo, fecha de alta, grado y dry-run/aplicado | añade identidad y número de lista | Sí, sólo con `--apply` |
 
-Ninguna proyección expone fecha de nacimiento, CCT, localidad, fortalezas, dificultades, apoyos, observaciones previas o acuerdos familiares existentes.
-
-La salida del agente sigue siendo información escolar local. `--include-personal-data` sólo amplía la proyección local; no constituye permiso para copiarla a una IA o servicio remoto.
+Ninguna proyección expone fecha de nacimiento, CCT, localidad, fortalezas, dificultades, apoyos, observaciones previas o acuerdos familiares existentes. `--include-personal-data` sólo amplía la proyección local; no constituye permiso para copiarla a una IA o servicio remoto.
 
 ## Integración y pruebas
 
-CI verifica:
-
-- formato incluyendo `bin/`;
-- análisis estático y suite completa;
-- contrato JSON de `--help`;
-- compilación del agente como ejecutable Dart independiente;
-- compilación de `aularaiz-agent.exe` en Windows antes de validar el instalador.
+CI verifica formato, análisis estático, suite completa, contrato JSON de `--help`, compilación del agente como ejecutable Dart independiente y empaquetado de `aularaiz-agent.exe` en Windows. Las mutaciones se prueban también contra una base SQLite Demo real para comprobar que el dry-run no escribe y que `--apply` sí persiste a través de los casos de uso.
 
 La pipeline de release firma `aularaiz.exe`, `aularaiz-agent.exe` y el instalador final con el mismo certificado de producción.

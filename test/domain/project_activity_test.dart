@@ -40,6 +40,40 @@ void main() {
     });
   });
 
+  test('project normalizes optional planning text and validates date range', () {
+    final detailed = Project(
+      id: 'project-details',
+      groupId: 'group-1',
+      title: 'Agua',
+      description: '  Investigar el consumo de agua.  ',
+      startsOn: DateTime(2026, 9, 1),
+      endsOn: DateTime(2026, 9, 30),
+      observations: '   ',
+      lifecycle: ProjectLifecycle.inProgress,
+      methodology: ProjectMethodology.inquirySteam,
+      targetGrades: <PrimaryGrade>{PrimaryGrade.third},
+    );
+
+    expect(detailed.description, 'Investigar el consumo de agua.');
+    expect(detailed.observations, isNull);
+    expect(detailed.startsOn, DateTime(2026, 9, 1));
+    expect(detailed.endsOn, DateTime(2026, 9, 30));
+
+    expect(
+      () => Project(
+        id: 'project-invalid-range',
+        groupId: 'group-1',
+        title: 'Fechas inválidas',
+        startsOn: DateTime(2026, 10, 1),
+        endsOn: DateTime(2026, 9, 30),
+        lifecycle: ProjectLifecycle.draft,
+        methodology: ProjectMethodology.unspecified,
+        targetGrades: <PrimaryGrade>{PrimaryGrade.third},
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('project must target at least one grade', () {
     expect(
       () => Project(
@@ -104,6 +138,22 @@ void main() {
 
     expect(activity.displayIdentifier, 'A3');
     expect(activity.occursOn, DateTime(2026, 9, 16, 14, 30));
+  });
+
+  test('activity normalizes optional description and observations', () {
+    final activity = Activity(
+      id: 'activity-details',
+      projectId: project.id,
+      title: 'Entrevista',
+      description: '  Preparar cinco preguntas abiertas. ',
+      generalObservations: '   ',
+      formativeField: FormativeField.languages,
+      targetGrades: <PrimaryGrade>{PrimaryGrade.second},
+      roster: const <ActivityParticipant>[],
+    );
+
+    expect(activity.description, 'Preparar cinco preguntas abiertas.');
+    expect(activity.generalObservations, isNull);
   });
 
   test('activity freezes student id and grade in its historical roster', () {

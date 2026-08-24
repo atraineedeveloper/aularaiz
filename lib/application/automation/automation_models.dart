@@ -54,6 +54,21 @@ final class AutomationCapabilityCatalog {
       'mode': 'dry-run-default',
       'personal_data': 'opt-in-output',
     },
+    <String, Object?>{
+      'id': 'attendance-set',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'student-deactivate',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'student-reactivate',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
   ];
 }
 

@@ -167,9 +167,7 @@ void main() {
     });
 
     test('requires both installer and checksum assets', () {
-      final payload = jsonEncode(
-        release(tag: 'v2.0.0', includeAssets: false),
-      );
+      final payload = jsonEncode(release(tag: 'v2.0.0', includeAssets: false));
 
       expect(
         () => parseLatestGithubRelease(payload, currentVersion: '1.0.0'),
@@ -181,8 +179,7 @@ void main() {
       final payload = release(tag: 'v1.2.0');
       final assets = payload['assets']! as List<Object?>;
       final installer = assets.first! as Map<String, Object?>;
-      installer['browser_download_url'] =
-          'https://github.com/other/repo/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe';
+      installer['browser_download_url'] = 'https://github.com/other/repo/releases/download/v1.2.0/AulaRaiz-Setup-1.2.0.exe';
 
       expect(
         () => parseLatestGithubRelease(

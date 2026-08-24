@@ -52,10 +52,7 @@ Future<void> main(List<String> args) async {
       installerArguments,
       workingDirectory: request.installer.parent.path,
     );
-    await _writeDiagnostic(
-      diagnosticLog,
-      'installer-exit-${result.exitCode}',
-    );
+    await _writeDiagnostic(diagnosticLog, 'installer-exit-${result.exitCode}');
     if (result.exitCode != 0) {
       throw StateError('Installer returned a non-zero exit code.');
     }

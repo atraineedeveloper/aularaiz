@@ -34,7 +34,11 @@ final class SetStudentAttendanceStatus {
     final normalizedGroupId = groupId.trim();
     final normalizedStudentId = studentId.trim();
     if (normalizedGroupId.isEmpty) {
-      throw ArgumentError.value(groupId, 'groupId', 'Group id cannot be empty.');
+      throw ArgumentError.value(
+        groupId,
+        'groupId',
+        'Group id cannot be empty.',
+      );
     }
     if (normalizedStudentId.isEmpty) {
       throw ArgumentError.value(

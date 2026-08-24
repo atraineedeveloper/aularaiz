@@ -283,8 +283,7 @@ final class _UpdateStrings {
   String currentVersion(String version) => english
       ? 'Installed version: $version · background checks are non-blocking'
       : 'Versión instalada: $version · la comprobación automática no bloquea el trabajo';
-  String get checkButton =>
-      english ? 'Check again' : 'Buscar de nuevo';
+  String get checkButton => english ? 'Check again' : 'Buscar de nuevo';
   String get checking => english ? 'Checking…' : 'Buscando…';
   String get upToDate => english
       ? 'You already have the latest version.'
@@ -308,7 +307,8 @@ final class _UpdateStrings {
       ? 'The update could not be downloaded or verified.'
       : 'No se pudo descargar o verificar la actualización.';
   String get releaseNotes => english ? 'Release notes' : 'Novedades';
-  String get restartTitle => english ? 'Close and update?' : '¿Cerrar y actualizar?';
+  String get restartTitle =>
+      english ? 'Close and update?' : '¿Cerrar y actualizar?';
   String restartBody(String version) => english
       ? 'AulaRaíz will close, install version $version with the verified installer, and reopen automatically. Save any work in other open AulaRaíz windows first.'
       : 'AulaRaíz se cerrará, instalará la versión $version con el instalador verificado y se volverá a abrir automáticamente. Guarda primero cualquier trabajo pendiente en otras ventanas de AulaRaíz.';

@@ -66,9 +66,12 @@ Future<void> main(List<String> args) async {
 
     await _launchApp(request.app);
     await _writeDiagnostic(diagnosticLog, 'application-relaunched');
-  } catch (_) {
+  } catch (error) {
     if (diagnosticLog != null) {
-      await _writeDiagnostic(diagnosticLog, 'coordinator-failed');
+      await _writeDiagnostic(
+        diagnosticLog,
+        'coordinator-failed ${error.runtimeType}: $error',
+      );
     }
     if (originalProcessExited && request != null) {
       await _tryRelaunch(request.app, diagnosticLog);
@@ -183,9 +186,16 @@ Future<void> _waitForProcessExit(int processId) async {
 
   final script =
       '''
-\$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-if (\$null -ne \$process) {
-  \$process | Wait-Process -Timeout 120 -ErrorAction Stop
+\$deadline = (Get-Date).AddSeconds(120)
+while (\$true) {
+  \$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+  if (\$null -eq \$process) {
+    exit 0
+  }
+  if ((Get-Date) -ge \$deadline) {
+    exit 1
+  }
+  Start-Sleep -Milliseconds 250
 }
 ''';
   final result = await Process.run('powershell.exe', <String>[

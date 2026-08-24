@@ -53,7 +53,7 @@ void main() {
   );
 
   test(
-    'fresh database publishes schema version 4 with foreign keys on',
+    'fresh database publishes schema version 5 with foreign keys on',
     () async {
       final versionRow = await database
           .customSelect('PRAGMA user_version')
@@ -63,8 +63,8 @@ void main() {
           .getSingle();
 
       expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
-      expect(database.schemaVersion, 4);
-      expect(versionRow.read<int>('user_version'), 4);
+      expect(database.schemaVersion, 5);
+      expect(versionRow.read<int>('user_version'), 5);
       expect(foreignKeyRow.read<int>('foreign_keys'), 1);
     },
   );

@@ -10,9 +10,15 @@ final class Project {
     required this.title,
     required this.lifecycle,
     required this.methodology,
+    String? description,
+    this.startsOn,
+    this.endsOn,
+    String? observations,
     Set<ArticulatingAxis> articulatingAxes = const <ArticulatingAxis>{},
     required Set<PrimaryGrade> targetGrades,
-  }) : articulatingAxes = Set<ArticulatingAxis>.unmodifiable(articulatingAxes),
+  }) : description = _normalizeOptionalText(description),
+       observations = _normalizeOptionalText(observations),
+       articulatingAxes = Set<ArticulatingAxis>.unmodifiable(articulatingAxes),
        targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'Project id cannot be empty.');
@@ -31,6 +37,13 @@ final class Project {
         'Project title cannot be empty.',
       );
     }
+    if (startsOn != null && endsOn != null && endsOn!.isBefore(startsOn!)) {
+      throw ArgumentError.value(
+        endsOn,
+        'endsOn',
+        'Project end date cannot be before its start date.',
+      );
+    }
     if (targetGrades.isEmpty) {
       throw ArgumentError.value(
         targetGrades,
@@ -43,6 +56,10 @@ final class Project {
   final String id;
   final String groupId;
   final String title;
+  final String? description;
+  final DateTime? startsOn;
+  final DateTime? endsOn;
+  final String? observations;
   final ProjectLifecycle lifecycle;
   final ProjectMethodology methodology;
   final Set<ArticulatingAxis> articulatingAxes;
@@ -51,4 +68,9 @@ final class Project {
   bool allowsActivityGrades(Set<PrimaryGrade> grades) {
     return grades.isNotEmpty && targetGrades.containsAll(grades);
   }
+}
+
+String? _normalizeOptionalText(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
 }

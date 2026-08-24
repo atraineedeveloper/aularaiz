@@ -4,14 +4,14 @@ import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('schema v4 opens and matches the generated Drift schema', () async {
+  test('schema v5 opens and matches the generated Drift schema', () async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(database.close);
 
     await database.customSelect('SELECT 1').getSingle();
 
     expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
-    expect(database.schemaVersion, 4);
+    expect(database.schemaVersion, 5);
     await database.validateDatabaseSchema();
 
     final foreignKeys = await database

@@ -120,10 +120,18 @@ final class GroupExportProjectRow {
     required this.methodology,
     required this.targetGrades,
     required this.articulatingAxes,
+    this.description,
+    this.startsOn,
+    this.endsOn,
+    this.observations,
   });
 
   final String projectId;
   final String title;
+  final String? description;
+  final DateTime? startsOn;
+  final DateTime? endsOn;
+  final String? observations;
   final String lifecycle;
   final String methodology;
   final List<int> targetGrades;
@@ -140,7 +148,9 @@ final class GroupExportActivityRow {
     required this.formativeField,
     required this.targetGrades,
     required this.participantCount,
+    this.description,
     this.occursOn,
+    this.generalObservations,
   });
 
   final String projectId;
@@ -148,7 +158,9 @@ final class GroupExportActivityRow {
   final String activityId;
   final String identifier;
   final String title;
+  final String? description;
   final DateTime? occursOn;
+  final String? generalObservations;
   final String formativeField;
   final List<int> targetGrades;
   final int participantCount;

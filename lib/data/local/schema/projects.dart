@@ -13,6 +13,10 @@ class Projects extends Table {
     onDelete: KeyAction.restrict,
   )();
   late final title = text()();
+  late final description = text().nullable()();
+  late final startsOn = dateTime().nullable()();
+  late final endsOn = dateTime().nullable()();
+  late final observations = text().nullable()();
   late final lifecycle = textEnum<ProjectLifecycle>()();
   late final methodology = textEnum<ProjectMethodology>()();
   late final formativeField = textEnum<FormativeField>()();

@@ -8,11 +8,15 @@ final class Activity {
     required this.projectId,
     required this.title,
     required this.formativeField,
+    String? description,
+    String? generalObservations,
     this.identifier,
     this.occursOn,
     required Set<PrimaryGrade> targetGrades,
     required Iterable<ActivityParticipant> roster,
-  }) : targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades),
+  }) : description = _normalizeOptionalText(description),
+       generalObservations = _normalizeOptionalText(generalObservations),
+       targetGrades = Set<PrimaryGrade>.unmodifiable(targetGrades),
        roster = _buildRoster(roster, targetGrades) {
     if (id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'Activity id cannot be empty.');
@@ -50,6 +54,8 @@ final class Activity {
   final String id;
   final String projectId;
   final String title;
+  final String? description;
+  final String? generalObservations;
   final FormativeField formativeField;
   final String? identifier;
   final DateTime? occursOn;
@@ -89,4 +95,9 @@ final class Activity {
     }
     return Map<String, ActivityParticipant>.unmodifiable(result);
   }
+}
+
+String? _normalizeOptionalText(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
 }

@@ -59,7 +59,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = 5;
 
   final StorageProfile? storageProfile;
 
@@ -101,6 +101,14 @@ final class AppDatabase extends _$AppDatabase {
       }
       if (from < 4 && to >= 4) {
         await migrator.addColumn(students, students.sex);
+      }
+      if (from < 5 && to >= 5) {
+        await migrator.addColumn(projects, projects.description);
+        await migrator.addColumn(projects, projects.startsOn);
+        await migrator.addColumn(projects, projects.endsOn);
+        await migrator.addColumn(projects, projects.observations);
+        await migrator.addColumn(activities, activities.description);
+        await migrator.addColumn(activities, activities.generalObservations);
       }
     },
     beforeOpen: (details) async {

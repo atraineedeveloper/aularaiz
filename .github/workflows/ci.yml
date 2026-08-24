@@ -24,11 +24,30 @@ jobs:
       - name: Verify Drift schema snapshot
         run: |
           set -euo pipefail
-          schema_dir="$(mktemp -d)"
-          dart run drift_dev schema dump lib/data/local/app_database.dart "$schema_dir/"
-          diff -u \
-            drift_schemas/app_database/drift_schema_v4.json \
-            "$schema_dir/drift_schema_v4.json"
+          dart run drift_dev schema dump \
+            lib/data/local/app_database.dart \
+            drift_schemas/app_database/
+          git diff --exit-code -- drift_schemas/app_database
+          untracked="$(git ls-files --others --exclude-standard drift_schemas/app_database)"
+          if [ -n "$untracked" ]; then
+            echo "Missing committed Drift snapshot(s):"
+            echo "$untracked"
+            while IFS= read -r snapshot; do
+              [ -z "$snapshot" ] && continue
+              echo "--- BEGIN $snapshot ---"
+              cat "$snapshot"
+              echo "--- END $snapshot ---"
+            done <<< "$untracked"
+            exit 1
+          fi
+      - name: Upload Drift snapshots on mismatch
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: drift-schema-snapshots
+          path: drift_schemas/app_database/drift_schema_v*.json
+          if-no-files-found: ignore
+          retention-days: 1
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

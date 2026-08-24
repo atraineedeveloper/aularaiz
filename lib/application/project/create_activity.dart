@@ -27,6 +27,8 @@ final class CreateActivity {
   Future<Activity> call({
     required String projectId,
     required String title,
+    String? description,
+    String? generalObservations,
     required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
     required DateTime occursOn,
@@ -65,7 +67,9 @@ final class CreateActivity {
       projectId: projectId,
       identifier: identifier,
       title: title,
+      description: description,
       occursOn: normalizedDate,
+      generalObservations: generalObservations,
       formativeField: formativeField,
       targetGrades: targetGrades,
       roster: roster,

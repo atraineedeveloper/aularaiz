@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:aularaiz/application/automation/automation_models.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
+import 'package:aularaiz/domain/attendance/attendance_status.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:aularaiz/infrastructure/automation/automation_runtime.dart';
 
@@ -85,6 +87,37 @@ Future<void> main(List<String> arguments) async {
           apply: invocation.apply,
           privacy: privacy,
         ),
+        'attendance-set' => await runtime.mutations.setAttendance(
+          groupId: invocation.requireOption('group'),
+          studentId: invocation.requireOption('student'),
+          date: _parseDate(invocation.requireOption('date')),
+          status: _parseAttendanceStatus(invocation.requireOption('status')),
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
+        'student-deactivate' => await runtime.mutations.deactivateStudent(
+          groupId: invocation.requireOption('group'),
+          studentId: invocation.requireOption('student'),
+          endsOn: _parseDate(
+            invocation.options['date'] ?? _todayLabel(DateTime.now()),
+          ),
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
+        'student-reactivate' => await runtime.mutations.reactivateStudent(
+          groupId: invocation.requireOption('group'),
+          studentId: invocation.requireOption('student'),
+          grade: _parseGrade(invocation.requireOption('grade')),
+          listNumber: _parsePositiveInt(
+            invocation.requireOption('list-number'),
+            option: 'list-number',
+          ),
+          startsOn: invocation.options['date'] == null
+              ? null
+              : _parseDate(invocation.options['date']!),
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
         _ => throw _UsageFailure('Comando desconocido: ${invocation.command}'),
       };
 
@@ -161,6 +194,9 @@ final class _Invocation {
       'kind',
       'date',
       'text',
+      'status',
+      'grade',
+      'list-number',
     };
     const booleanFlags = <String>{
       'apply',
@@ -278,6 +314,39 @@ DateTime _parseDate(String value) {
   return result;
 }
 
+AttendanceStatus _parseAttendanceStatus(String value) {
+  return switch (value) {
+    'present' => AttendanceStatus.present,
+    'absent' => AttendanceStatus.absent,
+    'late' => AttendanceStatus.late,
+    'justified-absence' ||
+    'justifiedAbsence' => AttendanceStatus.justifiedAbsence,
+    _ => throw const FormatException(
+      '--status debe ser present, absent, late o justified-absence.',
+    ),
+  };
+}
+
+PrimaryGrade _parseGrade(String value) {
+  final number = int.tryParse(value);
+  if (number == null) {
+    throw const FormatException('--grade debe ser un número del 1 al 6.');
+  }
+  try {
+    return PrimaryGrade.fromNumber(number);
+  } on ArgumentError {
+    throw const FormatException('--grade debe estar entre 1 y 6.');
+  }
+}
+
+int _parsePositiveInt(String value, {required String option}) {
+  final number = int.tryParse(value);
+  if (number == null || number <= 0) {
+    throw FormatException('--$option debe ser un entero mayor que cero.');
+  }
+  return number;
+}
+
 StudentRecordEntryKind _parseEntryKind(String value) {
   return switch (value) {
     'observation' => StudentRecordEntryKind.observation,
@@ -318,10 +387,38 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
         ],
         'mutation': 'dry-run unless --apply is present',
       },
+      <String, Object?>{
+        'name': 'attendance-set',
+        'required': <String>[
+          '--group',
+          '--student',
+          '--date YYYY-MM-DD',
+          '--status present|absent|late|justified-absence',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'student-deactivate',
+        'required': <String>['--group', '--student'],
+        'optional': <String>['--date YYYY-MM-DD'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'student-reactivate',
+        'required': <String>[
+          '--group',
+          '--student',
+          '--grade 1..6',
+          '--list-number <n>',
+        ],
+        'optional': <String>['--date YYYY-MM-DD'],
+        'mutation': 'dry-run unless --apply is present',
+      },
     ],
     'global_options': <String>[
       '--database <path>',
       '--profile production|demo',
+      '--apply',
       '--include-personal-data',
       '--pretty',
       '--help',

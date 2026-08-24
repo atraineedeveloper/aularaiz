@@ -79,6 +79,14 @@ jobs:
           Rename-Item $sourceExe 'aularaiz-agent.exe'
           & $agentExe --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw 'Bundled automation agent failed to start.' }
+      - name: Build update coordinator
+        shell: pwsh
+        run: |
+          $updater = Join-Path $PWD 'build\windows\x64\runner\Release\aularaiz-updater.exe'
+          dart compile exe bin/aularaiz_updater.dart -o $updater
+          if ($LASTEXITCODE -ne 0) { throw 'Update coordinator build failed.' }
+          & $updater --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'Update coordinator failed to start.' }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y
@@ -111,4 +119,4 @@ jobs:
           gh release create $env:RELEASE_TAG $installer $checksum `
             --target '${{ github.event.workflow_run.head_sha }}' `
             --title "AulaRaíz $env:APP_VERSION Beta" `
-            --notes "Beta de AulaRaíz para Windows. El instalador puede mostrar Editor desconocido porque esta versión 0.x aún no está firmada. AulaRaíz verifica SHA-256 para las actualizaciones descargadas desde la aplicación."
+            --notes "Beta de AulaRaíz para Windows. El instalador puede mostrar Editor desconocido porque esta versión 0.x aún no está firmada. AulaRaíz verifica SHA-256 para las actualizaciones descargadas desde la aplicación. Desde 0.1.2, las actualizaciones preparadas pueden cerrar AulaRaíz, instalarse de forma coordinada y volver a abrir la aplicación automáticamente."

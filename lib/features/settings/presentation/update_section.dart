@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/infrastructure/update/app_update.dart';
 import 'package:aularaiz/infrastructure/update/github_update_service.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class UpdateSection extends StatefulWidget {
   const UpdateSection({super.key});
@@ -16,16 +18,24 @@ class _UpdateSectionState extends State<UpdateSection> {
 
   String? _currentVersion;
   AppUpdate? _availableUpdate;
+  VerifiedUpdateInstaller? _preparedInstaller;
   String? _status;
   bool _checking = false;
-  bool _installing = false;
+  bool _downloading = false;
+  bool _launching = false;
 
   @override
   void initState() {
     super.initState();
     if (Platform.isWindows) {
-      _loadCurrentVersion();
+      _loadAndCheck();
     }
+  }
+
+  Future<void> _loadAndCheck() async {
+    await _loadCurrentVersion();
+    if (!mounted) return;
+    await _checkForUpdates(_UpdateStrings.of(context), automatic: true);
   }
 
   Future<void> _loadCurrentVersion() async {
@@ -38,12 +48,16 @@ class _UpdateSectionState extends State<UpdateSection> {
     }
   }
 
-  Future<void> _checkForUpdates(_UpdateStrings strings) async {
-    if (_checking || _installing) return;
+  Future<void> _checkForUpdates(
+    _UpdateStrings strings, {
+    bool automatic = false,
+  }) async {
+    if (_checking || _downloading || _launching) return;
     setState(() {
       _checking = true;
-      _status = null;
+      if (!automatic) _status = null;
       _availableUpdate = null;
+      _preparedInstaller = null;
     });
 
     try {
@@ -57,44 +71,77 @@ class _UpdateSectionState extends State<UpdateSection> {
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _status = strings.checkFailed);
+      if (!automatic) {
+        setState(() => _status = strings.checkFailed);
+      }
     } finally {
       if (mounted) setState(() => _checking = false);
     }
   }
 
-  Future<void> _downloadAndInstall(_UpdateStrings strings) async {
+  Future<void> _downloadAndPrepare(_UpdateStrings strings) async {
     final update = _availableUpdate;
-    if (update == null || _checking || _installing) return;
+    if (update == null || _checking || _downloading || _launching) return;
 
     setState(() {
-      _installing = true;
+      _downloading = true;
+      _preparedInstaller = null;
       _status = strings.verifying;
     });
 
     try {
-      final installer = await _service.downloadAndVerify(update);
-      await _service.launchInstaller(installer);
+      final prepared = await _service.downloadAndVerify(update);
       if (!mounted) return;
-      setState(() => _status = strings.installerOpened);
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(strings.installerReadyTitle),
-          content: Text(strings.installerReadyBody),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(strings.ok),
-            ),
-          ],
-        ),
-      );
+      setState(() {
+        _preparedInstaller = prepared;
+        _status = strings.readyToRestart(update.version.toString());
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() => _status = strings.installFailed);
     } finally {
-      if (mounted) setState(() => _installing = false);
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  Future<void> _closeAndUpdate(_UpdateStrings strings) async {
+    final prepared = _preparedInstaller;
+    if (prepared == null || _checking || _downloading || _launching) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.restartTitle),
+        content: Text(strings.restartBody(prepared.update.version.toString())),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(strings.later),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(strings.closeAndUpdate),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() {
+      _launching = true;
+      _status = strings.closing;
+    });
+
+    try {
+      await _service.launchUpdateCoordinator(prepared);
+      await context.read<AppDatabase>().close();
+      exit(0);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _launching = false;
+        _status = strings.launchFailed;
+      });
     }
   }
 
@@ -104,6 +151,7 @@ class _UpdateSectionState extends State<UpdateSection> {
 
     final strings = _UpdateStrings.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final notes = _availableUpdate?.releaseNotes;
 
     return Card(
       child: Padding(
@@ -151,13 +199,25 @@ class _UpdateSectionState extends State<UpdateSection> {
               const SizedBox(height: 18),
               Text(_status!),
             ],
+            if (notes != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                strings.releaseNotes,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                notes.length > 1200 ? '${notes.substring(0, 1200)}…' : notes,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 18),
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 FilledButton.icon(
-                  onPressed: _checking || _installing
+                  onPressed: _checking || _downloading || _launching
                       ? null
                       : () => _checkForUpdates(strings),
                   icon: _checking
@@ -170,20 +230,33 @@ class _UpdateSectionState extends State<UpdateSection> {
                     _checking ? strings.checking : strings.checkButton,
                   ),
                 ),
-                if (_availableUpdate != null)
+                if (_availableUpdate != null && _preparedInstaller == null)
                   FilledButton.tonalIcon(
-                    onPressed: _installing
+                    onPressed: _downloading
                         ? null
-                        : () => _downloadAndInstall(strings),
-                    icon: _installing
+                        : () => _downloadAndPrepare(strings),
+                    icon: _downloading
                         ? const SizedBox.square(
                             dimension: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.download_rounded),
                     label: Text(
-                      _installing ? strings.preparing : strings.installButton,
+                      _downloading ? strings.preparing : strings.downloadButton,
                     ),
+                  ),
+                if (_preparedInstaller != null)
+                  FilledButton.tonalIcon(
+                    onPressed: _launching
+                        ? null
+                        : () => _closeAndUpdate(strings),
+                    icon: _launching
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.restart_alt_rounded),
+                    label: Text(strings.closeAndUpdate),
                   ),
               ],
             ),
@@ -205,13 +278,13 @@ final class _UpdateStrings {
 
   String get title => english ? 'Updates' : 'Actualizaciones';
   String get description => english
-      ? 'Check verified AulaRaíz releases for Windows. Beta 0.x installers may be unsigned, but their SHA-256 checksum is always verified.'
-      : 'Busca versiones verificadas de AulaRaíz para Windows. Las betas 0.x pueden no estar firmadas, pero siempre se verifica su checksum SHA-256.';
+      ? 'AulaRaíz checks Windows releases when this section opens and can complete a verified update without leaving the app.'
+      : 'AulaRaíz revisa las versiones de Windows al abrir esta sección y puede completar una actualización verificada sin salir del flujo de la app.';
   String currentVersion(String version) => english
-      ? 'Installed version: $version · updates are checked manually'
-      : 'Versión instalada: $version · las actualizaciones se buscan manualmente';
+      ? 'Installed version: $version · background checks are non-blocking'
+      : 'Versión instalada: $version · la comprobación automática no bloquea el trabajo';
   String get checkButton =>
-      english ? 'Check for updates' : 'Buscar actualizaciones';
+      english ? 'Check again' : 'Buscar de nuevo';
   String get checking => english ? 'Checking…' : 'Buscando…';
   String get upToDate => english
       ? 'You already have the latest version.'
@@ -222,22 +295,30 @@ final class _UpdateStrings {
   String get checkFailed => english
       ? 'Could not check for updates. Check your connection and try again.'
       : 'No se pudo buscar actualizaciones. Revisa tu conexión e inténtalo de nuevo.';
-  String get installButton =>
-      english ? 'Download and install' : 'Descargar e instalar';
+  String get downloadButton =>
+      english ? 'Download update' : 'Descargar actualización';
   String get preparing => english ? 'Preparing…' : 'Preparando…';
   String get verifying => english
-      ? 'Downloading and verifying the installer…'
-      : 'Descargando y verificando el instalador…';
-  String get installerOpened => english
-      ? 'Verified installer opened.'
-      : 'Se abrió el instalador verificado.';
+      ? 'Downloading and verifying SHA-256 and Authenticode…'
+      : 'Descargando y verificando SHA-256 y Authenticode…';
+  String readyToRestart(String version) => english
+      ? 'Version $version is verified and ready. AulaRaíz will reopen automatically after installation.'
+      : 'La versión $version está verificada y lista. AulaRaíz se volverá a abrir automáticamente después de instalarla.';
   String get installFailed => english
-      ? 'The update could not be verified or opened.'
-      : 'No se pudo verificar o abrir la actualización.';
-  String get installerReadyTitle =>
-      english ? 'Update ready' : 'Actualización lista';
-  String get installerReadyBody => english
-      ? 'Follow the installer steps. During the 0.x beta Windows may show Unknown publisher for unsigned builds. AulaRaíz may ask you to close the current window while it updates. Classroom data is stored separately from the program files.'
-      : 'Sigue los pasos del instalador. Durante la beta 0.x Windows puede mostrar Editor desconocido en compilaciones sin firma. AulaRaíz puede pedirte cerrar esta ventana mientras se actualiza. Los datos del aula se guardan separados de los archivos del programa.';
-  String get ok => english ? 'OK' : 'Entendido';
+      ? 'The update could not be downloaded or verified.'
+      : 'No se pudo descargar o verificar la actualización.';
+  String get releaseNotes => english ? 'Release notes' : 'Novedades';
+  String get restartTitle => english ? 'Close and update?' : '¿Cerrar y actualizar?';
+  String restartBody(String version) => english
+      ? 'AulaRaíz will close, install version $version with the verified installer, and reopen automatically. Save any work in other open AulaRaíz windows first.'
+      : 'AulaRaíz se cerrará, instalará la versión $version con el instalador verificado y se volverá a abrir automáticamente. Guarda primero cualquier trabajo pendiente en otras ventanas de AulaRaíz.';
+  String get later => english ? 'Later' : 'Más tarde';
+  String get closeAndUpdate =>
+      english ? 'Close and update' : 'Cerrar y actualizar';
+  String get closing => english
+      ? 'Closing AulaRaíz to install the update…'
+      : 'Cerrando AulaRaíz para instalar la actualización…';
+  String get launchFailed => english
+      ? 'The update coordinator could not start. AulaRaíz remains open.'
+      : 'No se pudo iniciar el coordinador de actualización. AulaRaíz permanecerá abierta.';
 }

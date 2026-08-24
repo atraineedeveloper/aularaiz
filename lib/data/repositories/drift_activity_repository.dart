@@ -5,7 +5,8 @@ import 'package:aularaiz/domain/project/activity_participant.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:drift/drift.dart';
 
-final class DriftActivityRepository implements ActivityRepository {
+final class DriftActivityRepository
+    implements ActivityRepository, DeletableActivityRepository {
   DriftActivityRepository(this.database);
 
   final AppDatabase database;
@@ -87,6 +88,31 @@ final class DriftActivityRepository implements ActivityRepository {
           );
         }
       });
+    });
+  }
+
+  @override
+  Future<void> deleteActivity(String activityId) async {
+    await database.transaction(() async {
+      await (database.delete(database.activityEvaluations)
+            ..where((table) => table.activityId.equals(activityId)))
+          .go();
+      await (database.delete(database.activityRoster)
+            ..where((table) => table.activityId.equals(activityId)))
+          .go();
+      await (database.delete(database.activityGrades)
+            ..where((table) => table.activityId.equals(activityId)))
+          .go();
+      await (database.delete(database.activityFormativeFields)
+            ..where((table) => table.activityId.equals(activityId)))
+          .go();
+      final deleted =
+          await (database.delete(database.activities)
+                ..where((table) => table.id.equals(activityId)))
+              .go();
+      if (deleted != 1) {
+        throw StateError('Activity does not exist.');
+      }
     });
   }
 

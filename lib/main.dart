@@ -8,11 +8,11 @@ import 'package:aularaiz/app/runtime/app_runtime_config.dart';
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
+import 'package:aularaiz/data/demo/demo_data_seeder.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/infrastructure/backup/restore_bootstrap_service.dart';
 import 'package:aularaiz/infrastructure/backup/restore_runtime_adapter.dart';
-import 'package:aularaiz/infrastructure/demo/demo_data_seeder.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

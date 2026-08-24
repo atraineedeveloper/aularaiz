@@ -9,6 +9,7 @@ import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:drift/drift.dart';
 
@@ -17,20 +18,33 @@ final class DemoDataSeeder {
 
   final AppDatabase database;
 
-  Future<void> seedIfEmpty() async {
-    _requireDemoProfile();
-    final schools = await database.select(database.schools).get();
-    if (schools.isNotEmpty) return;
+  static const schoolId = 'demo-school';
+  static const schoolYearId = 'demo-school-year';
+  static const groupId = 'demo-group';
 
-    await database.transaction(_seedFixture);
+  Future<void> seedIfEmpty({DateTime? now}) {
+    return ensureSeeded(now: now);
   }
 
-  Future<void> resetAndSeed() async {
+  Future<void> resetAndSeed({DateTime? now}) {
+    return ensureSeeded(reset: true, now: now);
+  }
+
+  Future<void> ensureSeeded({bool reset = false, DateTime? now}) async {
     _requireDemoProfile();
-    await database.transaction(() async {
-      await _clearAll();
-      await _seedFixture();
-    });
+    final effectiveNow = now ?? DateTime.now();
+
+    if (reset) {
+      await database.transaction(() async {
+        await _clearAll();
+        await _seedFixture(effectiveNow);
+      });
+      return;
+    }
+
+    final schools = await database.select(database.schools).get();
+    if (schools.isNotEmpty) return;
+    await database.transaction(() => _seedFixture(effectiveNow));
   }
 
   void _requireDemoProfile() {
@@ -64,45 +78,50 @@ final class DemoDataSeeder {
     await database.delete(database.schools).go();
   }
 
-  Future<void> _seedFixture() async {
+  Future<void> _seedFixture(DateTime now) async {
+    final cycleStartYear = now.month >= 8 ? now.year : now.year - 1;
+    final startsOn = DateTime(cycleStartYear, 8, 1);
+    final endsOn = DateTime(cycleStartYear + 1, 7, 15);
+
     await database
         .into(database.schools)
         .insert(
           const SchoolsCompanion(
-            id: Value('demo-school'),
-            name: Value('Escuela Primaria Amanecer (Demo)'),
-            organization: Value(SchoolOrganization.twoTeacher),
+            id: Value(schoolId),
+            name: Value('Escuela Primaria Horizonte (DEMO)'),
+            cct: Value('27DPR9999D'),
+            organization: Value(SchoolOrganization.complete),
             state: Value('Tabasco'),
-            municipality: Value('Municipio de demostración'),
-            locality: Value('Localidad de demostración'),
+            municipality: Value('Centro'),
+            locality: Value('Villahermosa'),
           ),
         );
     await database
         .into(database.schoolYears)
         .insert(
           SchoolYearsCompanion(
-            id: const Value('demo-year-2026'),
-            label: const Value('2026-2027'),
-            startsOn: Value(DateTime(2026, 8, 1)),
-            endsOn: Value(DateTime(2027, 7, 31)),
+            id: const Value(schoolYearId),
+            label: Value('$cycleStartYear-${cycleStartYear + 1}'),
+            startsOn: Value(startsOn),
+            endsOn: Value(endsOn),
           ),
         );
     await database
         .into(database.schoolContexts)
         .insert(
           const SchoolContextsCompanion(
-            schoolId: Value('demo-school'),
-            schoolYearId: Value('demo-year-2026'),
+            schoolId: Value(schoolId),
+            schoolYearId: Value(schoolYearId),
           ),
         );
     await database
         .into(database.teachingGroups)
         .insert(
           const TeachingGroupsCompanion(
-            id: Value('demo-group'),
-            schoolId: Value('demo-school'),
-            schoolYearId: Value('demo-year-2026'),
-            name: Value('1.º y 2.º A (Demo)'),
+            id: Value(groupId),
+            schoolId: Value(schoolId),
+            schoolYearId: Value(schoolYearId),
+            name: Value('5° A · Grupo de demostración'),
             shift: Value('Matutino'),
             scheduleStartMinutes: Value(480),
             scheduleEndMinutes: Value(780),
@@ -112,297 +131,543 @@ final class DemoDataSeeder {
         .into(database.groupGrades)
         .insert(
           const GroupGradesCompanion(
-            groupId: Value('demo-group'),
-            grade: Value(PrimaryGrade.first),
-          ),
-        );
-    await database
-        .into(database.groupGrades)
-        .insert(
-          const GroupGradesCompanion(
-            groupId: Value('demo-group'),
-            grade: Value(PrimaryGrade.second),
+            groupId: Value(groupId),
+            grade: Value(PrimaryGrade.fifth),
           ),
         );
 
-    await database
-        .into(database.students)
-        .insert(
-          StudentsCompanion(
-            id: const Value('demo-student-ana'),
-            givenNames: const Value('Ana'),
-            firstSurname: const Value('Solís'),
-            birthDate: Value(DateTime(2019, 2, 10)),
-          ),
-        );
-    await database
-        .into(database.students)
-        .insert(
-          StudentsCompanion(
-            id: const Value('demo-student-bruno'),
-            givenNames: const Value('Bruno'),
-            firstSurname: const Value('Méndez'),
-            birthDate: Value(DateTime(2018, 11, 22)),
-          ),
-        );
-    await database
-        .into(database.students)
-        .insert(
-          StudentsCompanion(
-            id: const Value('demo-student-carla'),
-            givenNames: const Value('Carla'),
-            firstSurname: const Value('Ruiz'),
-            birthDate: Value(DateTime(2019, 6, 15)),
-          ),
-        );
-
-    await database
-        .into(database.enrollments)
-        .insert(
-          EnrollmentsCompanion(
-            id: const Value('demo-enrollment-ana'),
-            studentId: const Value('demo-student-ana'),
-            groupId: const Value('demo-group'),
-            grade: const Value(PrimaryGrade.first),
-            listNumber: const Value(1),
-            startsOn: Value(DateTime(2026, 8, 1)),
-          ),
-        );
-    await database
-        .into(database.enrollments)
-        .insert(
-          EnrollmentsCompanion(
-            id: const Value('demo-enrollment-bruno'),
-            studentId: const Value('demo-student-bruno'),
-            groupId: const Value('demo-group'),
-            grade: const Value(PrimaryGrade.second),
-            listNumber: const Value(2),
-            startsOn: Value(DateTime(2026, 8, 1)),
-          ),
-        );
-    await database
-        .into(database.enrollments)
-        .insert(
-          EnrollmentsCompanion(
-            id: const Value('demo-enrollment-carla'),
-            studentId: const Value('demo-student-carla'),
-            groupId: const Value('demo-group'),
-            grade: const Value(PrimaryGrade.first),
-            listNumber: const Value(3),
-            startsOn: Value(DateTime(2026, 8, 1)),
-          ),
-        );
-
-    await database
-        .into(database.attendanceDays)
-        .insert(
-          AttendanceDaysCompanion(
-            id: const Value('demo-attendance-2026-09-03'),
-            groupId: const Value('demo-group'),
-            date: Value(DateTime(2026, 9, 3)),
-          ),
-        );
-    await database
-        .into(database.attendanceEntries)
-        .insert(
-          const AttendanceEntriesCompanion(
-            attendanceDayId: Value('demo-attendance-2026-09-03'),
-            studentId: Value('demo-student-ana'),
-            status: Value(AttendanceStatus.present),
-          ),
-        );
-    await database
-        .into(database.attendanceEntries)
-        .insert(
-          const AttendanceEntriesCompanion(
-            attendanceDayId: Value('demo-attendance-2026-09-03'),
-            studentId: Value('demo-student-bruno'),
-            status: Value(AttendanceStatus.late),
-          ),
-        );
-    await database
-        .into(database.attendanceEntries)
-        .insert(
-          const AttendanceEntriesCompanion(
-            attendanceDayId: Value('demo-attendance-2026-09-03'),
-            studentId: Value('demo-student-carla'),
-            status: Value(AttendanceStatus.justifiedAbsence),
-          ),
-        );
-
-    await database
-        .into(database.projects)
-        .insert(
-          const ProjectsCompanion(
-            id: Value('demo-project-community'),
-            groupId: Value('demo-group'),
-            title: Value('Nuestro entorno escolar'),
-            lifecycle: Value(ProjectLifecycle.inProgress),
-            methodology: Value(ProjectMethodology.communityProjects),
-            formativeField: Value(FormativeField.humanAndCommunity),
-          ),
-        );
-    await database
-        .into(database.projectFormativeFields)
-        .insert(
-          const ProjectFormativeFieldsCompanion(
-            projectId: Value('demo-project-community'),
-            formativeField: Value(FormativeField.humanAndCommunity),
-          ),
-        );
-    await database
-        .into(database.projectFormativeFields)
-        .insert(
-          const ProjectFormativeFieldsCompanion(
-            projectId: Value('demo-project-community'),
-            formativeField: Value(FormativeField.languages),
-          ),
-        );
-    await database
-        .into(database.projectArticulatingAxes)
-        .insert(
-          const ProjectArticulatingAxesCompanion(
-            projectId: Value('demo-project-community'),
-            articulatingAxis: Value(ArticulatingAxis.criticalThinking),
-          ),
-        );
-    await database
-        .into(database.projectGrades)
-        .insert(
-          const ProjectGradesCompanion(
-            projectId: Value('demo-project-community'),
-            grade: Value(PrimaryGrade.first),
-          ),
-        );
-    await database
-        .into(database.projectGrades)
-        .insert(
-          const ProjectGradesCompanion(
-            projectId: Value('demo-project-community'),
-            grade: Value(PrimaryGrade.second),
-          ),
-        );
-    await database
-        .into(database.activities)
-        .insert(
-          const ActivitiesCompanion(
-            id: Value('demo-activity-map'),
-            projectId: Value('demo-project-community'),
-            title: Value('Mapa de nuestra comunidad'),
-          ),
-        );
-    await database
-        .into(database.activityFormativeFields)
-        .insert(
-          const ActivityFormativeFieldsCompanion(
-            activityId: Value('demo-activity-map'),
-            formativeField: Value(FormativeField.humanAndCommunity),
-          ),
-        );
-    await database
-        .into(database.activityGrades)
-        .insert(
-          const ActivityGradesCompanion(
-            activityId: Value('demo-activity-map'),
-            grade: Value(PrimaryGrade.first),
-          ),
-        );
-    await database
-        .into(database.activityGrades)
-        .insert(
-          const ActivityGradesCompanion(
-            activityId: Value('demo-activity-map'),
-            grade: Value(PrimaryGrade.second),
-          ),
-        );
-
-    await _insertActivityParticipant(
-      studentId: 'demo-student-ana',
-      grade: PrimaryGrade.first,
-      deliveryStatus: DeliveryStatus.delivered,
-      achievement: AchievementLevel.mastered,
-    );
-    await _insertActivityParticipant(
-      studentId: 'demo-student-bruno',
-      grade: PrimaryGrade.second,
-      deliveryStatus: DeliveryStatus.delivered,
-      achievement: AchievementLevel.inProgress,
-      observation: 'Explica sus hallazgos y continúa afinando la organización.',
-    );
-    await _insertActivityParticipant(
-      studentId: 'demo-student-carla',
-      grade: PrimaryGrade.first,
-      deliveryStatus: DeliveryStatus.notDelivered,
-    );
-
-    await database
-        .into(database.studentRecords)
-        .insert(
-          const StudentRecordsCompanion(
-            studentId: Value('demo-student-ana'),
-            strengths: Value(
-              'Participa con iniciativa en actividades colaborativas.',
+    final students = _students(cycleStartYear);
+    for (var index = 0; index < students.length; index++) {
+      final student = students[index];
+      await database
+          .into(database.students)
+          .insert(
+            StudentsCompanion(
+              id: Value(student.id),
+              givenNames: Value(student.givenNames),
+              firstSurname: Value(student.firstSurname),
+              secondSurname: Value(student.secondSurname),
+              sex: Value(student.sex),
+              birthDate: Value(student.birthDate),
             ),
-            difficulties: Value(
-              'Requiere tiempo adicional para organizar textos largos.',
+          );
+      await database
+          .into(database.enrollments)
+          .insert(
+            EnrollmentsCompanion(
+              id: Value('demo-enrollment-${index + 1}'),
+              studentId: Value(student.id),
+              groupId: const Value(groupId),
+              grade: const Value(PrimaryGrade.fifth),
+              listNumber: Value(index + 1),
+              startsOn: Value(startsOn),
             ),
-            supports: Value('Consignas breves y organizadores visuales.'),
-          ),
-        );
-    await database
-        .into(database.studentRecordEntries)
-        .insert(
-          StudentRecordEntriesCompanion(
-            id: const Value('demo-record-observation-1'),
-            studentId: const Value('demo-student-ana'),
-            kind: const Value(StudentRecordEntryKind.observation),
-            occurredAt: Value(DateTime(2026, 9, 3)),
-            content: const Value(
-              'Participó activamente en la construcción del mapa comunitario.',
-            ),
-          ),
-        );
-    await database
-        .into(database.studentRecordEntries)
-        .insert(
-          StudentRecordEntriesCompanion(
-            id: const Value('demo-record-agreement-1'),
-            studentId: const Value('demo-student-ana'),
-            kind: const Value(StudentRecordEntryKind.familyAgreement),
-            occurredAt: Value(DateTime(2026, 9, 5)),
-            content: const Value(
-              'Familia y docente acuerdan mantener una rutina breve de lectura.',
-            ),
-          ),
-        );
+          );
+    }
+
+    await _seedAttendance(students, startsOn, now);
+    await _seedProjects(students, startsOn, now);
+    await _seedStudentRecords(students, now);
   }
 
-  Future<void> _insertActivityParticipant({
-    required String studentId,
-    required PrimaryGrade grade,
-    required DeliveryStatus deliveryStatus,
-    AchievementLevel? achievement,
-    String? observation,
-  }) async {
-    await database
-        .into(database.activityRoster)
-        .insert(
-          ActivityRosterCompanion(
-            activityId: const Value('demo-activity-map'),
-            studentId: Value(studentId),
-            grade: Value(grade),
-          ),
-        );
-    await database
-        .into(database.activityEvaluations)
-        .insert(
-          ActivityEvaluationsCompanion(
-            activityId: const Value('demo-activity-map'),
-            studentId: Value(studentId),
-            deliveryStatus: Value(deliveryStatus),
-            achievement: Value(achievement),
-            observation: Value(observation),
-          ),
-        );
+  Future<void> _seedAttendance(
+    List<_DemoStudentSeed> students,
+    DateTime startsOn,
+    DateTime now,
+  ) async {
+    final days = _recentSchoolDays(now, startsOn, 10);
+    for (var dayIndex = 0; dayIndex < days.length; dayIndex++) {
+      final dayId = 'demo-attendance-${dayIndex + 1}';
+      await database
+          .into(database.attendanceDays)
+          .insert(
+            AttendanceDaysCompanion(
+              id: Value(dayId),
+              groupId: const Value(groupId),
+              date: Value(days[dayIndex]),
+            ),
+          );
+
+      for (
+        var studentIndex = 0;
+        studentIndex < students.length;
+        studentIndex++
+      ) {
+        final marker = (dayIndex * 3 + studentIndex) % 19;
+        final status = switch (marker) {
+          0 => AttendanceStatus.absent,
+          4 => AttendanceStatus.late,
+          9 => AttendanceStatus.justifiedAbsence,
+          _ => AttendanceStatus.present,
+        };
+        await database
+            .into(database.attendanceEntries)
+            .insert(
+              AttendanceEntriesCompanion(
+                attendanceDayId: Value(dayId),
+                studentId: Value(students[studentIndex].id),
+                status: Value(status),
+              ),
+            );
+      }
+    }
   }
+
+  Future<void> _seedProjects(
+    List<_DemoStudentSeed> students,
+    DateTime startsOn,
+    DateTime now,
+  ) async {
+    const projects = <_DemoProjectSeed>[
+      _DemoProjectSeed(
+        id: 'demo-project-community',
+        title: 'Nuestra comunidad, nuestras propuestas',
+        lifecycle: ProjectLifecycle.inProgress,
+        methodology: ProjectMethodology.communityProjects,
+        field: FormativeField.humanAndCommunity,
+        axes: {
+          ArticulatingAxis.inclusion,
+          ArticulatingAxis.criticalThinking,
+          ArticulatingAxis.culturesThroughReadingAndWriting,
+        },
+      ),
+      _DemoProjectSeed(
+        id: 'demo-project-water',
+        title: 'Guardianes del agua',
+        lifecycle: ProjectLifecycle.completed,
+        methodology: ProjectMethodology.inquirySteam,
+        field: FormativeField.knowledgeAndScientificThought,
+        axes: {ArticulatingAxis.healthyLife, ArticulatingAxis.criticalThinking},
+      ),
+      _DemoProjectSeed(
+        id: 'demo-project-reading',
+        title: 'Historias que nos representan',
+        lifecycle: ProjectLifecycle.draft,
+        methodology: ProjectMethodology.serviceLearning,
+        field: FormativeField.languages,
+        axes: {
+          ArticulatingAxis.criticalInterculturality,
+          ArticulatingAxis.artsAndAestheticExperiences,
+        },
+      ),
+    ];
+
+    for (final project in projects) {
+      await database
+          .into(database.projects)
+          .insert(
+            ProjectsCompanion(
+              id: Value(project.id),
+              groupId: const Value(groupId),
+              title: Value(project.title),
+              lifecycle: Value(project.lifecycle),
+              methodology: Value(project.methodology),
+              formativeField: Value(project.field),
+            ),
+          );
+      await database
+          .into(database.projectGrades)
+          .insert(
+            ProjectGradesCompanion(
+              projectId: Value(project.id),
+              grade: const Value(PrimaryGrade.fifth),
+            ),
+          );
+      await database
+          .into(database.projectFormativeFields)
+          .insert(
+            ProjectFormativeFieldsCompanion(
+              projectId: Value(project.id),
+              formativeField: Value(project.field),
+            ),
+          );
+      for (final axis in project.axes) {
+        await database
+            .into(database.projectArticulatingAxes)
+            .insert(
+              ProjectArticulatingAxesCompanion(
+                projectId: Value(project.id),
+                articulatingAxis: Value(axis),
+              ),
+            );
+      }
+    }
+
+    final activities = <_DemoActivitySeed>[
+      _DemoActivitySeed(
+        id: 'demo-activity-map',
+        projectId: 'demo-project-community',
+        identifier: 'COM-01',
+        title: 'Mapa de necesidades de la comunidad',
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 14))),
+        field: FormativeField.humanAndCommunity,
+      ),
+      _DemoActivitySeed(
+        id: 'demo-activity-interview',
+        projectId: 'demo-project-community',
+        identifier: 'COM-02',
+        title: 'Entrevista a una persona de la comunidad',
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 7))),
+        field: FormativeField.languages,
+      ),
+      _DemoActivitySeed(
+        id: 'demo-activity-water-log',
+        projectId: 'demo-project-water',
+        identifier: 'AGUA-01',
+        title: 'Registro del consumo de agua',
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 10))),
+        field: FormativeField.knowledgeAndScientificThought,
+      ),
+      _DemoActivitySeed(
+        id: 'demo-activity-water-proposals',
+        projectId: 'demo-project-water',
+        identifier: 'AGUA-02',
+        title: 'Propuestas para cuidar el agua',
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 3))),
+        field: FormativeField.ethicsNatureAndSocieties,
+      ),
+    ];
+
+    for (
+      var activityIndex = 0;
+      activityIndex < activities.length;
+      activityIndex++
+    ) {
+      final activity = activities[activityIndex];
+      await database
+          .into(database.activities)
+          .insert(
+            ActivitiesCompanion(
+              id: Value(activity.id),
+              projectId: Value(activity.projectId),
+              identifier: Value(activity.identifier),
+              title: Value(activity.title),
+              occursOn: Value(activity.date),
+            ),
+          );
+      await database
+          .into(database.activityFormativeFields)
+          .insert(
+            ActivityFormativeFieldsCompanion(
+              activityId: Value(activity.id),
+              formativeField: Value(activity.field),
+            ),
+          );
+      await database
+          .into(database.activityGrades)
+          .insert(
+            ActivityGradesCompanion(
+              activityId: Value(activity.id),
+              grade: const Value(PrimaryGrade.fifth),
+            ),
+          );
+
+      for (
+        var studentIndex = 0;
+        studentIndex < students.length;
+        studentIndex++
+      ) {
+        final student = students[studentIndex];
+        await database
+            .into(database.activityRoster)
+            .insert(
+              ActivityRosterCompanion(
+                activityId: Value(activity.id),
+                studentId: Value(student.id),
+                grade: const Value(PrimaryGrade.fifth),
+              ),
+            );
+
+        final marker = activityIndex * students.length + studentIndex;
+        if (marker % 6 == 0) continue;
+        final carlaMap =
+            activity.id == 'demo-activity-map' &&
+            student.id == 'demo-student-carla';
+        final notDelivered = carlaMap || marker % 11 == 0;
+        await database
+            .into(database.activityEvaluations)
+            .insert(
+              ActivityEvaluationsCompanion(
+                activityId: Value(activity.id),
+                studentId: Value(student.id),
+                deliveryStatus: Value(
+                  notDelivered
+                      ? DeliveryStatus.notDelivered
+                      : DeliveryStatus.delivered,
+                ),
+                achievement: Value(
+                  notDelivered
+                      ? null
+                      : AchievementLevel.values[marker %
+                            AchievementLevel.values.length],
+                ),
+                observation: Value(
+                  notDelivered
+                      ? 'Requiere acordar una nueva fecha de entrega.'
+                      : marker % 4 == 0
+                      ? 'Explica sus decisiones y mejora con la retroalimentación.'
+                      : null,
+                ),
+              ),
+            );
+      }
+    }
+  }
+
+  Future<void> _seedStudentRecords(
+    List<_DemoStudentSeed> students,
+    DateTime now,
+  ) async {
+    const records = <_DemoRecordSeed>[
+      _DemoRecordSeed(
+        strengths:
+            'Participa con iniciativa y comunica sus ideas con claridad.',
+        difficulties: 'Necesita organizar mejor los pasos de tareas extensas.',
+        supports: 'Usar listas breves de verificación y ejemplos resueltos.',
+      ),
+      _DemoRecordSeed(
+        strengths: 'Relaciona datos y propone explicaciones fundamentadas.',
+        difficulties: 'Le cuesta pedir ayuda cuando encuentra un obstáculo.',
+        supports:
+            'Acordar pausas de revisión durante el trabajo independiente.',
+      ),
+      _DemoRecordSeed(
+        strengths: 'Colabora y escucha otros puntos de vista.',
+        difficulties: 'Requiere mayor seguridad al presentar frente al grupo.',
+        supports: 'Preparar exposiciones cortas en pareja antes de plenaria.',
+      ),
+      _DemoRecordSeed(
+        strengths: 'Lee con fluidez y recupera información relevante.',
+        difficulties: 'Debe justificar con mayor detalle sus conclusiones.',
+        supports: 'Usar preguntas guía: qué, cómo y por qué.',
+      ),
+    ];
+
+    for (var index = 0; index < records.length; index++) {
+      final record = records[index];
+      final studentId = students[index].id;
+      await database
+          .into(database.studentRecords)
+          .insert(
+            StudentRecordsCompanion(
+              studentId: Value(studentId),
+              strengths: Value(record.strengths),
+              difficulties: Value(record.difficulties),
+              supports: Value(record.supports),
+            ),
+          );
+      await database
+          .into(database.studentRecordEntries)
+          .insert(
+            StudentRecordEntriesCompanion(
+              id: Value('demo-record-observation-${index + 1}'),
+              studentId: Value(studentId),
+              kind: const Value(StudentRecordEntryKind.observation),
+              occurredAt: Value(now.subtract(Duration(days: 8 - index))),
+              content: const Value(
+                'Observación ficticia: mostró avances durante el trabajo por proyecto.',
+              ),
+            ),
+          );
+      if (index < 2) {
+        await database
+            .into(database.studentRecordEntries)
+            .insert(
+              StudentRecordEntriesCompanion(
+                id: Value('demo-record-agreement-${index + 1}'),
+                studentId: Value(studentId),
+                kind: const Value(StudentRecordEntryKind.familyAgreement),
+                occurredAt: Value(now.subtract(Duration(days: 5 - index))),
+                content: const Value(
+                  'Acuerdo ficticio: revisar una actividad breve en casa dos veces por semana.',
+                ),
+              ),
+            );
+      }
+    }
+  }
+
+  List<DateTime> _recentSchoolDays(DateTime now, DateTime startsOn, int count) {
+    final result = <DateTime>[];
+    var cursor = DateTime(now.year, now.month, now.day);
+    while (result.length < count && !cursor.isBefore(startsOn)) {
+      if (cursor.weekday >= DateTime.monday &&
+          cursor.weekday <= DateTime.friday) {
+        result.add(cursor);
+      }
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return result.reversed.toList(growable: false);
+  }
+
+  DateTime _notBefore(DateTime floor, DateTime candidate) {
+    return candidate.isBefore(floor) ? floor : candidate;
+  }
+
+  List<_DemoStudentSeed> _students(int cycleStartYear) {
+    return <_DemoStudentSeed>[
+      _DemoStudentSeed(
+        id: 'demo-student-ana',
+        givenNames: 'Ana Sofía',
+        firstSurname: 'Solís',
+        secondSurname: 'Pérez',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 2, 10),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-bruno',
+        givenNames: 'Bruno',
+        firstSurname: 'Méndez',
+        secondSurname: 'López',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 11, 22),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-carla',
+        givenNames: 'Carla',
+        firstSurname: 'Ruiz',
+        secondSurname: 'García',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 6, 15),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-04',
+        givenNames: 'Diego',
+        firstSurname: 'Hernández',
+        secondSurname: 'Cruz',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 4, 3),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-05',
+        givenNames: 'Elena',
+        firstSurname: 'Torres',
+        secondSurname: 'Jiménez',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 8, 29),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-06',
+        givenNames: 'Fernando',
+        firstSurname: 'Sánchez',
+        secondSurname: 'Díaz',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 1, 19),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-07',
+        givenNames: 'Gabriela',
+        firstSurname: 'Morales',
+        secondSurname: 'Vega',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 3, 12),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-08',
+        givenNames: 'Hugo',
+        firstSurname: 'Castillo',
+        secondSurname: 'Ramos',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 9, 7),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-09',
+        givenNames: 'Ivanna',
+        firstSurname: 'Ortega',
+        secondSurname: 'Flores',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 12, 5),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-10',
+        givenNames: 'Jorge',
+        firstSurname: 'Navarro',
+        secondSurname: 'Reyes',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 5, 21),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-11',
+        givenNames: 'Karla',
+        firstSurname: 'Domínguez',
+        secondSurname: 'Santos',
+        sex: StudentSex.female,
+        birthDate: DateTime(cycleStartYear - 10, 7, 18),
+      ),
+      _DemoStudentSeed(
+        id: 'demo-student-12',
+        givenNames: 'Luis',
+        firstSurname: 'Aguilar',
+        secondSurname: 'Romero',
+        sex: StudentSex.male,
+        birthDate: DateTime(cycleStartYear - 10, 10, 9),
+      ),
+    ];
+  }
+}
+
+final class _DemoStudentSeed {
+  const _DemoStudentSeed({
+    required this.id,
+    required this.givenNames,
+    required this.firstSurname,
+    required this.secondSurname,
+    required this.sex,
+    required this.birthDate,
+  });
+
+  final String id;
+  final String givenNames;
+  final String firstSurname;
+  final String secondSurname;
+  final StudentSex sex;
+  final DateTime birthDate;
+}
+
+final class _DemoProjectSeed {
+  const _DemoProjectSeed({
+    required this.id,
+    required this.title,
+    required this.lifecycle,
+    required this.methodology,
+    required this.field,
+    required this.axes,
+  });
+
+  final String id;
+  final String title;
+  final ProjectLifecycle lifecycle;
+  final ProjectMethodology methodology;
+  final FormativeField field;
+  final Set<ArticulatingAxis> axes;
+}
+
+final class _DemoActivitySeed {
+  const _DemoActivitySeed({
+    required this.id,
+    required this.projectId,
+    required this.identifier,
+    required this.title,
+    required this.date,
+    required this.field,
+  });
+
+  final String id;
+  final String projectId;
+  final String identifier;
+  final String title;
+  final DateTime date;
+  final FormativeField field;
+}
+
+final class _DemoRecordSeed {
+  const _DemoRecordSeed({
+    required this.strengths,
+    required this.difficulties,
+    required this.supports,
+  });
+
+  final String strengths;
+  final String difficulties;
+  final String supports;
 }

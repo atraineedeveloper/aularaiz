@@ -72,6 +72,9 @@ jobs:
           assert payload['schema'] == 'aularaiz.automation/v1'
           assert payload['kind'] == 'help'
           PY
+      - name: Validate update coordinator entrypoint
+        shell: bash
+        run: dart run bin/aularaiz_updater.dart --help
       - name: Validate standalone automation agent bundle
         shell: bash
         run: |
@@ -175,6 +178,14 @@ jobs:
           Rename-Item $sourceExe 'aularaiz-agent.exe'
           & $agentExe --help | Out-File (Join-Path $env:RUNNER_TEMP 'aularaiz-agent-help.json') -Encoding utf8
           if ($LASTEXITCODE -ne 0) { throw 'Bundled automation agent failed to start.' }
+      - name: Build update coordinator
+        shell: pwsh
+        run: |
+          $updater = Join-Path $PWD 'build\windows\x64\runner\Release\aularaiz-updater.exe'
+          dart compile exe bin/aularaiz_updater.dart -o $updater
+          if ($LASTEXITCODE -ne 0) { throw 'Update coordinator build failed.' }
+          & $updater --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'Update coordinator failed to start.' }
       - name: Require and import Windows signing certificate
         shell: pwsh
         env:
@@ -210,6 +221,7 @@ jobs:
         run: |
           $executables = @(
             'build\windows\x64\runner\Release\aularaiz.exe',
+            'build\windows\x64\runner\Release\aularaiz-updater.exe',
             'build\windows\x64\runner\Release\automation\bin\aularaiz-agent.exe'
           )
           foreach ($executable in $executables) {
@@ -277,4 +289,3 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "AulaRaíz ${APP_VERSION}" \
               --generate-notes
-          fi

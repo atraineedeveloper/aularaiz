@@ -181,9 +181,13 @@ jobs:
       - name: Build update coordinator
         shell: pwsh
         run: |
-          $updater = Join-Path $PWD 'build\windows\x64\runner\Release\aularaiz-updater.exe'
-          dart compile exe bin/aularaiz_updater.dart -o $updater
+          $updaterBuild = Join-Path $PWD 'build\update-coordinator'
+          dart build cli --target=bin/aularaiz_updater.dart --output=$updaterBuild
           if ($LASTEXITCODE -ne 0) { throw 'Update coordinator build failed.' }
+          $sourceUpdater = Join-Path $updaterBuild 'bundle\bin\aularaiz_updater.exe'
+          $updater = Join-Path $PWD 'build\windows\x64\runner\Release\aularaiz-updater.exe'
+          if (-not (Test-Path $sourceUpdater)) { throw "Update coordinator executable not found: $sourceUpdater" }
+          Copy-Item $sourceUpdater $updater -Force
           & $updater --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw 'Update coordinator failed to start.' }
       - name: Require and import Windows signing certificate

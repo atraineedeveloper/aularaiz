@@ -144,10 +144,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   Future<void> _editProject(BuildContext context, Project project) async {
     final draft = await showDialog<_ProjectDraft>(
       context: context,
-      builder: (_) => _ProjectDialog(
-        group: widget.group,
-        initialProject: project,
-      ),
+      builder: (_) =>
+          _ProjectDialog(group: widget.group, initialProject: project),
     );
     if (draft == null || !context.mounted) return;
     final saved = await context.read<ProjectsController>().updateProject(
@@ -356,7 +354,11 @@ class _ProjectCard extends StatelessWidget {
             if (project.startsOn != null || project.endsOn != null) ...[
               const SizedBox(height: 6),
               Text(
-                _projectDateRangeLabel(context, project.startsOn, project.endsOn),
+                _projectDateRangeLabel(
+                  context,
+                  project.startsOn,
+                  project.endsOn,
+                ),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -430,7 +432,9 @@ class _ProjectCard extends StatelessWidget {
                                     activity.description!,
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
                                   ),
                                 ],
                                 const SizedBox(height: 4),
@@ -448,7 +452,9 @@ class _ProjectCard extends StatelessWidget {
                                     '${_label(context, 'Observaciones', 'Observations')}: ${activity.generalObservations}',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
                                   ),
                               ],
                             ),
@@ -528,8 +534,7 @@ class _ProjectDialogState extends State<_ProjectDialog> {
     _title = TextEditingController(text: project?.title ?? '');
     _description = TextEditingController(text: project?.description ?? '');
     _observations = TextEditingController(text: project?.observations ?? '');
-    _methodology =
-        project?.methodology ?? ProjectMethodology.communityProjects;
+    _methodology = project?.methodology ?? ProjectMethodology.communityProjects;
     _axes = Set<ArticulatingAxis>.of(project?.articulatingAxes ?? const {});
     _grades = Set<PrimaryGrade>.of(project?.targetGrades ?? const {});
     _startsOn = project?.startsOn;
@@ -603,7 +608,9 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                           _startsOn = null;
                           _dateError = false;
                         }),
-                        child: Text(_label(context, 'Quitar inicio', 'Clear start')),
+                        child: Text(
+                          _label(context, 'Quitar inicio', 'Clear start'),
+                        ),
                       ),
                     OutlinedButton.icon(
                       onPressed: () => _pickProjectDate(start: false),
@@ -752,9 +759,7 @@ class _ProjectDialogState extends State<_ProjectDialog> {
       _gradeError = _grades.isEmpty;
       _dateError = invalidDates;
     });
-    if (!_formKey.currentState!.validate() ||
-        _grades.isEmpty ||
-        invalidDates) {
+    if (!_formKey.currentState!.validate() || _grades.isEmpty || invalidDates) {
       return;
     }
     Navigator.pop(

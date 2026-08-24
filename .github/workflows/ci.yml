@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -48,6 +48,23 @@ jobs:
           path: drift_schemas/app_database/drift_schema_v*.json
           if-no-files-found: ignore
           retention-days: 1
+      - name: Commit generated Drift snapshot to PR branch
+        if: failure() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          snapshot="$(git ls-files --others --exclude-standard drift_schemas/app_database | head -n1)"
+          if [ -z "$snapshot" ]; then
+            exit 0
+          fi
+          content="$(base64 -w0 "$snapshot")"
+          gh api --method PUT "repos/$REPOSITORY/contents/$snapshot" \
+            -f message='chore: add generated Drift schema snapshot' \
+            -f content="$content" \
+            -f branch="$HEAD_REF" >/dev/null
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

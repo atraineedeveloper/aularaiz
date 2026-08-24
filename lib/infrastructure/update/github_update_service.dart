@@ -103,10 +103,7 @@ final class GithubUpdateService {
   Future<void> _verifyAuthenticodeSignature(File installer) async {
     const verificationScript = r'''
 $signature = Get-AuthenticodeSignature -LiteralPath $env:AULARAIZ_UPDATE_INSTALLER
-if ($signature.Status -ne 'Valid') {
-  Write-Error "Invalid Authenticode signature: $($signature.Status)"
-  exit 1
-}
+[Console]::Out.Write($signature.Status.ToString())
 ''';
     final result = await Process.run(
       'powershell.exe',
@@ -118,9 +115,24 @@ if ($signature.Status -ne 'Valid') {
     );
     if (result.exitCode != 0) {
       throw const FormatException(
-        'Downloaded installer did not have a valid Authenticode signature.',
+        'Could not verify the downloaded installer signature.',
       );
     }
+
+    final signatureStatus = result.stdout.toString().trim();
+    if (signatureStatus == 'Valid') return;
+
+    final installerFileName = installer.uri.pathSegments.last;
+    if (mayLaunchUnsignedBetaInstaller(
+      installerFileName: installerFileName,
+      signatureStatus: signatureStatus,
+    )) {
+      return;
+    }
+
+    throw FormatException(
+      'Downloaded installer Authenticode status was $signatureStatus.',
+    );
   }
 
   Future<String> _getText(

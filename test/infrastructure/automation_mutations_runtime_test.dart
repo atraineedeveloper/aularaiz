@@ -40,49 +40,54 @@ void main() {
     }
   });
 
-  test('attendance mutation is dry-run by default and persists on apply', () async {
-    final runtime = await AutomationRuntime.open(
-      databaseFile: databaseFile,
-      profile: StorageProfile.demo,
-    );
-    try {
-      final date = DateTime(2026, 9, 21);
-      final attendanceRepository = DriftAttendanceRepository(runtime.database);
-
-      final preview = await runtime.mutations.setAttendance(
-        groupId: DemoDataSeeder.groupId,
-        studentId: 'demo-student-ana',
-        date: date,
-        status: AttendanceStatus.absent,
+  test(
+    'attendance mutation is dry-run by default and persists on apply',
+    () async {
+      final runtime = await AutomationRuntime.open(
+        databaseFile: databaseFile,
+        profile: StorageProfile.demo,
       );
-      expect(preview.data['dry_run'], isTrue);
-      expect(preview.data.containsKey('student'), isFalse);
-      expect(
-        await attendanceRepository.findByGroupAndDate(
+      try {
+        final date = DateTime(2026, 9, 21);
+        final attendanceRepository = DriftAttendanceRepository(
+          runtime.database,
+        );
+
+        final preview = await runtime.mutations.setAttendance(
+          groupId: DemoDataSeeder.groupId,
+          studentId: 'demo-student-ana',
+          date: date,
+          status: AttendanceStatus.absent,
+        );
+        expect(preview.data['dry_run'], isTrue);
+        expect(preview.data.containsKey('student'), isFalse);
+        expect(
+          await attendanceRepository.findByGroupAndDate(
+            DemoDataSeeder.groupId,
+            date,
+          ),
+          isNull,
+        );
+
+        final applied = await runtime.mutations.setAttendance(
+          groupId: DemoDataSeeder.groupId,
+          studentId: 'demo-student-ana',
+          date: date,
+          status: AttendanceStatus.absent,
+          apply: true,
+        );
+        expect(applied.data['applied'], isTrue);
+
+        final saved = await attendanceRepository.findByGroupAndDate(
           DemoDataSeeder.groupId,
           date,
-        ),
-        isNull,
-      );
-
-      final applied = await runtime.mutations.setAttendance(
-        groupId: DemoDataSeeder.groupId,
-        studentId: 'demo-student-ana',
-        date: date,
-        status: AttendanceStatus.absent,
-        apply: true,
-      );
-      expect(applied.data['applied'], isTrue);
-
-      final saved = await attendanceRepository.findByGroupAndDate(
-        DemoDataSeeder.groupId,
-        date,
-      );
-      expect(saved?.statusFor('demo-student-ana'), AttendanceStatus.absent);
-    } finally {
-      await runtime.close();
-    }
-  });
+        );
+        expect(saved?.statusFor('demo-student-ana'), AttendanceStatus.absent);
+      } finally {
+        await runtime.close();
+      }
+    },
+  );
 
   test('deactivate and reactivate preserve dry-run/apply boundaries', () async {
     final runtime = await AutomationRuntime.open(
@@ -140,7 +145,9 @@ void main() {
         'demo-student-ana',
       );
       expect(enrollments, hasLength(2));
-      enrollments.sort((left, right) => left.startsOn.compareTo(right.startsOn));
+      enrollments.sort(
+        (left, right) => left.startsOn.compareTo(right.startsOn),
+      );
       expect(enrollments.last.startsOn, DateTime(2026, 10, 1));
       expect(enrollments.last.endsOn, isNull);
     } finally {

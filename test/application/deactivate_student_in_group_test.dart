@@ -6,12 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('preview plans deactivation without persisting', () async {
-    final repository = _MemoryEnrollmentRepository([
-      _activeEnrollment(),
-    ]);
-    final useCase = DeactivateStudentInGroup(
-      enrollmentRepository: repository,
-    );
+    final repository = _MemoryEnrollmentRepository([_activeEnrollment()]);
+    final useCase = DeactivateStudentInGroup(enrollmentRepository: repository);
 
     final plan = await useCase.preview(
       studentId: 'student-1',
@@ -24,24 +20,25 @@ void main() {
     expect(repository.saveCount, 0);
   });
 
-  test('apply persists deactivation and clamps dates before enrollment start', () async {
-    final repository = _MemoryEnrollmentRepository([
-      _activeEnrollment(),
-    ]);
-    final useCase = DeactivateStudentInGroup(
-      enrollmentRepository: repository,
-    );
+  test(
+    'apply persists deactivation and clamps dates before enrollment start',
+    () async {
+      final repository = _MemoryEnrollmentRepository([_activeEnrollment()]);
+      final useCase = DeactivateStudentInGroup(
+        enrollmentRepository: repository,
+      );
 
-    final plan = await useCase(
-      studentId: 'student-1',
-      groupId: 'group-1',
-      endsOn: DateTime(2026, 7, 1),
-    );
+      final plan = await useCase(
+        studentId: 'student-1',
+        groupId: 'group-1',
+        endsOn: DateTime(2026, 7, 1),
+      );
 
-    expect(plan.endsOn, DateTime(2026, 8, 1));
-    expect(repository.saveCount, 1);
-    expect(repository.values.single.endsOn, DateTime(2026, 8, 1));
-  });
+      expect(plan.endsOn, DateTime(2026, 8, 1));
+      expect(repository.saveCount, 1);
+      expect(repository.values.single.endsOn, DateTime(2026, 8, 1));
+    },
+  );
 
   test('student without active enrollment is rejected', () async {
     final repository = _MemoryEnrollmentRepository([
@@ -55,9 +52,7 @@ void main() {
         endsOn: DateTime(2026, 8, 31),
       ),
     ]);
-    final useCase = DeactivateStudentInGroup(
-      enrollmentRepository: repository,
-    );
+    final useCase = DeactivateStudentInGroup(enrollmentRepository: repository);
 
     expect(
       () => useCase.preview(
@@ -87,14 +82,12 @@ final class _MemoryEnrollmentRepository implements EnrollmentRepository {
   int saveCount = 0;
 
   @override
-  Future<List<Enrollment>> findByGroupId(String groupId) async => values
-      .where((enrollment) => enrollment.groupId == groupId)
-      .toList();
+  Future<List<Enrollment>> findByGroupId(String groupId) async =>
+      values.where((enrollment) => enrollment.groupId == groupId).toList();
 
   @override
-  Future<List<Enrollment>> findByStudentId(String studentId) async => values
-      .where((enrollment) => enrollment.studentId == studentId)
-      .toList();
+  Future<List<Enrollment>> findByStudentId(String studentId) async =>
+      values.where((enrollment) => enrollment.studentId == studentId).toList();
 
   @override
   Future<void> save(Enrollment enrollment) async {

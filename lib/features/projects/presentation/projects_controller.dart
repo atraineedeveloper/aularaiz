@@ -62,6 +62,10 @@ final class ProjectsController extends ChangeNotifier {
 
   Future<bool> createProject({
     required String title,
+    String? description,
+    DateTime? startsOn,
+    DateTime? endsOn,
+    String? observations,
     required ProjectMethodology methodology,
     required Set<ArticulatingAxis> articulatingAxes,
     required Set<PrimaryGrade> targetGrades,
@@ -72,9 +76,54 @@ final class ProjectsController extends ChangeNotifier {
       await _createProject(
         groupId: group.id,
         title: title,
+        description: description,
+        startsOn: startsOn,
+        endsOn: endsOn,
+        observations: observations,
         methodology: methodology,
         articulatingAxes: articulatingAxes,
         targetGrades: targetGrades,
+      );
+    });
+  }
+
+  Future<bool> updateProject({
+    required Project project,
+    required String title,
+    String? description,
+    DateTime? startsOn,
+    DateTime? endsOn,
+    String? observations,
+    required ProjectMethodology methodology,
+    required Set<ArticulatingAxis> articulatingAxes,
+    required Set<PrimaryGrade> targetGrades,
+  }) async {
+    if (_isSaving) return false;
+    final activityGrades = <PrimaryGrade>{
+      for (final activity in activitiesFor(project.id)) ...activity.targetGrades,
+    };
+    if (!targetGrades.containsAll(activityGrades)) {
+      _error = StateError(
+        'Cannot remove a project grade that is already used by an activity.',
+      );
+      notifyListeners();
+      return false;
+    }
+    return _mutate(() async {
+      await _projectRepository.save(
+        Project(
+          id: project.id,
+          groupId: project.groupId,
+          title: title,
+          description: description,
+          startsOn: startsOn,
+          endsOn: endsOn,
+          observations: observations,
+          lifecycle: project.lifecycle,
+          methodology: methodology,
+          articulatingAxes: articulatingAxes,
+          targetGrades: targetGrades,
+        ),
       );
     });
   }
@@ -87,6 +136,10 @@ final class ProjectsController extends ChangeNotifier {
           id: project.id,
           groupId: project.groupId,
           title: project.title,
+          description: project.description,
+          startsOn: project.startsOn,
+          endsOn: project.endsOn,
+          observations: project.observations,
           lifecycle: lifecycle,
           methodology: project.methodology,
           articulatingAxes: project.articulatingAxes,
@@ -99,6 +152,8 @@ final class ProjectsController extends ChangeNotifier {
   Future<bool> createActivity({
     required Project project,
     required String title,
+    String? description,
+    String? generalObservations,
     required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
     required DateTime occursOn,
@@ -108,6 +163,8 @@ final class ProjectsController extends ChangeNotifier {
       await _createActivity(
         projectId: project.id,
         title: title,
+        description: description,
+        generalObservations: generalObservations,
         formativeField: formativeField,
         targetGrades: targetGrades,
         occursOn: occursOn,
@@ -118,6 +175,8 @@ final class ProjectsController extends ChangeNotifier {
   Future<bool> updateActivity({
     required Activity activity,
     required String title,
+    String? description,
+    String? generalObservations,
     required FormativeField formativeField,
     required Set<PrimaryGrade> targetGrades,
     required DateTime occursOn,
@@ -139,7 +198,9 @@ final class ProjectsController extends ChangeNotifier {
           projectId: activity.projectId,
           identifier: activity.identifier,
           title: title,
+          description: description,
           occursOn: occursOn,
+          generalObservations: generalObservations,
           formativeField: formativeField,
           targetGrades: targetGrades,
           roster: activity.roster.values,

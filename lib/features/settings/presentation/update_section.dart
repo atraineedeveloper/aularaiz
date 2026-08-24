@@ -205,10 +205,11 @@ final class _UpdateStrings {
 
   String get title => english ? 'Updates' : 'Actualizaciones';
   String get description => english
-      ? 'Check for signed AulaRaíz releases for Windows.'
-      : 'Busca versiones firmadas de AulaRaíz para Windows.';
-  String currentVersion(String version) =>
-      english ? 'Installed version: $version' : 'Versión instalada: $version';
+      ? 'Check verified AulaRaíz releases for Windows. Beta 0.x installers may be unsigned, but their SHA-256 checksum is always verified.'
+      : 'Busca versiones verificadas de AulaRaíz para Windows. Las betas 0.x pueden no estar firmadas, pero siempre se verifica su checksum SHA-256.';
+  String currentVersion(String version) => english
+      ? 'Installed version: $version · updates are checked manually'
+      : 'Versión instalada: $version · las actualizaciones se buscan manualmente';
   String get checkButton =>
       english ? 'Check for updates' : 'Buscar actualizaciones';
   String get checking => english ? 'Checking…' : 'Buscando…';
@@ -236,7 +237,7 @@ final class _UpdateStrings {
   String get installerReadyTitle =>
       english ? 'Update ready' : 'Actualización lista';
   String get installerReadyBody => english
-      ? 'Follow the installer steps. AulaRaíz may ask you to close the current window while it updates. Classroom data is stored separately from the program files.'
-      : 'Sigue los pasos del instalador. AulaRaíz puede pedirte cerrar esta ventana mientras se actualiza. Los datos del aula se guardan separados de los archivos del programa.';
+      ? 'Follow the installer steps. During the 0.x beta Windows may show Unknown publisher for unsigned builds. AulaRaíz may ask you to close the current window while it updates. Classroom data is stored separately from the program files.'
+      : 'Sigue los pasos del instalador. Durante la beta 0.x Windows puede mostrar Editor desconocido en compilaciones sin firma. AulaRaíz puede pedirte cerrar esta ventana mientras se actualiza. Los datos del aula se guardan separados de los archivos del programa.';
   String get ok => english ? 'OK' : 'Entendido';
 }

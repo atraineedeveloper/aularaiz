@@ -22,6 +22,39 @@ void main() {
     });
   });
 
+  group('unsigned beta installer policy', () {
+    test('allows only NotSigned installers targeting a 0.x version', () {
+      expect(
+        mayLaunchUnsignedBetaInstaller(
+          installerFileName: 'AulaRaiz-Setup-0.1.1.exe',
+          signatureStatus: 'NotSigned',
+        ),
+        isTrue,
+      );
+      expect(
+        mayLaunchUnsignedBetaInstaller(
+          installerFileName: 'AulaRaiz-Setup-1.0.0.exe',
+          signatureStatus: 'NotSigned',
+        ),
+        isFalse,
+      );
+      expect(
+        mayLaunchUnsignedBetaInstaller(
+          installerFileName: 'AulaRaiz-Setup-0.1.1.exe',
+          signatureStatus: 'HashMismatch',
+        ),
+        isFalse,
+      );
+      expect(
+        mayLaunchUnsignedBetaInstaller(
+          installerFileName: 'other.exe',
+          signatureStatus: 'NotSigned',
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('GitHub release parsing', () {
     test('returns a verified update projection for a newer release', () {
       final payload = jsonEncode({

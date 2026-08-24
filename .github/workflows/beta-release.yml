@@ -1,0 +1,110 @@
+name: Publish Windows Beta
+
+on:
+  workflow_run:
+    workflows: [Flutter CI]
+    types: [completed]
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: '3.47.1'
+
+jobs:
+  publish-beta:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Resolve beta version
+        id: version
+        shell: pwsh
+        run: |
+          $versionLine = Get-Content pubspec.yaml |
+            Where-Object { $_ -match '^version:' } |
+            Select-Object -First 1
+          if ($null -eq $versionLine) { throw 'pubspec version was not found.' }
+          $version = (($versionLine -replace '^version:\s*', '') -split '\+')[0]
+          if ($version -notmatch '^0\.\d+\.\d+$') {
+            throw "Automatic unsigned beta publishing is limited to 0.x versions. Found: $version"
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Ensure version is not already published
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release $env:RELEASE_TAG already exists. Bump pubspec.yaml before publishing another beta."
+          }
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - name: Build Windows release
+        run: flutter build windows --release
+      - name: Build standalone automation agent bundle
+        shell: pwsh
+        run: |
+          $agentBuild = Join-Path $PWD 'build\automation-agent'
+          dart build cli --target=bin/aularaiz_agent.dart --output=$agentBuild
+          if ($LASTEXITCODE -ne 0) { throw 'Automation agent bundle build failed.' }
+
+          $bundle = Join-Path $agentBuild 'bundle'
+          $destination = Join-Path $PWD 'build\windows\x64\runner\Release\automation'
+          if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          Copy-Item (Join-Path $bundle '*') $destination -Recurse -Force
+
+          $sourceExe = Join-Path $destination 'bin\aularaiz_agent.exe'
+          $agentExe = Join-Path $destination 'bin\aularaiz-agent.exe'
+          if (-not (Test-Path $sourceExe)) { throw "Automation executable not found: $sourceExe" }
+          Rename-Item $sourceExe 'aularaiz-agent.exe'
+          & $agentExe --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled automation agent failed to start.' }
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
+      - name: Build unsigned beta installer and checksum
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $sourceDir = (Resolve-Path 'build\windows\x64\runner\Release').Path
+          $outputDir = Join-Path $PWD 'build\beta-release'
+          New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DSourceDir=$sourceDir" "/DOutputDir=$outputDir" 'windows\installer\AulaRaiz.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Building beta installer failed.' }
+
+          $installerName = "AulaRaiz-Setup-$env:APP_VERSION.exe"
+          $installer = Join-Path $outputDir $installerName
+          if (-not (Test-Path $installer)) { throw "Installer not found: $installer" }
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $installerName" | Set-Content "$installer.sha256" -Encoding ascii
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          $installer = "build\beta-release\AulaRaiz-Setup-$env:APP_VERSION.exe"
+          $checksum = "$installer.sha256"
+          gh release create $env:RELEASE_TAG $installer $checksum `
+            --target '${{ github.event.workflow_run.head_sha }}' `
+            --title "AulaRaíz $env:APP_VERSION Beta" `
+            --notes "Beta de AulaRaíz para Windows. El instalador puede mostrar Editor desconocido porque esta versión 0.x aún no está firmada. AulaRaíz verifica SHA-256 para las actualizaciones descargadas desde la aplicación."

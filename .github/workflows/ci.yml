@@ -128,3 +128,19 @@ jobs:
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           & $iscc "/DAppVersion=$version" "/DSourceDir=$sourceDir" "/DOutputDir=$outputDir" 'windows\installer\AulaRaiz.iss'
           if ($LASTEXITCODE -ne 0) { throw 'Windows installer validation failed.' }
+      - name: Checksum Windows beta installer
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem 'build\installer-validation\AulaRaiz-Setup-*.exe' |
+            Select-Object -First 1
+          if ($null -eq $installer) { throw 'Windows beta installer was not found.' }
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($installer.Name)" | Set-Content "$($installer.FullName).sha256" -Encoding ascii
+      - uses: actions/upload-artifact@v6
+        with:
+          name: windows-beta-installer
+          path: |
+            build/installer-validation/AulaRaiz-Setup-*.exe
+            build/installer-validation/AulaRaiz-Setup-*.exe.sha256
+          if-no-files-found: error
+          retention-days: 14

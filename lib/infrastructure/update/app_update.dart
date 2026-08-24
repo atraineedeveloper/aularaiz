@@ -51,6 +51,19 @@ final class AppUpdate {
   final String installerFileName;
 }
 
+bool mayLaunchUnsignedBetaInstaller({
+  required String installerFileName,
+  required String signatureStatus,
+}) {
+  if (signatureStatus != 'NotSigned') return false;
+
+  final match = RegExp(r'^AulaRaiz-Setup-(\d+\.\d+\.\d+)\.exe$')
+      .firstMatch(installerFileName);
+  if (match == null) return false;
+
+  return SemanticVersion.parse(match.group(1)!).major == 0;
+}
+
 AppUpdate? parseLatestGithubRelease(
   String source, {
   required String currentVersion,

@@ -51,8 +51,13 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
 class AppDependencies extends StatelessWidget {
-  const AppDependencies({required this.child, super.key});
+  const AppDependencies({
+    required this.storageProfile,
+    required this.child,
+    super.key,
+  });
 
+  final StorageProfile storageProfile;
   final Widget child;
 
   @override
@@ -60,7 +65,10 @@ class AppDependencies extends StatelessWidget {
     return MultiProvider(
       providers: [
         Provider<AppDatabase>(
-          create: (_) => AppDatabase.production(),
+          create: (_) => switch (storageProfile) {
+            StorageProfile.production => AppDatabase.production(),
+            StorageProfile.demo => AppDatabase.demo(),
+          },
           dispose: (_, database) => database.close(),
         ),
         Provider<IdGenerator>(create: (_) => UuidIdGenerator()),
@@ -139,11 +147,11 @@ class AppDependencies extends StatelessWidget {
                 database: context.read<AppDatabase>(),
               ),
               schemaVersion: AppDatabase.currentSchemaVersion,
-              storageProfile: StorageProfile.production.name,
+              storageProfile: storageProfile.name,
               protector: context.read<BackupProtector>(),
             ),
             restoreStagingService: RestoreStagingService(
-              profile: StorageProfile.production,
+              profile: storageProfile,
               currentSchemaVersion: AppDatabase.currentSchemaVersion,
               protector: context.read<BackupProtector>(),
             ),

@@ -237,10 +237,7 @@ final class DemoDataSeeder {
         lifecycle: ProjectLifecycle.completed,
         methodology: ProjectMethodology.inquirySteam,
         field: FormativeField.knowledgeAndScientificThought,
-        axes: {
-          ArticulatingAxis.healthyLife,
-          ArticulatingAxis.criticalThinking,
-        },
+        axes: {ArticulatingAxis.healthyLife, ArticulatingAxis.criticalThinking},
       ),
       _DemoProjectSeed(
         id: 'demo-project-reading',
@@ -302,10 +299,7 @@ final class DemoDataSeeder {
         projectId: 'demo-project-community',
         identifier: 'COM-01',
         title: 'Mapa de necesidades de la comunidad',
-        date: _notBefore(
-          startsOn,
-          now.subtract(const Duration(days: 14)),
-        ),
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 14))),
         field: FormativeField.humanAndCommunity,
       ),
       _DemoActivitySeed(
@@ -313,10 +307,7 @@ final class DemoDataSeeder {
         projectId: 'demo-project-community',
         identifier: 'COM-02',
         title: 'Entrevista a una persona de la comunidad',
-        date: _notBefore(
-          startsOn,
-          now.subtract(const Duration(days: 7)),
-        ),
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 7))),
         field: FormativeField.languages,
       ),
       _DemoActivitySeed(
@@ -324,10 +315,7 @@ final class DemoDataSeeder {
         projectId: 'demo-project-water',
         identifier: 'AGUA-01',
         title: 'Registro del consumo de agua',
-        date: _notBefore(
-          startsOn,
-          now.subtract(const Duration(days: 10)),
-        ),
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 10))),
         field: FormativeField.knowledgeAndScientificThought,
       ),
       _DemoActivitySeed(
@@ -335,10 +323,7 @@ final class DemoDataSeeder {
         projectId: 'demo-project-water',
         identifier: 'AGUA-02',
         title: 'Propuestas para cuidar el agua',
-        date: _notBefore(
-          startsOn,
-          now.subtract(const Duration(days: 3)),
-        ),
+        date: _notBefore(startsOn, now.subtract(const Duration(days: 3))),
         field: FormativeField.ethicsNatureAndSocieties,
       ),
     ];
@@ -413,9 +398,8 @@ final class DemoDataSeeder {
                 achievement: Value(
                   notDelivered
                       ? null
-                      : AchievementLevel.values[
-                          marker % AchievementLevel.values.length
-                        ],
+                      : AchievementLevel.values[marker %
+                            AchievementLevel.values.length],
                 ),
                 observation: Value(
                   notDelivered
@@ -436,14 +420,16 @@ final class DemoDataSeeder {
   ) async {
     const records = <_DemoRecordSeed>[
       _DemoRecordSeed(
-        strengths: 'Participa con iniciativa y comunica sus ideas con claridad.',
+        strengths:
+            'Participa con iniciativa y comunica sus ideas con claridad.',
         difficulties: 'Necesita organizar mejor los pasos de tareas extensas.',
         supports: 'Usar listas breves de verificación y ejemplos resueltos.',
       ),
       _DemoRecordSeed(
         strengths: 'Relaciona datos y propone explicaciones fundamentadas.',
         difficulties: 'Le cuesta pedir ayuda cuando encuentra un obstáculo.',
-        supports: 'Acordar pausas de revisión durante el trabajo independiente.',
+        supports:
+            'Acordar pausas de revisión durante el trabajo independiente.',
       ),
       _DemoRecordSeed(
         strengths: 'Colabora y escucha otros puntos de vista.',
@@ -501,11 +487,7 @@ final class DemoDataSeeder {
     }
   }
 
-  List<DateTime> _recentSchoolDays(
-    DateTime now,
-    DateTime startsOn,
-    int count,
-  ) {
+  List<DateTime> _recentSchoolDays(DateTime now, DateTime startsOn, int count) {
     final result = <DateTime>[];
     var cursor = DateTime(now.year, now.month, now.day);
     while (result.length < count && !cursor.isBefore(startsOn)) {

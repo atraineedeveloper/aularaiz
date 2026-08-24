@@ -43,12 +43,11 @@ void main() {
     );
 
     final carlaEvaluation =
-        await (database.select(database.activityEvaluations)
-              ..where(
-                (table) =>
-                    table.studentId.equals('demo-student-carla') &
-                    table.activityId.equals('demo-activity-map'),
-              ))
+        await (database.select(database.activityEvaluations)..where(
+              (table) =>
+                  table.studentId.equals('demo-student-carla') &
+                  table.activityId.equals('demo-activity-map'),
+            ))
             .getSingle();
     expect(carlaEvaluation.deliveryStatus, DeliveryStatus.notDelivered);
     expect(carlaEvaluation.achievement, isNull);

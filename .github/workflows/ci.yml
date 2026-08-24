@@ -55,7 +55,7 @@ jobs:
           dart format bin lib test integration_test
           git diff --exit-code -- bin lib test integration_test
       - name: Commit Dart formatter output to PR branch
-        if: steps.dart_format.outcome == 'failure' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: failure() && steps.dart_format.outcome == 'failure' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REF: ${{ github.head_ref }}

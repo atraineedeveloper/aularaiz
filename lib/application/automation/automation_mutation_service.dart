@@ -136,7 +136,9 @@ final class AutomationMutationService {
     );
     final previousEnd = previous.endsOn;
     if (previousEnd == null) {
-      throw StateError('Student already has an active enrollment in this group.');
+      throw StateError(
+        'Student already has an active enrollment in this group.',
+      );
     }
 
     final effectiveStart = startsOn == null
@@ -180,7 +182,11 @@ final class AutomationMutationService {
   Future<TeachingGroup> _requireGroup(String groupId) async {
     final normalized = groupId.trim();
     if (normalized.isEmpty) {
-      throw ArgumentError.value(groupId, 'groupId', 'Group id cannot be empty.');
+      throw ArgumentError.value(
+        groupId,
+        'groupId',
+        'Group id cannot be empty.',
+      );
     }
     final group = await _teachingGroupRepository.findById(normalized);
     if (group == null) throw StateError('Teaching group does not exist.');
@@ -205,10 +211,11 @@ final class AutomationMutationService {
     required String groupId,
     required String studentId,
   }) async {
-    final matches = (await _enrollmentRepository.findByGroupId(groupId))
-        .where((enrollment) => enrollment.studentId == studentId)
-        .toList(growable: false)
-      ..sort((left, right) => right.startsOn.compareTo(left.startsOn));
+    final matches =
+        (await _enrollmentRepository.findByGroupId(groupId))
+            .where((enrollment) => enrollment.studentId == studentId)
+            .toList(growable: false)
+          ..sort((left, right) => right.startsOn.compareTo(left.startsOn));
     if (matches.isEmpty) {
       throw StateError('Student has no enrollment history in this group.');
     }

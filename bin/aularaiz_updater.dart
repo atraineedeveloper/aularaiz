@@ -12,32 +12,73 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  try {
-    final request = _UpdateRequest.parse(args);
-    await _verifyInstaller(request.installer, request.sha256);
-    await _verifyAuthenticodeSignature(request.installer);
-    await _waitForProcessExit(request.pid);
+  _UpdateRequest? request;
+  var originalProcessExited = false;
+  File? diagnosticLog;
 
-    final result = await Process.run(request.installer.path, const <String>[
-      '/VERYSILENT',
-      '/SUPPRESSMSGBOXES',
-      '/NORESTART',
-      '/SP-',
-    ]);
+  try {
+    request = _UpdateRequest.parse(args);
+    diagnosticLog = File(
+      '${request.installer.parent.path}${Platform.pathSeparator}'
+      'aularaiz-update.log',
+    );
+    await _writeDiagnostic(diagnosticLog, 'coordinator-started');
+
+    await _verifyInstaller(request.installer, request.sha256);
+    await _writeDiagnostic(diagnosticLog, 'installer-checksum-valid');
+    await _verifyAuthenticodeSignature(request.installer);
+    await _writeDiagnostic(diagnosticLog, 'installer-signature-accepted');
+
+    await _waitForProcessExit(request.pid);
+    originalProcessExited = true;
+    await _writeDiagnostic(diagnosticLog, 'application-closed');
+
+    if (!await request.app.exists()) {
+      throw StateError('AulaRaíz executable was not found before update.');
+    }
+    final previousAppHash = await _sha256Of(request.app);
+
+    final installerLog = File(
+      '${request.installer.parent.path}${Platform.pathSeparator}'
+      'aularaiz-installer.log',
+    );
+    final result = await Process.run(
+      request.installer.path,
+      <String>[
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/SP-',
+        '/CLOSEAPPLICATIONS',
+        '/DIR=${request.app.parent.path}',
+        '/LOG=${installerLog.path}',
+      ],
+      workingDirectory: request.installer.parent.path,
+    );
+    await _writeDiagnostic(
+      diagnosticLog,
+      'installer-exit-${result.exitCode}',
+    );
     if (result.exitCode != 0) {
       throw StateError('Installer returned a non-zero exit code.');
     }
 
-    if (!await request.app.exists()) {
-      throw StateError('AulaRaíz executable was not found after update.');
+    await _waitForFile(request.app);
+    final installedAppHash = await _sha256Of(request.app);
+    if (installedAppHash == previousAppHash) {
+      throw StateError('Installer did not replace the AulaRaíz executable.');
     }
+    await _writeDiagnostic(diagnosticLog, 'application-replaced');
 
-    await Process.start(
-      request.app.path,
-      const <String>[],
-      mode: ProcessStartMode.detached,
-    );
+    await _launchApp(request.app);
+    await _writeDiagnostic(diagnosticLog, 'application-relaunched');
   } catch (_) {
+    if (diagnosticLog != null) {
+      await _writeDiagnostic(diagnosticLog, 'coordinator-failed');
+    }
+    if (originalProcessExited && request != null) {
+      await _tryRelaunch(request.app, diagnosticLog);
+    }
     stderr.writeln('AulaRaíz could not complete the coordinated update.');
     exitCode = 1;
   }
@@ -98,14 +139,15 @@ final class _UpdateRequest {
   final File app;
 }
 
+Future<String> _sha256Of(File file) async {
+  return (await sha256.bind(file.openRead()).first).toString().toLowerCase();
+}
+
 Future<void> _verifyInstaller(File installer, String expectedSha256) async {
   if (!await installer.exists()) {
     throw StateError('Installer is missing.');
   }
-  final actual = (await sha256.bind(installer.openRead()).first)
-      .toString()
-      .toLowerCase();
-  if (actual != expectedSha256) {
+  if (await _sha256Of(installer) != expectedSha256) {
     throw const FormatException('Installer checksum mismatch.');
   }
 }
@@ -160,5 +202,48 @@ if (\$null -ne \$process) {
   ]);
   if (result.exitCode != 0) {
     throw StateError('AulaRaíz did not close before the update timeout.');
+  }
+}
+
+Future<void> _waitForFile(File file) async {
+  for (var attempt = 0; attempt < 40; attempt++) {
+    if (await file.exists()) return;
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+  }
+  throw StateError('AulaRaíz executable was not found after update.');
+}
+
+Future<void> _launchApp(File app) {
+  return Process.start(
+    app.path,
+    const <String>[],
+    workingDirectory: app.parent.path,
+    mode: ProcessStartMode.detached,
+  ).then((_) {});
+}
+
+Future<void> _tryRelaunch(File app, File? diagnosticLog) async {
+  try {
+    if (!await app.exists()) return;
+    await _launchApp(app);
+    if (diagnosticLog != null) {
+      await _writeDiagnostic(diagnosticLog, 'previous-application-relaunched');
+    }
+  } catch (_) {
+    if (diagnosticLog != null) {
+      await _writeDiagnostic(diagnosticLog, 'fallback-relaunch-failed');
+    }
+  }
+}
+
+Future<void> _writeDiagnostic(File log, String event) async {
+  try {
+    await log.writeAsString(
+      '${DateTime.now().toUtc().toIso8601String()} $event\n',
+      mode: FileMode.append,
+      flush: true,
+    );
+  } catch (_) {
+    // Diagnostics must never block or fail an update attempt.
   }
 }

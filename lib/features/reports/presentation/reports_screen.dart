@@ -208,12 +208,97 @@ class _ReportsScreenState extends State<ReportsScreen> {
   Future<void> _publishGroupExport(GroupExportFormat format) async {
     final controller = context.read<ReportsController>();
     final l10n = AppLocalizations.of(context);
+    final english = l10n.localeName.startsWith('en');
+    var dataset = GroupExportDataset.students;
+
+    if (format == GroupExportFormat.csv) {
+      final selected = await _chooseCsvDataset(
+        english: english,
+        includeSensitiveFollowUp: controller.includeSensitiveFollowUp,
+      );
+      if (!mounted || selected == null) return;
+      dataset = selected;
+    }
+
     final result = await controller.publishGroupExport(
       format: format,
-      english: l10n.localeName.startsWith('en'),
+      english: english,
+      dataset: dataset,
     );
     if (!mounted) return;
     _showResult(result);
+  }
+
+  Future<GroupExportDataset?> _chooseCsvDataset({
+    required bool english,
+    required bool includeSensitiveFollowUp,
+  }) {
+    final datasets = <GroupExportDataset>[
+      GroupExportDataset.context,
+      GroupExportDataset.students,
+      GroupExportDataset.attendance,
+      GroupExportDataset.projects,
+      GroupExportDataset.activities,
+      GroupExportDataset.evaluation,
+      if (includeSensitiveFollowUp) GroupExportDataset.followUp,
+    ];
+    return showDialog<GroupExportDataset>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(
+          english ? 'Choose CSV content' : 'Elige el contenido del CSV',
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(
+              english
+                  ? 'CSV exports one dataset per file. Excel exports the complete workbook.'
+                  : 'CSV exporta un conjunto de datos por archivo. Excel exporta el libro completo.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          for (final dataset in datasets)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(dataset),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(_datasetIcon(dataset)),
+                    const SizedBox(width: 12),
+                    Text(_datasetLabel(dataset, english: english)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _datasetLabel(GroupExportDataset dataset, {required bool english}) {
+    return switch (dataset) {
+      GroupExportDataset.context => english ? 'Context' : 'Contexto',
+      GroupExportDataset.students => english ? 'Students' : 'Alumnos',
+      GroupExportDataset.attendance => english ? 'Attendance' : 'Asistencia',
+      GroupExportDataset.projects => english ? 'Projects' : 'Proyectos',
+      GroupExportDataset.activities => english ? 'Activities' : 'Actividades',
+      GroupExportDataset.evaluation => english ? 'Evaluation' : 'Evaluación',
+      GroupExportDataset.followUp => english ? 'Follow-up' : 'Seguimiento',
+    };
+  }
+
+  IconData _datasetIcon(GroupExportDataset dataset) {
+    return switch (dataset) {
+      GroupExportDataset.context => Icons.school_outlined,
+      GroupExportDataset.students => Icons.groups_outlined,
+      GroupExportDataset.attendance => Icons.fact_check_outlined,
+      GroupExportDataset.projects => Icons.account_tree_outlined,
+      GroupExportDataset.activities => Icons.task_alt_outlined,
+      GroupExportDataset.evaluation => Icons.assessment_outlined,
+      GroupExportDataset.followUp => Icons.note_alt_outlined,
+    };
   }
 
   Future<void> _publishIndividual(String studentId) async {
@@ -349,6 +434,7 @@ class _GroupReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final english = l10n.localeName.startsWith('en');
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -382,6 +468,13 @@ class _GroupReportCard extends StatelessWidget {
               onPressed: onExportXlsx,
               icon: const Icon(Icons.grid_on_outlined),
               label: Text(l10n.reportsExportXlsx),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              english
+                  ? 'Excel includes Context, Students, Attendance, Projects, Activities and Evaluation. Follow-up is added only when sensitive content is enabled.'
+                  : 'Excel incluye Contexto, Alumnos, Asistencia, Proyectos, Actividades y Evaluación. Seguimiento sólo se agrega al activar contenido sensible.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
             Text(

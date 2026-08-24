@@ -35,20 +35,25 @@ final class DeactivateStudentInGroup {
       );
     }
     if (normalizedGroupId.isEmpty) {
-      throw ArgumentError.value(groupId, 'groupId', 'Group id cannot be empty.');
+      throw ArgumentError.value(
+        groupId,
+        'groupId',
+        'Group id cannot be empty.',
+      );
     }
 
     final enrollments = await _enrollmentRepository.findByGroupId(
       normalizedGroupId,
     );
-    final active = enrollments
-        .where(
-          (enrollment) =>
-              enrollment.studentId == normalizedStudentId &&
-              enrollment.endsOn == null,
-        )
-        .toList(growable: false)
-      ..sort((left, right) => right.startsOn.compareTo(left.startsOn));
+    final active =
+        enrollments
+            .where(
+              (enrollment) =>
+                  enrollment.studentId == normalizedStudentId &&
+                  enrollment.endsOn == null,
+            )
+            .toList(growable: false)
+          ..sort((left, right) => right.startsOn.compareTo(left.startsOn));
     if (active.isEmpty) {
       throw StateError('Student has no active enrollment in this group.');
     }

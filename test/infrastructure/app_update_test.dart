@@ -64,7 +64,7 @@ void main() {
       bool includeAssets = true,
     }) {
       final version = tag.substring(1);
-      return {
+      return <String, Object?>{
         'tag_name': tag,
         'html_url':
             'https://github.com/atraineedeveloper/aularaiz/releases/tag/$tag',
@@ -72,19 +72,19 @@ void main() {
         'prerelease': prerelease,
         'body': body,
         'assets': includeAssets
-            ? [
-                {
+            ? <Object?>[
+                <String, Object?>{
                   'name': 'AulaRaiz-Setup-$version.exe',
                   'browser_download_url':
                       'https://github.com/atraineedeveloper/aularaiz/releases/download/$tag/AulaRaiz-Setup-$version.exe',
                 },
-                {
+                <String, Object?>{
                   'name': 'AulaRaiz-Setup-$version.exe.sha256',
                   'browser_download_url':
                       'https://github.com/atraineedeveloper/aularaiz/releases/download/$tag/AulaRaiz-Setup-$version.exe.sha256',
                 },
               ]
-            : const <Object>[],
+            : const <Object?>[],
       };
     }
 

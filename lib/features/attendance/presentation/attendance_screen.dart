@@ -6,9 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class AttendanceScreen extends StatefulWidget {
-  const AttendanceScreen({required this.group, super.key});
+  const AttendanceScreen({
+    required this.group,
+    this.embedded = false,
+    this.onLeaveGuardChanged,
+    super.key,
+  });
 
   final TeachingGroup group;
+  final bool embedded;
+  final ValueChanged<Future<bool> Function()?>? onLeaveGuardChanged;
 
   @override
   State<AttendanceScreen> createState() => _AttendanceScreenState();
@@ -26,6 +33,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       if (!mounted) return;
       context.read<AttendanceController>().load(widget.group);
     });
+    widget.onLeaveGuardChanged?.call(_confirmLeave);
+  }
+
+  @override
+  void dispose() {
+    widget.onLeaveGuardChanged?.call(null);
+    super.dispose();
   }
 
   @override
@@ -41,19 +55,22 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         if (discard && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.attendanceTitle),
-              Text(
-                widget.group.name,
-                style: Theme.of(context).textTheme.bodySmall,
+        appBar: widget.embedded
+            ? null
+            : AppBar(
+                title: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.attendanceTitle),
+                    Text(
+                      widget.group.name,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
         body: SafeArea(
+          top: !widget.embedded,
           child: controller.isLoading
               ? const Center(child: CircularProgressIndicator())
               : controller.error != null
@@ -84,6 +101,12 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
         ) ??
         false;
+  }
+
+  Future<bool> _confirmLeave() async {
+    final controller = context.read<AttendanceController>();
+    if (!controller.isDirty) return true;
+    return _confirmDiscard(context);
   }
 }
 

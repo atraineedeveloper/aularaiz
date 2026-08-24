@@ -11,8 +11,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class EvaluationScreen extends StatefulWidget {
-  const EvaluationScreen({required this.group, super.key});
+  const EvaluationScreen({
+    required this.group,
+    this.embedded = false,
+    super.key,
+  });
   final TeachingGroup group;
+  final bool embedded;
   @override
   State<EvaluationScreen> createState() => _EvaluationScreenState();
 }
@@ -34,8 +39,9 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
     final controller = context.watch<EvaluationController>();
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name)),
+      appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
+        top: !widget.embedded,
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -109,6 +115,14 @@ class _EvaluationMatrix extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth < 720
+          ? _mobileList(context)
+          : _desktopMatrix(context),
+    );
+  }
+
+  Widget _desktopMatrix(BuildContext context) {
     final behavior = ScrollConfiguration.of(context).copyWith(
       dragDevices: const {
         PointerDeviceKind.touch,
@@ -187,6 +201,60 @@ class _EvaluationMatrix extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _mobileList(BuildContext context) {
+    return ListView.separated(
+      itemCount: controller.projectActivities.length,
+      padding: const EdgeInsets.only(bottom: 24),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, activityIndex) {
+        final option = controller.projectActivities[activityIndex];
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  option.activity.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                for (final student in controller.matrixRows) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      student.student?.displayName ?? student.studentId,
+                    ),
+                    trailing: _EvaluationCell(
+                      row: controller.cell(
+                        option.activity.id,
+                        student.studentId,
+                      ),
+                      disabled: controller.isSaving,
+                      onQuickSave: (draft) => controller.saveCell(
+                        activityId: option.activity.id,
+                        studentId: student.studentId,
+                        deliveryStatus: draft.delivery,
+                        achievement: draft.achievement,
+                      ),
+                      onDetails: () => _editDetails(
+                        context,
+                        controller,
+                        option.activity.id,
+                        student.studentId,
+                      ),
+                    ),
+                  ),
+                  if (student != controller.matrixRows.last) const Divider(),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

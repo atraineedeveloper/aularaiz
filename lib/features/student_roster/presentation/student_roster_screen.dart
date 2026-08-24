@@ -12,9 +12,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class StudentRosterScreen extends StatefulWidget {
-  const StudentRosterScreen({required this.group, super.key});
+  const StudentRosterScreen({
+    required this.group,
+    this.embedded = false,
+    super.key,
+  });
 
   final TeachingGroup group;
+  final bool embedded;
 
   @override
   State<StudentRosterScreen> createState() => _StudentRosterScreenState();
@@ -54,7 +59,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
         !controller.isSaving && !controller.isLoading && !loadFailed;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name)),
+      appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       floatingActionButton: compact
           ? FloatingActionButton(
               onPressed: canMutate ? () => _addStudent(context) : null,
@@ -67,6 +72,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
               label: Text(l10n.addStudent),
             ),
       body: SafeArea(
+        top: !widget.embedded,
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 16 : 24,

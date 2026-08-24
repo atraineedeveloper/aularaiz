@@ -44,16 +44,55 @@ class SchoolSelectionScreen extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
               children: [
-                Text(
-                  english ? 'Choose a school' : 'Selecciona una escuela',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  english
-                      ? 'AulaRaíz opens the classroom only after you choose its school.'
-                      : 'AulaRaíz abre el aula sólo después de que elijas su escuela.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primaryContainer,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Icon(
+                              Icons.school_rounded,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                english
+                                    ? 'Choose a school'
+                                    : 'Selecciona una escuela',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                english
+                                    ? 'Select the school and school year you want to work with.'
+                                    : 'Elige la escuela y el ciclo escolar con el que quieres trabajar.',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 for (final setup in setups) ...[

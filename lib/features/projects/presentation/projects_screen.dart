@@ -15,11 +15,13 @@ class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({
     required this.group,
     required this.onEvaluateActivity,
+    this.embedded = false,
     super.key,
   });
 
   final TeachingGroup group;
   final ValueChanged<Activity> onEvaluateActivity;
+  final bool embedded;
 
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
@@ -43,24 +45,27 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<ProjectsController>();
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.projectsTitle),
-            Text(
-              widget.group.name,
-              style: Theme.of(context).textTheme.bodySmall,
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.projectsTitle),
+                  Text(
+                    widget.group.name,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.isSaving ? null : () => _createProject(context),
         icon: const Icon(Icons.add_task_rounded),
         label: Text(l10n.createProject),
       ),
       body: SafeArea(
+        top: !widget.embedded,
         child: controller.isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(

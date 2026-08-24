@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ReportsScreen extends StatefulWidget {
-  const ReportsScreen({required this.group, super.key});
+  const ReportsScreen({required this.group, this.embedded = false, super.key});
 
   final TeachingGroup group;
+  final bool embedded;
 
   @override
   State<ReportsScreen> createState() => _ReportsScreenState();
@@ -35,8 +36,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final report = controller.groupReport;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name)),
+      appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
+        top: !widget.embedded,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(

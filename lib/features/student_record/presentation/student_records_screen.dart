@@ -13,9 +13,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class StudentRecordsScreen extends StatefulWidget {
-  const StudentRecordsScreen({required this.group, super.key});
+  const StudentRecordsScreen({
+    required this.group,
+    this.embedded = false,
+    this.onOpenRecord,
+    super.key,
+  });
 
   final TeachingGroup group;
+  final bool embedded;
+  final ValueChanged<StudentRecordRosterEntry>? onOpenRecord;
 
   @override
   State<StudentRecordsScreen> createState() => _StudentRecordsScreenState();
@@ -41,8 +48,9 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
     final controller = context.watch<StudentRecordsController>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.group.name)),
+      appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
+        top: !widget.embedded,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -118,6 +126,11 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
   }
 
   Future<void> _openRecord(StudentRecordRosterEntry entry) async {
+    final onOpenRecord = widget.onOpenRecord;
+    if (onOpenRecord != null) {
+      onOpenRecord(entry);
+      return;
+    }
     final studentRecordRepository = context.read<StudentRecordRepository>();
     final attendanceRepository = context.read<AttendanceRepository>();
     final evaluationRepository = context.read<EvaluationRepository>();

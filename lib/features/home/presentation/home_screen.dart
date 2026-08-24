@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:aularaiz/app/layout/app_state_panel.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
@@ -83,11 +84,12 @@ class _HomeScreenState extends State<HomeScreen> {
         if (snapshot.hasError) {
           return Scaffold(
             body: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(l10n.setupSaveError),
-                ),
+              child: AppStatePanel(
+                icon: Icons.error_outline_rounded,
+                title: Localizations.localeOf(context).languageCode == 'en'
+                    ? 'Could not load your schools'
+                    : 'No se pudieron cargar tus escuelas',
+                message: l10n.setupSaveError,
               ),
             ),
           );

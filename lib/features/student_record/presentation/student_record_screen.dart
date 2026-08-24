@@ -14,11 +14,15 @@ class StudentRecordScreen extends StatefulWidget {
   const StudentRecordScreen({
     required this.group,
     required this.student,
+    this.embedded = false,
+    this.onBackToRecords,
     super.key,
   });
 
   final TeachingGroup group;
   final Student student;
+  final bool embedded;
+  final VoidCallback? onBackToRecords;
 
   @override
   State<StudentRecordScreen> createState() => _StudentRecordScreenState();
@@ -47,8 +51,11 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
     final controller = context.watch<StudentRecordController>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.student.displayName)),
+      appBar: widget.embedded
+          ? null
+          : AppBar(title: Text(widget.student.displayName)),
       body: SafeArea(
+        top: !widget.embedded,
         child: controller.isLoading
             ? const Center(child: CircularProgressIndicator())
             : controller.error != null && controller.record == null
@@ -61,6 +68,17 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (widget.embedded) ...[
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: widget.onBackToRecords,
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: Text(l10n.studentRecordsTitle),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                         _Header(student: widget.student),
                         if (controller.error != null) ...[
                           const SizedBox(height: 12),

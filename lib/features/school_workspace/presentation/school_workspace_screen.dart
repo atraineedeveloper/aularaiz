@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/app_state_panel.dart';
 import 'package:aularaiz/app/layout/school_workspace_shell.dart';
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
@@ -5,6 +6,7 @@ import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
+import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
@@ -12,6 +14,8 @@ import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
+import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
@@ -26,6 +30,8 @@ import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
 import 'package:aularaiz/features/reports/presentation/reports_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
+import 'package:aularaiz/features/student_record/presentation/student_record_controller.dart';
+import 'package:aularaiz/features/student_record/presentation/student_record_screen.dart';
 import 'package:aularaiz/features/student_record/presentation/student_records_controller.dart';
 import 'package:aularaiz/features/student_record/presentation/student_records_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
@@ -52,6 +58,9 @@ class SchoolWorkspaceScreen extends StatefulWidget {
 
 class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   bool _loadStarted = false;
+  int _selectedDestination = 0;
+  Future<bool> Function()? _activeLeaveGuard;
+  StudentRecordRosterEntry? _selectedStudentRecord;
 
   @override
   void didChangeDependencies() {
@@ -74,7 +83,19 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (setup == null) {
-      return Scaffold(body: Center(child: Text(l10n.setupSaveError)));
+      return Scaffold(
+        body: SafeArea(
+          child: AppStatePanel(
+            icon: Icons.error_outline_rounded,
+            title: _label(
+              context,
+              'No se pudo abrir el espacio de trabajo',
+              'Could not open the workspace',
+            ),
+            message: l10n.setupSaveError,
+          ),
+        ),
+      );
     }
 
     final group = controller.groups.isEmpty ? null : controller.groups.first;
@@ -82,6 +103,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       schoolName: setup.school.name,
       schoolYearLabel: setup.schoolYear.label,
       groupName: group?.name ?? _label(context, 'Sin grupo', 'No class'),
+      selectedIndex: _selectedDestination,
       onChooseSchool: widget.onChooseSchool,
       onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
       onOpenSettings: () => context.push('/settings'),
@@ -91,107 +113,232 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
               SchoolWorkspaceDestination(
                 label: _label(context, 'Inicio', 'Home'),
                 icon: Icons.home_outlined,
-                onSelect: () {},
+                onSelect: () => _selectDestination(0),
               ),
               SchoolWorkspaceDestination(
                 label: l10n.openStudents,
                 icon: Icons.groups_outlined,
-                onSelect: () => _openStudents(group),
+                onSelect: () => _selectDestination(1),
               ),
               SchoolWorkspaceDestination(
                 label: _label(context, 'Asistencia', 'Attendance'),
                 icon: Icons.fact_check_outlined,
-                onSelect: () => _openAttendance(group),
+                onSelect: () => _selectDestination(2),
               ),
               SchoolWorkspaceDestination(
                 label: l10n.openProjects,
                 icon: Icons.auto_awesome_motion_outlined,
-                onSelect: () => _openProjects(group),
+                onSelect: () => _selectDestination(3),
               ),
               SchoolWorkspaceDestination(
                 label: _label(context, 'Evaluación', 'Evaluation'),
                 icon: Icons.assignment_turned_in_outlined,
-                onSelect: () => _openEvaluation(group),
+                onSelect: () => _selectDestination(4),
               ),
               SchoolWorkspaceDestination(
                 label: l10n.openStudentRecords,
                 icon: Icons.folder_shared_outlined,
-                onSelect: () => _openStudentRecords(group),
+                onSelect: _openRecordsList,
               ),
               SchoolWorkspaceDestination(
                 label: l10n.openReports,
                 icon: Icons.summarize_outlined,
-                onSelect: () => _openReports(group),
+                onSelect: () => _selectDestination(6),
               ),
             ],
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1120),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  _label(context, 'Mi grupo', 'My class'),
-                  style: Theme.of(context).textTheme.headlineMedium,
+      child: group != null && _selectedStudentRecord != null
+          ? ChangeNotifierProvider(
+              create: (context) => StudentRecordController(
+                studentRecordRepository: context
+                    .read<StudentRecordRepository>(),
+                attendanceRepository: context.read<AttendanceRepository>(),
+                evaluationRepository: context.read<EvaluationRepository>(),
+                activityRepository: context.read<ActivityRepository>(),
+                updateStudentRecord: context.read<UpdateStudentRecord>(),
+                addStudentRecordEntry: context.read<AddStudentRecordEntry>(),
+              ),
+              child: StudentRecordScreen(
+                group: group,
+                student: _selectedStudentRecord!.student,
+                embedded: true,
+                onBackToRecords: _openRecordsList,
+              ),
+            )
+          : group != null && _selectedDestination == 1
+          ? ChangeNotifierProvider(
+              create: (context) => StudentRosterController(
+                studentRepository: context.read<StudentRepository>(),
+                enrollmentRepository: context.read<EnrollmentRepository>(),
+                createStudentInGroup: context.read<CreateStudentInGroup>(),
+                reactivateStudentInGroup: context
+                    .read<ReactivateStudentInGroup>(),
+              ),
+              child: StudentRosterScreen(group: group, embedded: true),
+            )
+          : group != null && _selectedDestination == 2
+          ? ChangeNotifierProvider(
+              create: (context) => AttendanceController(
+                attendanceRepository: context.read<AttendanceRepository>(),
+                enrollmentRepository: context.read<EnrollmentRepository>(),
+                studentRepository: context.read<StudentRepository>(),
+                buildDailyAttendance: context.read<BuildDailyAttendance>(),
+              ),
+              child: AttendanceScreen(
+                group: group,
+                embedded: true,
+                onLeaveGuardChanged: (guard) => _activeLeaveGuard = guard,
+              ),
+            )
+          : group != null && _selectedDestination == 3
+          ? ChangeNotifierProvider(
+              create: (context) => ProjectsController(
+                projectRepository: context.read<ProjectRepository>(),
+                activityRepository: context.read<ActivityRepository>(),
+                createProject: context.read<CreateProject>(),
+                createActivity: context.read<CreateActivity>(),
+              ),
+              child: ProjectsScreen(
+                group: group,
+                embedded: true,
+                onEvaluateActivity: (activity) => _openExternalDestination(
+                  () => _openEvaluation(group, initialActivityId: activity.id),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  _label(
-                    context,
-                    'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
-                    'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
-                  ),
-                ),
-                if (controller.error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _label(
-                      context,
-                      'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
-                      'The change could not be saved. Check the data and try again.',
-                    ),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Expanded(
-                  child: controller.groups.isEmpty
-                      ? _EmptyGroup(
-                          isSaving: controller.isSaving,
-                          onCreate: _showCreateGroupDialog,
-                        )
-                      : ListView.separated(
-                          itemCount: controller.groups.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 16),
-                          itemBuilder: (context, index) {
-                            final group = controller.groups[index];
-                            return _GroupCard(
-                              group: group,
-                              onEdit: () => _showEditGroupDialog(group),
-                              onDelete: () => _confirmDeleteGroup(group),
-                              onDashboard: () => _openDashboard(group),
-                              onStudents: () => _openStudents(group),
-                              onAttendance: () => _openAttendance(group),
-                              onProjects: () => _openProjects(group),
-                              onEvaluation: () => _openEvaluation(group),
-                              onRecords: () => _openStudentRecords(group),
-                              onReports: () => _openReports(group),
-                              modernOverview: true,
-                            );
-                          },
+              ),
+            )
+          : group != null && _selectedDestination == 4
+          ? ChangeNotifierProvider(
+              create: (context) => EvaluationController(
+                projectRepository: context.read<ProjectRepository>(),
+                activityRepository: context.read<ActivityRepository>(),
+                studentRepository: context.read<StudentRepository>(),
+                enrollmentRepository: context.read<EnrollmentRepository>(),
+                evaluationRepository: context.read<EvaluationRepository>(),
+                saveActivityEvaluation: context.read<SaveActivityEvaluation>(),
+              ),
+              child: EvaluationScreen(group: group, embedded: true),
+            )
+          : group != null && _selectedDestination == 5
+          ? ChangeNotifierProvider(
+              create: (context) => StudentRecordsController(
+                enrollmentRepository: context.read<EnrollmentRepository>(),
+                studentRepository: context.read<StudentRepository>(),
+              ),
+              child: StudentRecordsScreen(
+                group: group,
+                embedded: true,
+                onOpenRecord: (entry) {
+                  setState(() => _selectedStudentRecord = entry);
+                },
+              ),
+            )
+          : group != null && _selectedDestination == 6
+          ? ChangeNotifierProvider(
+              create: (context) => ReportsController(
+                projectionBuilder: context.read<ReportProjectionBuilder>(),
+                publicationService: context.read<ReportPublicationService>(),
+              ),
+              child: ReportsScreen(group: group, embedded: true),
+            )
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _label(context, 'Mi grupo', 'My class'),
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _label(
+                          context,
+                          'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
+                          'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
                         ),
+                      ),
+                      if (controller.error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _label(
+                            context,
+                            'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
+                            'The change could not be saved. Check the data and try again.',
+                          ),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: controller.groups.isEmpty
+                            ? _EmptyGroup(
+                                isSaving: controller.isSaving,
+                                onCreate: _showCreateGroupDialog,
+                              )
+                            : ListView.separated(
+                                itemCount: controller.groups.length,
+                                separatorBuilder: (_, _) =>
+                                    const SizedBox(height: 16),
+                                itemBuilder: (context, index) {
+                                  final group = controller.groups[index];
+                                  return _GroupCard(
+                                    group: group,
+                                    onEdit: () => _showEditGroupDialog(group),
+                                    onDelete: () => _confirmDeleteGroup(group),
+                                    onDashboard: () => _openDashboard(group),
+                                    onStudents: () => _selectDestination(1),
+                                    onAttendance: () => _selectDestination(2),
+                                    onProjects: () => _selectDestination(3),
+                                    onEvaluation: () => _selectDestination(4),
+                                    onRecords: () => _selectDestination(5),
+                                    onReports: () => _selectDestination(6),
+                                    modernOverview: true,
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
+  }
+
+  Future<void> _selectDestination(int index) async {
+    if (_selectedDestination == index) return;
+    if (!await _canLeaveActiveDestination()) return;
+    setState(() {
+      _selectedDestination = index;
+      _selectedStudentRecord = null;
+    });
+  }
+
+  void _openRecordsList() {
+    setState(() {
+      _selectedStudentRecord = null;
+      _selectedDestination = 5;
+    });
+  }
+
+  Future<void> _openExternalDestination(Future<void> Function() open) async {
+    if (!await _canLeaveActiveDestination()) return;
+    if (mounted) {
+      setState(() {
+        _selectedDestination = 0;
+        _selectedStudentRecord = null;
+      });
+    }
+    await open();
+  }
+
+  Future<bool> _canLeaveActiveDestination() async {
+    final guard = _activeLeaveGuard;
+    return guard == null ? true : guard();
   }
 
   Future<void> _showEditSchoolDialog() async {
@@ -336,74 +483,6 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     );
   }
 
-  Future<void> _openStudents(TeachingGroup group) async {
-    final studentRepository = context.read<StudentRepository>();
-    final enrollmentRepository = context.read<EnrollmentRepository>();
-    final createStudentInGroup = context.read<CreateStudentInGroup>();
-    final reactivateStudentInGroup = context.read<ReactivateStudentInGroup>();
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => StudentRosterController(
-            studentRepository: studentRepository,
-            enrollmentRepository: enrollmentRepository,
-            createStudentInGroup: createStudentInGroup,
-            reactivateStudentInGroup: reactivateStudentInGroup,
-          ),
-          child: StudentRosterScreen(group: group),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openAttendance(TeachingGroup group) async {
-    final attendanceRepository = context.read<AttendanceRepository>();
-    final enrollmentRepository = context.read<EnrollmentRepository>();
-    final studentRepository = context.read<StudentRepository>();
-    final buildDailyAttendance = context.read<BuildDailyAttendance>();
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => AttendanceController(
-            attendanceRepository: attendanceRepository,
-            enrollmentRepository: enrollmentRepository,
-            studentRepository: studentRepository,
-            buildDailyAttendance: buildDailyAttendance,
-          ),
-          child: AttendanceScreen(group: group),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openProjects(TeachingGroup group) async {
-    final projectRepository = context.read<ProjectRepository>();
-    final activityRepository = context.read<ActivityRepository>();
-    final createProject = context.read<CreateProject>();
-    final createActivity = context.read<CreateActivity>();
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (routeContext) => ChangeNotifierProvider(
-          create: (_) => ProjectsController(
-            projectRepository: projectRepository,
-            activityRepository: activityRepository,
-            createProject: createProject,
-            createActivity: createActivity,
-          ),
-          child: ProjectsScreen(
-            group: group,
-            onEvaluateActivity: (activity) {
-              _openEvaluation(group, initialActivityId: activity.id);
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _openEvaluation(
     TeachingGroup group, {
     String? initialActivityId,
@@ -428,40 +507,6 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             initialActivityId: initialActivityId,
           ),
           child: EvaluationScreen(group: group),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openStudentRecords(TeachingGroup group) async {
-    final enrollmentRepository = context.read<EnrollmentRepository>();
-    final studentRepository = context.read<StudentRepository>();
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => StudentRecordsController(
-            enrollmentRepository: enrollmentRepository,
-            studentRepository: studentRepository,
-          ),
-          child: StudentRecordsScreen(group: group),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openReports(TeachingGroup group) async {
-    final projectionBuilder = context.read<ReportProjectionBuilder>();
-    final publicationService = context.read<ReportPublicationService>();
-
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => ChangeNotifierProvider(
-          create: (_) => ReportsController(
-            projectionBuilder: projectionBuilder,
-            publicationService: publicationService,
-          ),
-          child: ReportsScreen(group: group),
         ),
       ),
     );

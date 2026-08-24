@@ -18,6 +18,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
     required this.schoolYearLabel,
     required this.groupName,
     required this.destinations,
+    this.selectedIndex = 0,
     required this.onChooseSchool,
     this.onEditSchool,
     required this.onOpenSettings,
@@ -29,6 +30,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
   final String schoolYearLabel;
   final String groupName;
   final List<SchoolWorkspaceDestination> destinations;
+  final int selectedIndex;
   final VoidCallback onChooseSchool;
   final VoidCallback? onEditSchool;
   final VoidCallback onOpenSettings;
@@ -111,7 +113,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
   Widget _navigationRail(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return NavigationRail(
-      selectedIndex: 0,
+      selectedIndex: selectedIndex,
       extended: true,
       minExtendedWidth: 232,
       leading: Padding(
@@ -169,7 +171,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
 
   Widget _drawer(BuildContext context) {
     return NavigationDrawer(
-      selectedIndex: 0,
+      selectedIndex: selectedIndex,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 24, 16, 16),
@@ -196,7 +198,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
   Widget _mobileNavigation(BuildContext context) {
     final primary = destinations.take(3).toList(growable: false);
     return NavigationBar(
-      selectedIndex: 0,
+      selectedIndex: selectedIndex < primary.length ? selectedIndex : 0,
       destinations: [
         for (final destination in primary)
           NavigationDestination(

@@ -62,9 +62,9 @@ final class GroupExportRenderer {
       final sheet = workbook[_sheetName(dataset)];
       for (final row in _datasetRows(data, dataset)) {
         sheet.appendRow(
-          row.map<CellValue?>((value) => _cellValue(value)).toList(
-            growable: false,
-          ),
+          row
+              .map<CellValue?>((value) => _cellValue(value))
+              .toList(growable: false),
         );
       }
     }
@@ -98,7 +98,10 @@ final class GroupExportRenderer {
       [english ? 'School' : 'Escuela', context.schoolName],
       ['CCT', context.cct ?? ''],
       [english ? 'State' : 'Entidad', context.state ?? ''],
-      [english ? 'Municipality' : 'Municipio / alcaldía', context.municipality ?? ''],
+      [
+        english ? 'Municipality' : 'Municipio / alcaldía',
+        context.municipality ?? '',
+      ],
       [english ? 'Locality' : 'Localidad', context.locality ?? ''],
       [
         english ? 'School organization' : 'Organización escolar',
@@ -454,16 +457,18 @@ final class GroupExportRenderer {
 
   String _methodologyLabel(String value) {
     return switch (value) {
-      'communityProjects' => english
-          ? 'Community project-based learning'
-          : 'Aprendizaje basado en proyectos comunitarios',
-      'inquirySteam' => english
-          ? 'Inquiry-based STEAM learning'
-          : 'Aprendizaje basado en indagación STEAM',
-      'problemBasedLearning' => english
-          ? 'Problem-based learning'
-          : 'Aprendizaje basado en problemas',
-      'serviceLearning' => english ? 'Service learning' : 'Aprendizaje servicio',
+      'communityProjects' =>
+        english
+            ? 'Community project-based learning'
+            : 'Aprendizaje basado en proyectos comunitarios',
+      'inquirySteam' =>
+        english
+            ? 'Inquiry-based STEAM learning'
+            : 'Aprendizaje basado en indagación STEAM',
+      'problemBasedLearning' =>
+        english ? 'Problem-based learning' : 'Aprendizaje basado en problemas',
+      'serviceLearning' =>
+        english ? 'Service learning' : 'Aprendizaje servicio',
       _ => english ? 'Unspecified' : 'Sin especificar',
     };
   }
@@ -471,18 +476,20 @@ final class GroupExportRenderer {
   String _axisLabel(String value) {
     return switch (value) {
       'inclusion' => english ? 'Inclusion' : 'Inclusión',
-      'criticalThinking' => english ? 'Critical thinking' : 'Pensamiento crítico',
-      'criticalInterculturality' => english
-          ? 'Critical interculturality'
-          : 'Interculturalidad crítica',
+      'criticalThinking' =>
+        english ? 'Critical thinking' : 'Pensamiento crítico',
+      'criticalInterculturality' =>
+        english ? 'Critical interculturality' : 'Interculturalidad crítica',
       'genderEquality' => english ? 'Gender equality' : 'Igualdad de género',
       'healthyLife' => english ? 'Healthy life' : 'Vida saludable',
-      'culturesThroughReadingAndWriting' => english
-          ? 'Cultures through reading and writing'
-          : 'Apropiación de las culturas a través de la lectura y la escritura',
-      'artsAndAestheticExperiences' => english
-          ? 'Arts and aesthetic experiences'
-          : 'Artes y experiencias estéticas',
+      'culturesThroughReadingAndWriting' =>
+        english
+            ? 'Cultures through reading and writing'
+            : 'Apropiación de las culturas a través de la lectura y la escritura',
+      'artsAndAestheticExperiences' =>
+        english
+            ? 'Arts and aesthetic experiences'
+            : 'Artes y experiencias estéticas',
       _ => value,
     };
   }
@@ -490,15 +497,16 @@ final class GroupExportRenderer {
   String _formativeFieldLabel(String value) {
     return switch (value) {
       'languages' => english ? 'Languages' : 'Lenguajes',
-      'knowledgeAndScientificThought' => english
-          ? 'Knowledge and scientific thought'
-          : 'Saberes y pensamiento científico',
-      'ethicsNatureAndSocieties' => english
-          ? 'Ethics, nature and societies'
-          : 'Ética, naturaleza y sociedades',
-      'humanAndCommunity' => english
-          ? 'Human and community'
-          : 'De lo humano y lo comunitario',
+      'knowledgeAndScientificThought' =>
+        english
+            ? 'Knowledge and scientific thought'
+            : 'Saberes y pensamiento científico',
+      'ethicsNatureAndSocieties' =>
+        english
+            ? 'Ethics, nature and societies'
+            : 'Ética, naturaleza y sociedades',
+      'humanAndCommunity' =>
+        english ? 'Human and community' : 'De lo humano y lo comunitario',
       _ => english ? 'Unspecified' : 'Sin especificar',
     };
   }
@@ -528,9 +536,10 @@ final class GroupExportRenderer {
     }
     return switch (state) {
       'pendingDeliveryDecision' => english ? 'Pending' : 'Pendiente',
-      'deliveredAwaitingEvaluation' => english
-          ? 'Delivered, awaiting evaluation'
-          : 'Entregada, pendiente de evaluar',
+      'deliveredAwaitingEvaluation' =>
+        english
+            ? 'Delivered, awaiting evaluation'
+            : 'Entregada, pendiente de evaluar',
       'notDelivered' => english ? 'Not delivered' : 'No entregada',
       'deliveredAndEvaluated' => english ? 'Evaluated' : 'Evaluada',
       _ => state,

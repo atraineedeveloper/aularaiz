@@ -18,15 +18,12 @@ Future<void> main(List<String> args) async {
     await _verifyAuthenticodeSignature(request.installer);
     await _waitForProcessExit(request.pid);
 
-    final result = await Process.run(
-      request.installer.path,
-      const <String>[
-        '/VERYSILENT',
-        '/SUPPRESSMSGBOXES',
-        '/NORESTART',
-        '/SP-',
-      ],
-    );
+    final result = await Process.run(request.installer.path, const <String>[
+      '/VERYSILENT',
+      '/SUPPRESSMSGBOXES',
+      '/NORESTART',
+      '/SP-',
+    ]);
     if (result.exitCode != 0) {
       throw StateError('Installer returned a non-zero exit code.');
     }
@@ -148,16 +145,19 @@ $signature = Get-AuthenticodeSignature -LiteralPath $env:AULARAIZ_UPDATE_INSTALL
 Future<void> _waitForProcessExit(int processId) async {
   if (!Platform.isWindows) return;
 
-  final script = '''
+  final script =
+      '''
 \$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
 if (\$null -ne \$process) {
   \$process | Wait-Process -Timeout 120 -ErrorAction Stop
 }
 ''';
-  final result = await Process.run(
-    'powershell.exe',
-    <String>['-NoProfile', '-NonInteractive', '-Command', script],
-  );
+  final result = await Process.run('powershell.exe', <String>[
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    script,
+  ]);
   if (result.exitCode != 0) {
     throw StateError('AulaRaíz did not close before the update timeout.');
   }

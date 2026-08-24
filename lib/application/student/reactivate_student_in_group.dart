@@ -13,6 +13,24 @@ final class ReactivateStudentInGroup {
   final EnrollStudent _enrollStudent;
   final IdGenerator _idGenerator;
 
+  Future<EnrollStudentResult> preview({
+    required String studentId,
+    required String groupId,
+    required PrimaryGrade grade,
+    required int listNumber,
+    required DateTime startsOn,
+  }) {
+    return _enrollStudent.validate(
+      _candidate(
+        studentId: studentId,
+        groupId: groupId,
+        grade: grade,
+        listNumber: listNumber,
+        startsOn: startsOn,
+      ),
+    );
+  }
+
   Future<EnrollStudentResult> call({
     required String studentId,
     required String groupId,
@@ -21,14 +39,30 @@ final class ReactivateStudentInGroup {
     required DateTime startsOn,
   }) {
     return _enrollStudent(
-      Enrollment(
-        id: _idGenerator.newId(),
+      _candidate(
         studentId: studentId,
         groupId: groupId,
         grade: grade,
         listNumber: listNumber,
         startsOn: startsOn,
       ),
+    );
+  }
+
+  Enrollment _candidate({
+    required String studentId,
+    required String groupId,
+    required PrimaryGrade grade,
+    required int listNumber,
+    required DateTime startsOn,
+  }) {
+    return Enrollment(
+      id: _idGenerator.newId(),
+      studentId: studentId,
+      groupId: groupId,
+      grade: grade,
+      listNumber: listNumber,
+      startsOn: startsOn,
     );
   }
 }

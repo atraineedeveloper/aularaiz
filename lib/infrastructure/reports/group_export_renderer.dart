@@ -483,9 +483,7 @@ final class GroupExportRenderer {
       'genderEquality' => english ? 'Gender equality' : 'Igualdad de género',
       'healthyLife' => english ? 'Healthy life' : 'Vida saludable',
       'culturesThroughReadingAndWriting' =>
-        english
-            ? 'Cultures through reading and writing'
-            : 'Apropiación de las culturas a través de la lectura y la escritura',
+        english ? 'Cultures through reading and writing' : 'Apropiación de las culturas a través de la lectura y la escritura',
       'artsAndAestheticExperiences' =>
         english
             ? 'Arts and aesthetic experiences'

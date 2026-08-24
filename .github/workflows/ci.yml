@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   quality:
@@ -50,9 +50,32 @@ jobs:
           retention-days: 1
       - run: flutter gen-l10n
       - name: Verify Dart formatting
+        id: dart_format
         run: |
           dart format bin lib test integration_test
           git diff --exit-code -- bin lib test integration_test
+      - name: Commit Dart formatter output to PR branch
+        if: failure() && steps.dart_format.outcome == 'failure' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          files="$(git diff --name-only -- bin lib test integration_test)"
+          if [ -z "$files" ]; then
+            exit 0
+          fi
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$HEAD_REF" --jq .sha)"
+            content="$(base64 -w0 "$file")"
+            gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+              -f message='style: apply Dart formatter' \
+              -f content="$content" \
+              -f sha="$sha" \
+              -f branch="$HEAD_REF" >/dev/null
+          done <<< "$files"
       - run: flutter analyze
       - run: flutter test
       - name: Validate automation CLI contract

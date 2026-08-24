@@ -99,6 +99,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   project.id,
                                 ),
                                 isSaving: controller.isSaving,
+                                onEditProject: () =>
+                                    _editProject(context, project),
                                 onLifecycleChanged: (value) =>
                                     controller.setLifecycle(project, value),
                                 onAddActivity: () =>
@@ -129,10 +131,45 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     if (draft == null || !context.mounted) return;
     await context.read<ProjectsController>().createProject(
       title: draft.title,
+      description: draft.description,
+      startsOn: draft.startsOn,
+      endsOn: draft.endsOn,
+      observations: draft.observations,
       methodology: draft.methodology,
       articulatingAxes: draft.axes,
       targetGrades: draft.grades,
     );
+  }
+
+  Future<void> _editProject(BuildContext context, Project project) async {
+    final draft = await showDialog<_ProjectDraft>(
+      context: context,
+      builder: (_) => _ProjectDialog(
+        group: widget.group,
+        initialProject: project,
+      ),
+    );
+    if (draft == null || !context.mounted) return;
+    final saved = await context.read<ProjectsController>().updateProject(
+      project: project,
+      title: draft.title,
+      description: draft.description,
+      startsOn: draft.startsOn,
+      endsOn: draft.endsOn,
+      observations: draft.observations,
+      methodology: draft.methodology,
+      articulatingAxes: draft.axes,
+      targetGrades: draft.grades,
+    );
+    if (saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _label(context, 'Proyecto actualizado.', 'Project updated.'),
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _createActivity(BuildContext context, Project project) async {
@@ -144,6 +181,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     await context.read<ProjectsController>().createActivity(
       project: project,
       title: draft.title,
+      description: draft.description,
+      generalObservations: draft.generalObservations,
       formativeField: draft.field,
       targetGrades: draft.grades,
       occursOn: draft.date,
@@ -164,6 +203,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final saved = await context.read<ProjectsController>().updateActivity(
       activity: activity,
       title: draft.title,
+      description: draft.description,
+      generalObservations: draft.generalObservations,
       formativeField: draft.field,
       targetGrades: draft.grades,
       occursOn: draft.date,
@@ -223,6 +264,7 @@ class _ProjectCard extends StatelessWidget {
     required this.project,
     required this.activities,
     required this.isSaving,
+    required this.onEditProject,
     required this.onLifecycleChanged,
     required this.onAddActivity,
     required this.onEditActivity,
@@ -233,6 +275,7 @@ class _ProjectCard extends StatelessWidget {
   final Project project;
   final List<Activity> activities;
   final bool isSaving;
+  final VoidCallback onEditProject;
   final ValueChanged<ProjectLifecycle> onLifecycleChanged;
   final VoidCallback onAddActivity;
   final ValueChanged<Activity> onEditActivity;
@@ -263,34 +306,60 @@ class _ProjectCard extends StatelessWidget {
                   project.title,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                SegmentedButton<ProjectLifecycle>(
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(
-                      value: ProjectLifecycle.draft,
-                      label: Text(l10n.projectDraft),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  children: [
+                    IconButton(
+                      tooltip: _label(
+                        context,
+                        'Editar proyecto',
+                        'Edit project',
+                      ),
+                      onPressed: isSaving ? null : onEditProject,
+                      icon: const Icon(Icons.edit_note_rounded),
                     ),
-                    ButtonSegment(
-                      value: ProjectLifecycle.inProgress,
-                      label: Text(l10n.projectInProgress),
-                    ),
-                    ButtonSegment(
-                      value: ProjectLifecycle.completed,
-                      label: Text(l10n.projectCompleted),
+                    SegmentedButton<ProjectLifecycle>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: ProjectLifecycle.draft,
+                          label: Text(l10n.projectDraft),
+                        ),
+                        ButtonSegment(
+                          value: ProjectLifecycle.inProgress,
+                          label: Text(l10n.projectInProgress),
+                        ),
+                        ButtonSegment(
+                          value: ProjectLifecycle.completed,
+                          label: Text(l10n.projectCompleted),
+                        ),
+                      ],
+                      selected: {project.lifecycle},
+                      onSelectionChanged: isSaving
+                          ? null
+                          : (value) => onLifecycleChanged(value.single),
                     ),
                   ],
-                  selected: {project.lifecycle},
-                  onSelectionChanged: isSaving
-                      ? null
-                      : (value) => onLifecycleChanged(value.single),
                 ),
               ],
             ),
+            if (project.description != null) ...[
+              const SizedBox(height: 10),
+              Text(project.description!),
+            ],
             const SizedBox(height: 12),
             Text(
               _methodologyLabel(project.methodology, l10n),
               style: Theme.of(context).textTheme.titleSmall,
             ),
+            if (project.startsOn != null || project.endsOn != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _projectDateRangeLabel(context, project.startsOn, project.endsOn),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
@@ -305,6 +374,13 @@ class _ProjectCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (project.observations != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${_label(context, 'Observaciones', 'Observations')}: ${project.observations}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             const Divider(height: 30),
             Row(
               children: [
@@ -348,6 +424,15 @@ class _ProjectCard extends StatelessWidget {
                                   activity.title,
                                   style: Theme.of(context).textTheme.titleSmall,
                                 ),
+                                if (activity.description != null) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    activity.description!,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                ],
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_dateLabel(context, activity.occursOn)} · ${_fieldLabel(activity.formativeField, l10n)}',
@@ -358,6 +443,13 @@ class _ProjectCard extends StatelessWidget {
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
+                                if (activity.generalObservations != null)
+                                  Text(
+                                    '${_label(context, 'Observaciones', 'Observations')}: ${activity.generalObservations}',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context).textTheme.bodySmall,
+                                  ),
                               ],
                             ),
                           ),
@@ -405,9 +497,10 @@ class _ProjectCard extends StatelessWidget {
 }
 
 class _ProjectDialog extends StatefulWidget {
-  const _ProjectDialog({required this.group});
+  const _ProjectDialog({required this.group, this.initialProject});
 
   final TeachingGroup group;
+  final Project? initialProject;
 
   @override
   State<_ProjectDialog> createState() => _ProjectDialogState();
@@ -415,15 +508,39 @@ class _ProjectDialog extends StatefulWidget {
 
 class _ProjectDialogState extends State<_ProjectDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  ProjectMethodology _methodology = ProjectMethodology.communityProjects;
-  final Set<ArticulatingAxis> _axes = {};
-  final Set<PrimaryGrade> _grades = {};
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _observations;
+  late ProjectMethodology _methodology;
+  late Set<ArticulatingAxis> _axes;
+  late Set<PrimaryGrade> _grades;
+  DateTime? _startsOn;
+  DateTime? _endsOn;
   bool _gradeError = false;
+  bool _dateError = false;
+
+  bool get _editing => widget.initialProject != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final project = widget.initialProject;
+    _title = TextEditingController(text: project?.title ?? '');
+    _description = TextEditingController(text: project?.description ?? '');
+    _observations = TextEditingController(text: project?.observations ?? '');
+    _methodology =
+        project?.methodology ?? ProjectMethodology.communityProjects;
+    _axes = Set<ArticulatingAxis>.of(project?.articulatingAxes ?? const {});
+    _grades = Set<PrimaryGrade>.of(project?.targetGrades ?? const {});
+    _startsOn = project?.startsOn;
+    _endsOn = project?.endsOn;
+  }
 
   @override
   void dispose() {
     _title.dispose();
+    _description.dispose();
+    _observations.dispose();
     super.dispose();
   }
 
@@ -433,7 +550,11 @@ class _ProjectDialogState extends State<_ProjectDialog> {
     final available = widget.group.grades.toList()
       ..sort((a, b) => a.number.compareTo(b.number));
     return AlertDialog(
-      title: Text(l10n.createProject),
+      title: Text(
+        _editing
+            ? _label(context, 'Editar proyecto', 'Edit project')
+            : l10n.createProject,
+      ),
       content: SizedBox(
         width: 680,
         child: Form(
@@ -450,6 +571,71 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                       ? l10n.requiredField
                       : null,
                 ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _description,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Descripción', 'Description'),
+                    hintText: _label(
+                      context,
+                      'Propósito, contexto o alcance del proyecto',
+                      'Purpose, context, or scope of the project',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _pickProjectDate(start: true),
+                      icon: const Icon(Icons.event_available_outlined),
+                      label: Text(
+                        '${_label(context, 'Inicio', 'Start')}: ${_dateLabel(context, _startsOn)}',
+                      ),
+                    ),
+                    if (_startsOn != null)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _startsOn = null;
+                          _dateError = false;
+                        }),
+                        child: Text(_label(context, 'Quitar inicio', 'Clear start')),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () => _pickProjectDate(start: false),
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        '${_label(context, 'Fin', 'End')}: ${_dateLabel(context, _endsOn)}',
+                      ),
+                    ),
+                    if (_endsOn != null)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _endsOn = null;
+                          _dateError = false;
+                        }),
+                        child: Text(_label(context, 'Quitar fin', 'Clear end')),
+                      ),
+                  ],
+                ),
+                if (_dateError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      _label(
+                        context,
+                        'La fecha de fin no puede ser anterior a la fecha de inicio.',
+                        'The end date cannot be before the start date.',
+                      ),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<ProjectMethodology>(
                   initialValue: _methodology,
@@ -513,6 +699,15 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _observations,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Observaciones', 'Observations'),
+                  ),
+                ),
               ],
             ),
           ),
@@ -523,18 +718,53 @@ class _ProjectDialogState extends State<_ProjectDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _submit, child: Text(l10n.create)),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(_editing ? l10n.save : l10n.create),
+        ),
       ],
     );
   }
 
+  Future<void> _pickProjectDate({required bool start}) async {
+    final current = start ? _startsOn : _endsOn;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? _startsOn ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2040),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (start) {
+        _startsOn = picked;
+      } else {
+        _endsOn = picked;
+      }
+      _dateError = false;
+    });
+  }
+
   void _submit() {
-    setState(() => _gradeError = _grades.isEmpty);
-    if (!_formKey.currentState!.validate() || _grades.isEmpty) return;
+    final invalidDates =
+        _startsOn != null && _endsOn != null && _endsOn!.isBefore(_startsOn!);
+    setState(() {
+      _gradeError = _grades.isEmpty;
+      _dateError = invalidDates;
+    });
+    if (!_formKey.currentState!.validate() ||
+        _grades.isEmpty ||
+        invalidDates) {
+      return;
+    }
     Navigator.pop(
       context,
       _ProjectDraft(
         title: _title.text.trim(),
+        description: _description.text,
+        startsOn: _startsOn,
+        endsOn: _endsOn,
+        observations: _observations.text,
         methodology: _methodology,
         axes: Set.of(_axes),
         grades: Set.of(_grades),
@@ -556,6 +786,8 @@ class _ActivityDialog extends StatefulWidget {
 class _ActivityDialogState extends State<_ActivityDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _generalObservations;
   late FormativeField _field;
   late Set<PrimaryGrade> _grades;
   late DateTime _date;
@@ -569,6 +801,10 @@ class _ActivityDialogState extends State<_ActivityDialog> {
     super.initState();
     final activity = widget.initialActivity;
     _title = TextEditingController(text: activity?.title ?? '');
+    _description = TextEditingController(text: activity?.description ?? '');
+    _generalObservations = TextEditingController(
+      text: activity?.generalObservations ?? '',
+    );
     _field = activity?.formativeField ?? FormativeField.languages;
     _grades = Set<PrimaryGrade>.of(activity?.targetGrades ?? const {});
     _date = activity?.occursOn ?? DateTime.now();
@@ -577,6 +813,8 @@ class _ActivityDialogState extends State<_ActivityDialog> {
   @override
   void dispose() {
     _title.dispose();
+    _description.dispose();
+    _generalObservations.dispose();
     super.dispose();
   }
 
@@ -617,6 +855,19 @@ class _ActivityDialogState extends State<_ActivityDialog> {
                   validator: (value) => value == null || value.trim().isEmpty
                       ? l10n.requiredField
                       : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _description,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Descripción / instrucciones',
+                      'Description / instructions',
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
@@ -690,6 +941,19 @@ class _ActivityDialogState extends State<_ActivityDialog> {
                         ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _generalObservations,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Observaciones generales',
+                      'General observations',
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -725,6 +989,8 @@ class _ActivityDialogState extends State<_ActivityDialog> {
       context,
       _ActivityDraft(
         title: _title.text.trim(),
+        description: _description.text,
+        generalObservations: _generalObservations.text,
         field: _field,
         grades: Set.of(_grades),
         date: _date,
@@ -736,12 +1002,20 @@ class _ActivityDialogState extends State<_ActivityDialog> {
 final class _ProjectDraft {
   const _ProjectDraft({
     required this.title,
+    required this.description,
+    required this.startsOn,
+    required this.endsOn,
+    required this.observations,
     required this.methodology,
     required this.axes,
     required this.grades,
   });
 
   final String title;
+  final String description;
+  final DateTime? startsOn;
+  final DateTime? endsOn;
+  final String observations;
   final ProjectMethodology methodology;
   final Set<ArticulatingAxis> axes;
   final Set<PrimaryGrade> grades;
@@ -750,12 +1024,16 @@ final class _ProjectDraft {
 final class _ActivityDraft {
   const _ActivityDraft({
     required this.title,
+    required this.description,
+    required this.generalObservations,
     required this.field,
     required this.grades,
     required this.date,
   });
 
   final String title;
+  final String description;
+  final String generalObservations;
   final FormativeField field;
   final Set<PrimaryGrade> grades;
   final DateTime date;
@@ -764,6 +1042,21 @@ final class _ActivityDraft {
 String _dateLabel(BuildContext context, DateTime? date) => date == null
     ? _label(context, 'Fecha no registrada', 'Date not recorded')
     : MaterialLocalizations.of(context).formatMediumDate(date);
+
+String _projectDateRangeLabel(
+  BuildContext context,
+  DateTime? startsOn,
+  DateTime? endsOn,
+) {
+  if (startsOn != null && endsOn != null) {
+    return '${_label(context, 'Periodo', 'Period')}: '
+        '${_dateLabel(context, startsOn)} — ${_dateLabel(context, endsOn)}';
+  }
+  if (startsOn != null) {
+    return '${_label(context, 'Inicio', 'Start')}: ${_dateLabel(context, startsOn)}';
+  }
+  return '${_label(context, 'Fin', 'End')}: ${_dateLabel(context, endsOn)}';
+}
 
 String _label(BuildContext context, String es, String en) =>
     Localizations.localeOf(context).languageCode == 'en' ? en : es;

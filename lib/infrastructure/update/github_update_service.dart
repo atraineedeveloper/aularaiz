@@ -127,20 +127,16 @@ final class GithubUpdateService {
     );
     await installedUpdater.copy(coordinatorCopy.path);
 
-    await Process.start(
-      coordinatorCopy.path,
-      <String>[
-        '--pid',
-        pid.toString(),
-        '--installer',
-        verified.file.path,
-        '--sha256',
-        verified.sha256,
-        '--app',
-        appExecutable.path,
-      ],
-      mode: ProcessStartMode.detached,
-    );
+    await Process.start(coordinatorCopy.path, <String>[
+      '--pid',
+      pid.toString(),
+      '--installer',
+      verified.file.path,
+      '--sha256',
+      verified.sha256,
+      '--app',
+      appExecutable.path,
+    ], mode: ProcessStartMode.detached);
   }
 
   Future<void> _verifyAuthenticodeSignature(File installer) async {

@@ -16,6 +16,8 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_screen.dart';
+import 'package:aularaiz/features/dashboard/presentation/group_dashboard_controller.dart';
+import 'package:aularaiz/features/dashboard/presentation/group_dashboard_screen.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_controller.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
@@ -155,6 +157,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                               return _GroupCard(
                                 group: group,
                                 onEdit: () => _showEditGroupDialog(group),
+                                onDelete: () => _confirmDeleteGroup(group),
+                                onDashboard: () => _openDashboard(group),
                                 onStudents: () => _openStudents(group),
                                 onAttendance: () => _openAttendance(group),
                                 onProjects: () => _openProjects(group),
@@ -244,6 +248,76 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _confirmDeleteGroup(TeachingGroup group) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: Text(_label(context, '¿Eliminar grupo?', 'Delete class?')),
+        content: Text(
+          _label(
+            context,
+            'Se eliminará permanentemente “${group.name}” con sus matrículas, asistencias, proyectos, actividades y evaluaciones. Esta acción no se puede deshacer.',
+            '“${group.name}” will be permanently deleted with its enrollments, attendance, projects, activities and evaluations. This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(_label(context, 'Eliminar', 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final deleted = await context
+        .read<SchoolWorkspaceController>()
+        .deleteGroup(group);
+    if (mounted && deleted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_label(context, 'Grupo eliminado.', 'Class deleted.')),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openDashboard(TeachingGroup group) async {
+    final enrollmentRepository = context.read<EnrollmentRepository>();
+    final studentRepository = context.read<StudentRepository>();
+    final attendanceRepository = context.read<AttendanceRepository>();
+    final projectRepository = context.read<ProjectRepository>();
+    final activityRepository = context.read<ActivityRepository>();
+    final evaluationRepository = context.read<EvaluationRepository>();
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ChangeNotifierProvider(
+          create: (_) => GroupDashboardController(
+            enrollmentRepository: enrollmentRepository,
+            studentRepository: studentRepository,
+            attendanceRepository: attendanceRepository,
+            projectRepository: projectRepository,
+            activityRepository: activityRepository,
+            evaluationRepository: evaluationRepository,
+          ),
+          child: GroupDashboardScreen(group: group),
+        ),
+      ),
+    );
   }
 
   Future<void> _openStudents(TeachingGroup group) async {
@@ -440,6 +514,8 @@ class _GroupCard extends StatelessWidget {
   const _GroupCard({
     required this.group,
     required this.onEdit,
+    required this.onDelete,
+    required this.onDashboard,
     required this.onStudents,
     required this.onAttendance,
     required this.onProjects,
@@ -450,6 +526,8 @@ class _GroupCard extends StatelessWidget {
 
   final TeachingGroup group;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback onDashboard;
   final VoidCallback onStudents;
   final VoidCallback onAttendance;
   final VoidCallback onProjects;
@@ -482,6 +560,14 @@ class _GroupCard extends StatelessWidget {
                   tooltip: _label(context, 'Editar grupo', 'Edit class'),
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined),
+                ),
+                IconButton(
+                  tooltip: _label(context, 'Eliminar grupo', 'Delete class'),
+                  onPressed: onDelete,
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Chip(
@@ -544,6 +630,13 @@ class _GroupCard extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                FilledButton.tonalIcon(
+                  onPressed: onDashboard,
+                  icon: const Icon(Icons.dashboard_outlined),
+                  label: Text(
+                    _label(context, 'Resumen del grupo', 'Class dashboard'),
+                  ),
+                ),
                 FilledButton.tonalIcon(
                   onPressed: onProjects,
                   icon: const Icon(Icons.auto_awesome_motion_outlined),

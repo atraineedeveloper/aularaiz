@@ -50,7 +50,9 @@ final class DriftActivityRepository
               projectId: Value(activity.projectId),
               identifier: Value(activity.identifier),
               title: Value(activity.title),
+              description: Value(activity.description),
               occursOn: Value(activity.occursOn),
+              generalObservations: Value(activity.generalObservations),
             ),
           );
       await database
@@ -133,7 +135,9 @@ final class DriftActivityRepository
       projectId: row.projectId,
       identifier: row.identifier,
       title: row.title,
+      description: row.description,
       occursOn: row.occursOn,
+      generalObservations: row.generalObservations,
       formativeField: formativeField,
       targetGrades: {for (final grade in grades) grade.grade},
       roster: [

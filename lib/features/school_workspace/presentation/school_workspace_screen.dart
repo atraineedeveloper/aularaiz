@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/school_workspace_shell.dart';
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
@@ -76,101 +77,116 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       return Scaffold(body: Center(child: Text(l10n.setupSaveError)));
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: _label(context, 'Cambiar escuela', 'Choose another school'),
-          onPressed: widget.onChooseSchool,
-          icon: const Icon(Icons.arrow_back_rounded),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(setup.school.name),
-            Text(
-              setup.schoolYear.label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: _label(context, 'Editar escuela', 'Edit school'),
-            onPressed: controller.isSaving ? null : _showEditSchoolDialog,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: l10n.settingsTitle,
-            onPressed: () => context.push('/settings'),
-            icon: const Icon(Icons.tune_rounded),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1120),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    _label(context, 'Mi grupo', 'My class'),
-                    style: Theme.of(context).textTheme.headlineMedium,
+    final group = controller.groups.isEmpty ? null : controller.groups.first;
+    return SchoolWorkspaceShell(
+      schoolName: setup.school.name,
+      schoolYearLabel: setup.schoolYear.label,
+      groupName: group?.name ?? _label(context, 'Sin grupo', 'No class'),
+      onChooseSchool: widget.onChooseSchool,
+      onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
+      onOpenSettings: () => context.push('/settings'),
+      destinations: group == null
+          ? const <SchoolWorkspaceDestination>[]
+          : <SchoolWorkspaceDestination>[
+              SchoolWorkspaceDestination(
+                label: _label(context, 'Inicio', 'Home'),
+                icon: Icons.home_outlined,
+                onSelect: () {},
+              ),
+              SchoolWorkspaceDestination(
+                label: l10n.openStudents,
+                icon: Icons.groups_outlined,
+                onSelect: () => _openStudents(group),
+              ),
+              SchoolWorkspaceDestination(
+                label: _label(context, 'Asistencia', 'Attendance'),
+                icon: Icons.fact_check_outlined,
+                onSelect: () => _openAttendance(group),
+              ),
+              SchoolWorkspaceDestination(
+                label: l10n.openProjects,
+                icon: Icons.auto_awesome_motion_outlined,
+                onSelect: () => _openProjects(group),
+              ),
+              SchoolWorkspaceDestination(
+                label: _label(context, 'Evaluación', 'Evaluation'),
+                icon: Icons.assignment_turned_in_outlined,
+                onSelect: () => _openEvaluation(group),
+              ),
+              SchoolWorkspaceDestination(
+                label: l10n.openStudentRecords,
+                icon: Icons.folder_shared_outlined,
+                onSelect: () => _openStudentRecords(group),
+              ),
+              SchoolWorkspaceDestination(
+                label: l10n.openReports,
+                icon: Icons.summarize_outlined,
+                onSelect: () => _openReports(group),
+              ),
+            ],
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1120),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  _label(context, 'Mi grupo', 'My class'),
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _label(
+                    context,
+                    'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
+                    'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
                   ),
-                  const SizedBox(height: 8),
+                ),
+                if (controller.error != null) ...[
+                  const SizedBox(height: 12),
                   Text(
                     _label(
                       context,
-                      'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
-                      'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
+                      'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
+                      'The change could not be saved. Check the data and try again.',
                     ),
-                  ),
-                  if (controller.error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _label(
-                        context,
-                        'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
-                        'The change could not be saved. Check the data and try again.',
-                      ),
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                  ],
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: controller.groups.isEmpty
-                        ? _EmptyGroup(
-                            isSaving: controller.isSaving,
-                            onCreate: _showCreateGroupDialog,
-                          )
-                        : ListView.separated(
-                            itemCount: controller.groups.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              final group = controller.groups[index];
-                              return _GroupCard(
-                                group: group,
-                                onEdit: () => _showEditGroupDialog(group),
-                                onDelete: () => _confirmDeleteGroup(group),
-                                onDashboard: () => _openDashboard(group),
-                                onStudents: () => _openStudents(group),
-                                onAttendance: () => _openAttendance(group),
-                                onProjects: () => _openProjects(group),
-                                onEvaluation: () => _openEvaluation(group),
-                                onRecords: () => _openStudentRecords(group),
-                                onReports: () => _openReports(group),
-                              );
-                            },
-                          ),
                   ),
                 ],
-              ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: controller.groups.isEmpty
+                      ? _EmptyGroup(
+                          isSaving: controller.isSaving,
+                          onCreate: _showCreateGroupDialog,
+                        )
+                      : ListView.separated(
+                          itemCount: controller.groups.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final group = controller.groups[index];
+                            return _GroupCard(
+                              group: group,
+                              onEdit: () => _showEditGroupDialog(group),
+                              onDelete: () => _confirmDeleteGroup(group),
+                              onDashboard: () => _openDashboard(group),
+                              onStudents: () => _openStudents(group),
+                              onAttendance: () => _openAttendance(group),
+                              onProjects: () => _openProjects(group),
+                              onEvaluation: () => _openEvaluation(group),
+                              onRecords: () => _openStudentRecords(group),
+                              onReports: () => _openReports(group),
+                              modernOverview: true,
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
           ),
         ),
@@ -522,6 +538,7 @@ class _GroupCard extends StatelessWidget {
     required this.onEvaluation,
     required this.onRecords,
     required this.onReports,
+    required this.modernOverview,
   });
 
   final TeachingGroup group;
@@ -534,9 +551,32 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onEvaluation;
   final VoidCallback onRecords;
   final VoidCallback onReports;
+  final bool modernOverview;
 
   @override
   Widget build(BuildContext context) {
+    if (modernOverview) {
+      return ChangeNotifierProvider(
+        create: (context) => GroupDashboardController(
+          enrollmentRepository: context.read<EnrollmentRepository>(),
+          studentRepository: context.read<StudentRepository>(),
+          attendanceRepository: context.read<AttendanceRepository>(),
+          projectRepository: context.read<ProjectRepository>(),
+          activityRepository: context.read<ActivityRepository>(),
+          evaluationRepository: context.read<EvaluationRepository>(),
+        ),
+        child: GroupDashboardOverview(
+          group: group,
+          onEditGroup: onEdit,
+          onDeleteGroup: onDelete,
+          onOpenStudents: onStudents,
+          onOpenAttendance: onAttendance,
+          onOpenEvaluation: onEvaluation,
+          onOpenDetailedDashboard: onDashboard,
+        ),
+      );
+    }
+
     final l10n = AppLocalizations.of(context);
     final grades = group.grades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));

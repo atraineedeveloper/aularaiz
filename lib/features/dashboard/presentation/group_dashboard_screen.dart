@@ -302,6 +302,301 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
   }
 }
 
+class GroupDashboardOverview extends StatefulWidget {
+  const GroupDashboardOverview({
+    required this.group,
+    required this.onEditGroup,
+    required this.onDeleteGroup,
+    required this.onOpenStudents,
+    required this.onOpenAttendance,
+    required this.onOpenEvaluation,
+    required this.onOpenDetailedDashboard,
+    super.key,
+  });
+
+  final TeachingGroup group;
+  final VoidCallback onEditGroup;
+  final VoidCallback onDeleteGroup;
+  final VoidCallback onOpenStudents;
+  final VoidCallback onOpenAttendance;
+  final VoidCallback onOpenEvaluation;
+  final VoidCallback onOpenDetailedDashboard;
+
+  @override
+  State<GroupDashboardOverview> createState() => _GroupDashboardOverviewState();
+}
+
+class _GroupDashboardOverviewState extends State<GroupDashboardOverview> {
+  bool _loaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loaded) return;
+    _loaded = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GroupDashboardController>().load(widget.group);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<GroupDashboardController>();
+    final grades = widget.group.grades.toList()
+      ..sort((left, right) => left.number.compareTo(right.number));
+    final scheme = Theme.of(context).colorScheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 920
+            ? 4
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        const spacing = 14.0;
+        final metricWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.group.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _label(
+                                  context,
+                                  'Espacio de trabajo del grupo',
+                                  'Class workspace',
+                                ),
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: _label(
+                            context,
+                            'Editar grupo',
+                            'Edit class',
+                          ),
+                          onPressed: widget.onEditGroup,
+                          icon: const Icon(Icons.edit_outlined),
+                        ),
+                        IconButton(
+                          tooltip: _label(
+                            context,
+                            'Eliminar grupo',
+                            'Delete class',
+                          ),
+                          onPressed: widget.onDeleteGroup,
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: scheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final grade in grades)
+                          Chip(label: Text('${grade.number}°')),
+                        if (widget.group.shift?.trim().isNotEmpty == true)
+                          Chip(
+                            avatar: const Icon(
+                              Icons.schedule_rounded,
+                              size: 18,
+                            ),
+                            label: Text(widget.group.shift!),
+                          ),
+                        Chip(
+                          label: Text(
+                            widget.group.isMultigrade
+                                ? _label(context, 'Multigrado', 'Multigrade')
+                                : _label(context, 'Unigrado', 'Single grade'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      _label(context, 'Para hoy', 'For today'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: widget.onOpenAttendance,
+                          icon: const Icon(Icons.fact_check_rounded),
+                          label: Text(
+                            _label(
+                              context,
+                              'Tomar asistencia',
+                              'Take attendance',
+                            ),
+                          ),
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: widget.onOpenEvaluation,
+                          icon: const Icon(Icons.assignment_turned_in_outlined),
+                          label: Text(
+                            _label(
+                              context,
+                              'Evaluar actividades',
+                              'Evaluate activities',
+                            ),
+                          ),
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: widget.onOpenStudents,
+                          icon: const Icon(Icons.groups_outlined),
+                          label: Text(
+                            _label(context, 'Ver alumnos', 'View students'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            if (controller.isLoading && controller.studentCount == 0)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else ...[
+              if (controller.error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _label(
+                      context,
+                      'No se pudieron cargar todos los indicadores.',
+                      'Some dashboard indicators could not be loaded.',
+                    ),
+                    style: TextStyle(color: scheme.error),
+                  ),
+                ),
+              Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: [
+                  SizedBox(
+                    width: metricWidth,
+                    child: _MetricCard(
+                      icon: Icons.groups_rounded,
+                      label: _label(context, 'Alumnos', 'Students'),
+                      value: '${controller.studentCount}',
+                      detail: _label(context, 'matriculados', 'enrolled'),
+                    ),
+                  ),
+                  SizedBox(
+                    width: metricWidth,
+                    child: _MetricCard(
+                      icon: Icons.fact_check_rounded,
+                      label: _label(context, 'Asistencia', 'Attendance'),
+                      value: _percent(controller.attendanceRate),
+                      detail: controller.attendanceMonth == null
+                          ? _label(
+                              context,
+                              'sin registros aún',
+                              'no records yet',
+                            )
+                          : _label(
+                              context,
+                              '${controller.recordedAttendanceDays} días registrados',
+                              '${controller.recordedAttendanceDays} recorded days',
+                            ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: metricWidth,
+                    child: _MetricCard(
+                      icon: Icons.auto_awesome_motion_outlined,
+                      label: _label(context, 'Proyectos', 'Projects'),
+                      value: '${controller.projectCount}',
+                      detail: _label(
+                        context,
+                        '${controller.activityCount} actividades',
+                        '${controller.activityCount} activities',
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: metricWidth,
+                    child: _MetricCard(
+                      icon: Icons.task_alt_rounded,
+                      label: _label(context, 'Entregas', 'Deliveries'),
+                      value: _percent(controller.deliveryRate),
+                      detail: controller.deliveryDecisions == 0
+                          ? _label(context, 'sin decisiones', 'no decisions')
+                          : _label(
+                              context,
+                              '${controller.deliveryDecisions} registradas',
+                              '${controller.deliveryDecisions} recorded',
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Card(
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
+                  leading: const Icon(Icons.insights_outlined),
+                  title: Text(
+                    _label(context, 'Indicadores del grupo', 'Class insights'),
+                  ),
+                  subtitle: Text(
+                    _label(
+                      context,
+                      'Consulta niveles de logro y alertas de asistencia.',
+                      'Review achievement levels and attendance alerts.',
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: widget.onOpenDetailedDashboard,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
     required this.icon,

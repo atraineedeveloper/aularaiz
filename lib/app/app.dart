@@ -16,7 +16,8 @@ class AulaRaizApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettingsController>();
     final runtime =
-        context.watch<AppRuntimeConfig?>() ?? const AppRuntimeConfig.production();
+        context.watch<AppRuntimeConfig?>() ??
+        const AppRuntimeConfig.production();
     const palette = AppPalette.mexico;
 
     return MaterialApp.router(
@@ -69,12 +70,13 @@ class AulaRaizApp extends StatelessWidget {
                         ),
                         child: Text(
                           'DEMO',
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onTertiaryContainer,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onTertiaryContainer,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
                     ),

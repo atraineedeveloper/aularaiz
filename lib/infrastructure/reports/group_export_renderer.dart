@@ -234,26 +234,38 @@ final class GroupExportRenderer {
       english
           ? [
               'Project',
+              'Description',
+              'Start date',
+              'End date',
               'Lifecycle',
               'NEM methodology',
               'Target grades',
               'Articulating axes',
+              'Observations',
             ]
           : [
               'Proyecto',
+              'Descripción',
+              'Fecha de inicio',
+              'Fecha de fin',
               'Estado',
               'Metodología NEM',
               'Grados destinatarios',
               'Ejes articuladores',
+              'Observaciones',
             ],
     ];
     for (final row in data.projects) {
       rows.add([
         row.title,
+        row.description ?? '',
+        _date(row.startsOn),
+        _date(row.endsOn),
         _projectLifecycleLabel(row.lifecycle),
         _methodologyLabel(row.methodology),
         row.targetGrades.map((grade) => '$grade°').join(', '),
         row.articulatingAxes.map(_axisLabel).join(', '),
+        row.observations ?? '',
       ]);
     }
     return rows;
@@ -266,19 +278,23 @@ final class GroupExportRenderer {
               'Project',
               'Identifier',
               'Activity',
+              'Description / instructions',
               'Date',
               'Formative field',
               'Target grades',
               'Applicable students',
+              'General observations',
             ]
           : [
               'Proyecto',
               'Identificador',
               'Actividad',
+              'Descripción / instrucciones',
               'Fecha',
               'Campo formativo',
               'Grados destinatarios',
               'Alumnos aplicables',
+              'Observaciones generales',
             ],
     ];
     for (final row in data.activities) {
@@ -286,10 +302,12 @@ final class GroupExportRenderer {
         row.projectTitle,
         row.identifier,
         row.title,
+        row.description ?? '',
         _date(row.occursOn),
         _formativeFieldLabel(row.formativeField),
         row.targetGrades.map((grade) => '$grade°').join(', '),
         row.participantCount,
+        row.generalObservations ?? '',
       ]);
     }
     return rows;
@@ -483,7 +501,9 @@ final class GroupExportRenderer {
       'genderEquality' => english ? 'Gender equality' : 'Igualdad de género',
       'healthyLife' => english ? 'Healthy life' : 'Vida saludable',
       'culturesThroughReadingAndWriting' =>
-        english ? 'Cultures through reading and writing' : 'Apropiación de las culturas a través de la lectura y la escritura',
+        english
+            ? 'Cultures through reading and writing'
+            : 'Apropiación de las culturas a través de la lectura y la escritura',
       'artsAndAestheticExperiences' =>
         english
             ? 'Arts and aesthetic experiences'

@@ -154,7 +154,9 @@ final class ReportProjectionBuilder {
     });
 
     final attendanceRows = <GroupExportAttendanceRow>[];
-    final attendance = await _attendanceRepository.listForMonth(group.id, month);
+    final attendance = [
+      ...await _attendanceRepository.listForMonth(group.id, month),
+    ];
     attendance.sort((left, right) => left.date.compareTo(right.date));
     for (final day in attendance) {
       for (final entry in day.entries.values) {
@@ -186,7 +188,7 @@ final class ReportProjectionBuilder {
           : left.studentName.compareTo(right.studentName);
     });
 
-    final projects = await _projectRepository.listForGroup(group.id);
+    final projects = [...await _projectRepository.listForGroup(group.id)];
     projects.sort((left, right) => left.title.compareTo(right.title));
     final projectRows = <GroupExportProjectRow>[];
     final activityRows = <GroupExportActivityRow>[];
@@ -209,9 +211,9 @@ final class ReportProjectionBuilder {
         ),
       );
 
-      final projectActivities = await _activityRepository.listForProject(
-        project.id,
-      );
+      final projectActivities = [
+        ...await _activityRepository.listForProject(project.id),
+      ];
       projectActivities.sort((left, right) {
         final leftDate = left.occursOn;
         final rightDate = right.occursOn;
@@ -227,10 +229,8 @@ final class ReportProjectionBuilder {
       });
       activities.addAll(projectActivities);
       for (final activity in projectActivities) {
-        final grades = activity.targetGrades
-            .map((grade) => grade.number)
-            .toList()
-          ..sort();
+        final grades =
+            activity.targetGrades.map((grade) => grade.number).toList()..sort();
         activityRows.add(
           GroupExportActivityRow(
             projectId: project.id,
@@ -275,8 +275,7 @@ final class ReportProjectionBuilder {
             listNumber: enrollment?.listNumber,
             studentName: student.displayName,
             grade: participant.grade.number,
-            resultState:
-                evaluation?.state.name ?? 'pendingDeliveryDecision',
+            resultState: evaluation?.state.name ?? 'pendingDeliveryDecision',
             deliveryStatus:
                 evaluation?.deliveryStatus.name ?? DeliveryStatus.pending.name,
             achievement: evaluation?.achievement?.name,
@@ -642,7 +641,8 @@ final class ReportProjectionBuilder {
   ) {
     Enrollment? selected;
     for (final enrollment in enrollments) {
-      if (enrollment.studentId != studentId || enrollment.startsOn.isAfter(date)) {
+      if (enrollment.studentId != studentId ||
+          enrollment.startsOn.isAfter(date)) {
         continue;
       }
       if (selected == null || enrollment.startsOn.isAfter(selected.startsOn)) {

@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 
 export 'package:aularaiz/features/reports/presentation/reports_localization.dart';
 export 'package:aularaiz/infrastructure/reports/group_export_renderer.dart'
-    show GroupExportFormat;
+    show GroupExportDataset, GroupExportFormat;
 
 enum ReportPublishResult { published, cancelled, failed }
 
@@ -85,11 +85,12 @@ final class ReportsController extends ChangeNotifier {
   Future<ReportPublishResult> publishGroupExport({
     required GroupExportFormat format,
     required bool english,
+    GroupExportDataset dataset = GroupExportDataset.students,
   }) async {
     final group = _group;
     if (group == null || _isPublishing) return ReportPublishResult.failed;
     return _publish(() async {
-      final report = await _projectionBuilder.buildGroup(
+      final data = await _projectionBuilder.buildGroupExport(
         group: group,
         referenceMonth: _referenceMonth,
         privacy: ReportPrivacyOptions(
@@ -97,26 +98,21 @@ final class ReportsController extends ChangeNotifier {
         ),
       );
       final renderer = GroupExportRenderer(english: english);
-      final sensitive = _includeSensitiveFollowUp;
 
       return switch (format) {
         GroupExportFormat.csv => _publicationService.publishFile(
-          bytes: renderer.renderCsv(
-            report,
-            includeSensitiveFollowUp: sensitive,
-          ),
-          fileName: 'aularaiz-grupo-${_monthKey()}.csv',
+          bytes: renderer.renderCsv(data, dataset: dataset),
+          fileName:
+              'aularaiz-${dataset.name.toLowerCase()}-${_monthKey()}.csv',
           mimeType: 'text/csv',
           extension: 'csv',
           typeLabel: 'CSV',
         ),
         GroupExportFormat.xlsx => _publicationService.publishFile(
-          bytes: renderer.renderXlsx(
-            report,
-            includeSensitiveFollowUp: sensitive,
-          ),
-          fileName: 'aularaiz-grupo-${_monthKey()}.xlsx',
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          bytes: renderer.renderXlsx(data),
+          fileName: 'aularaiz-grupo-completo-${_monthKey()}.xlsx',
+          mimeType:
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           extension: 'xlsx',
           typeLabel: 'Excel',
         ),

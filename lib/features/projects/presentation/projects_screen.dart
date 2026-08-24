@@ -17,14 +17,17 @@ class ProjectsScreen extends StatefulWidget {
     required this.onEvaluateActivity,
     super.key,
   });
+
   final TeachingGroup group;
   final ValueChanged<Activity> onEvaluateActivity;
+
   @override
   State<ProjectsScreen> createState() => _ProjectsScreenState();
 }
 
 class _ProjectsScreenState extends State<ProjectsScreen> {
   bool _loaded = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -92,14 +95,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             for (final project in controller.projects) ...[
                               _ProjectCard(
                                 project: project,
-                                activities: controller.activitiesFor(
-                                  project.id,
-                                ),
+                                activities: controller.activitiesFor(project.id),
                                 isSaving: controller.isSaving,
-                                onLifecycleChanged: (v) =>
-                                    controller.setLifecycle(project, v),
+                                onLifecycleChanged: (value) =>
+                                    controller.setLifecycle(project, value),
                                 onAddActivity: () =>
                                     _createActivity(context, project),
+                                onEditActivity: (activity) =>
+                                    _editActivity(context, project, activity),
+                                onDeleteActivity: (activity) =>
+                                    _deleteActivity(context, activity),
                                 onEvaluateActivity: widget.onEvaluateActivity,
                               ),
                               const SizedBox(height: 14),
@@ -142,6 +147,73 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       occursOn: draft.date,
     );
   }
+
+  Future<void> _editActivity(
+    BuildContext context,
+    Project project,
+    Activity activity,
+  ) async {
+    final draft = await showDialog<_ActivityDraft>(
+      context: context,
+      builder: (_) => _ActivityDialog(
+        project: project,
+        initialActivity: activity,
+      ),
+    );
+    if (draft == null || !context.mounted) return;
+    final saved = await context.read<ProjectsController>().updateActivity(
+      activity: activity,
+      title: draft.title,
+      formativeField: draft.field,
+      targetGrades: draft.grades,
+      occursOn: draft.date,
+    );
+    if (saved && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _label(context, 'Actividad actualizada.', 'Activity updated.'),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteActivity(BuildContext context, Activity activity) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(context).colorScheme.error,
+        ),
+        title: Text(_label(context, '¿Eliminar actividad?', 'Delete activity?')),
+        content: Text(
+          _label(
+            context,
+            'Se eliminará “${activity.displayIdentifier} · ${activity.title}” junto con sus evaluaciones. Esta acción no se puede deshacer.',
+            '“${activity.displayIdentifier} · ${activity.title}” and its evaluations will be permanently deleted. This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(_label(context, 'Eliminar', 'Delete')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await context.read<ProjectsController>().deleteActivity(activity);
+  }
 }
 
 class _ProjectCard extends StatelessWidget {
@@ -151,13 +223,18 @@ class _ProjectCard extends StatelessWidget {
     required this.isSaving,
     required this.onLifecycleChanged,
     required this.onAddActivity,
+    required this.onEditActivity,
+    required this.onDeleteActivity,
     required this.onEvaluateActivity,
   });
+
   final Project project;
   final List<Activity> activities;
   final bool isSaving;
   final ValueChanged<ProjectLifecycle> onLifecycleChanged;
   final VoidCallback onAddActivity;
+  final ValueChanged<Activity> onEditActivity;
+  final ValueChanged<Activity> onDeleteActivity;
   final ValueChanged<Activity> onEvaluateActivity;
 
   @override
@@ -167,6 +244,7 @@ class _ProjectCard extends StatelessWidget {
       ..sort((a, b) => a.number.compareTo(b.number));
     final axes = project.articulatingAxes.toList()
       ..sort((a, b) => a.index.compareTo(b.index));
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -202,7 +280,7 @@ class _ProjectCard extends StatelessWidget {
                   selected: {project.lifecycle},
                   onSelectionChanged: isSaving
                       ? null
-                      : (v) => onLifecycleChanged(v.single),
+                      : (value) => onLifecycleChanged(value.single),
                 ),
               ],
             ),
@@ -248,47 +326,70 @@ class _ProjectCard extends StatelessWidget {
               )
             else
               for (final activity in activities)
-                Card.outlined(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 12,
-                      runSpacing: 8,
-                      children: [
-                        CircleAvatar(
-                          radius: 22,
-                          child: Text(activity.displayIdentifier),
-                        ),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(minWidth: 260),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                activity.title,
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${_dateLabel(context, activity.occursOn)} · ${_fieldLabel(activity.formativeField, l10n)}',
-                              ),
-                              Text(
-                                l10n.activityRosterCount(
-                                  activity.roster.length,
-                                ),
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            ],
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Card.outlined(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 22,
+                            child: Text(activity.displayIdentifier),
                           ),
-                        ),
-                        FilledButton.tonalIcon(
-                          onPressed: () => onEvaluateActivity(activity),
-                          icon: const Icon(Icons.grid_on_rounded),
-                          label: Text(l10n.evaluateActivity),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activity.title,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${_dateLabel(context, activity.occursOn)} · ${_fieldLabel(activity.formativeField, l10n)}',
+                                ),
+                                Text(
+                                  l10n.activityRosterCount(activity.roster.length),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.tonalIcon(
+                            onPressed: () => onEvaluateActivity(activity),
+                            icon: const Icon(Icons.grid_on_rounded),
+                            label: Text(l10n.evaluateActivity),
+                          ),
+                          IconButton(
+                            tooltip: _label(
+                              context,
+                              'Editar actividad',
+                              'Edit activity',
+                            ),
+                            onPressed: isSaving
+                                ? null
+                                : () => onEditActivity(activity),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: _label(
+                              context,
+                              'Eliminar actividad',
+                              'Delete activity',
+                            ),
+                            onPressed: isSaving
+                                ? null
+                                : () => onDeleteActivity(activity),
+                            icon: Icon(
+                              Icons.delete_outline_rounded,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -301,7 +402,9 @@ class _ProjectCard extends StatelessWidget {
 
 class _ProjectDialog extends StatefulWidget {
   const _ProjectDialog({required this.group});
+
   final TeachingGroup group;
+
   @override
   State<_ProjectDialog> createState() => _ProjectDialogState();
 }
@@ -313,6 +416,7 @@ class _ProjectDialogState extends State<_ProjectDialog> {
   final Set<ArticulatingAxis> _axes = {};
   final Set<PrimaryGrade> _grades = {};
   bool _gradeError = false;
+
   @override
   void dispose() {
     _title.dispose();
@@ -338,22 +442,23 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                   controller: _title,
                   autofocus: true,
                   decoration: InputDecoration(labelText: l10n.projectTitle),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? l10n.requiredField : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? l10n.requiredField
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<ProjectMethodology>(
                   initialValue: _methodology,
                   decoration: InputDecoration(labelText: l10n.methodology),
                   items: [
-                    for (final v in ProjectMethodology.values)
+                    for (final value in ProjectMethodology.values)
                       DropdownMenuItem(
-                        value: v,
-                        child: Text(_methodologyLabel(v, l10n)),
+                        value: value,
+                        child: Text(_methodologyLabel(value, l10n)),
                       ),
                   ],
-                  onChanged: (v) {
-                    if (v != null) setState(() => _methodology = v);
+                  onChanged: (value) {
+                    if (value != null) setState(() => _methodology = value);
                   },
                 ),
                 const SizedBox(height: 18),
@@ -370,27 +475,25 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                       FilterChip(
                         label: Text(_axisLabel(axis, l10n)),
                         selected: _axes.contains(axis),
-                        onSelected: (s) => setState(
-                          () => s ? _axes.add(axis) : _axes.remove(axis),
+                        onSelected: (selected) => setState(
+                          () => selected ? _axes.add(axis) : _axes.remove(axis),
                         ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 18),
-                Text(
-                  l10n.grades,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text(l10n.grades, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: [
                     for (final grade in available)
                       FilterChip(
                         label: Text(_gradeLabel(grade, l10n)),
                         selected: _grades.contains(grade),
-                        onSelected: (s) => setState(() {
-                          s ? _grades.add(grade) : _grades.remove(grade);
+                        onSelected: (selected) => setState(() {
+                          selected ? _grades.add(grade) : _grades.remove(grade);
                           _gradeError = false;
                         }),
                       ),
@@ -399,9 +502,7 @@ class _ProjectDialogState extends State<_ProjectDialog> {
                 if (_gradeError)
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
               ],
             ),
@@ -434,19 +535,36 @@ class _ProjectDialogState extends State<_ProjectDialog> {
 }
 
 class _ActivityDialog extends StatefulWidget {
-  const _ActivityDialog({required this.project});
+  const _ActivityDialog({required this.project, this.initialActivity});
+
   final Project project;
+  final Activity? initialActivity;
+
   @override
   State<_ActivityDialog> createState() => _ActivityDialogState();
 }
 
 class _ActivityDialogState extends State<_ActivityDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _title = TextEditingController();
-  FormativeField _field = FormativeField.languages;
-  final Set<PrimaryGrade> _grades = {};
-  DateTime _date = DateTime.now();
+  late final TextEditingController _title;
+  late FormativeField _field;
+  late Set<PrimaryGrade> _grades;
+  late DateTime _date;
   bool _gradeError = false;
+
+  bool get _editing => widget.initialActivity != null;
+  bool get _lockGrades => widget.initialActivity?.roster.isNotEmpty == true;
+
+  @override
+  void initState() {
+    super.initState();
+    final activity = widget.initialActivity;
+    _title = TextEditingController(text: activity?.title ?? '');
+    _field = activity?.formativeField ?? FormativeField.languages;
+    _grades = Set<PrimaryGrade>.of(activity?.targetGrades ?? const {});
+    _date = activity?.occursOn ?? DateTime.now();
+  }
+
   @override
   void dispose() {
     _title.dispose();
@@ -459,10 +577,15 @@ class _ActivityDialogState extends State<_ActivityDialog> {
     final grades = widget.project.targetGrades.toList()
       ..sort((a, b) => a.number.compareTo(b.number));
     final fields = FormativeField.values.where(
-      (f) => f != FormativeField.unspecified,
+      (field) => field != FormativeField.unspecified,
     );
+
     return AlertDialog(
-      title: Text(l10n.addActivity),
+      title: Text(
+        _editing
+            ? _label(context, 'Editar actividad', 'Edit activity')
+            : l10n.addActivity,
+      ),
       content: SizedBox(
         width: 620,
         child: Form(
@@ -471,12 +594,20 @@ class _ActivityDialogState extends State<_ActivityDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (_editing) ...[
+                  Text(
+                    '${_label(context, 'Identificador', 'Identifier')}: ${widget.initialActivity!.displayIdentifier}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextFormField(
                   controller: _title,
                   autofocus: true,
                   decoration: InputDecoration(labelText: l10n.activityTitle),
-                  validator: (v) =>
-                      v == null || v.trim().isEmpty ? l10n.requiredField : null,
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? l10n.requiredField
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
@@ -499,8 +630,8 @@ class _ActivityDialogState extends State<_ActivityDialog> {
                         child: Text(_fieldLabel(field, l10n)),
                       ),
                   ],
-                  onChanged: (v) {
-                    if (v != null) setState(() => _field = v);
+                  onChanged: (value) {
+                    if (value != null) setState(() => _field = value);
                   },
                 ),
                 const SizedBox(height: 18),
@@ -511,32 +642,41 @@ class _ActivityDialogState extends State<_ActivityDialog> {
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: [
                     for (final grade in grades)
                       FilterChip(
                         label: Text(_gradeLabel(grade, l10n)),
                         selected: _grades.contains(grade),
-                        onSelected: (s) => setState(() {
-                          s ? _grades.add(grade) : _grades.remove(grade);
-                          _gradeError = false;
-                        }),
+                        onSelected: _lockGrades
+                            ? null
+                            : (selected) => setState(() {
+                                selected
+                                    ? _grades.add(grade)
+                                    : _grades.remove(grade);
+                                _gradeError = false;
+                              }),
                       ),
                   ],
                 ),
                 if (_gradeError)
                   Text(
                     l10n.selectAtLeastOneGrade,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 const SizedBox(height: 12),
                 Text(
-                  _label(
-                    context,
-                    'El campo formativo pertenece a la actividad, no al proyecto.',
-                    'The formative field belongs to the activity, not the project.',
-                  ),
+                  _lockGrades
+                      ? _label(
+                          context,
+                          'Los grados se conservan porque esta actividad ya tiene un roster histórico de alumnos.',
+                          'Grades are kept because this activity already has a historical student roster.',
+                        )
+                      : _label(
+                          context,
+                          'El campo formativo pertenece a la actividad, no al proyecto.',
+                          'The formative field belongs to the activity, not the project.',
+                        ),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -549,7 +689,10 @@ class _ActivityDialogState extends State<_ActivityDialog> {
           onPressed: () => Navigator.pop(context),
           child: Text(l10n.cancel),
         ),
-        FilledButton(onPressed: _submit, child: Text(l10n.create)),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(_editing ? l10n.save : l10n.create),
+        ),
       ],
     );
   }
@@ -586,6 +729,7 @@ final class _ProjectDraft {
     required this.axes,
     required this.grades,
   });
+
   final String title;
   final ProjectMethodology methodology;
   final Set<ArticulatingAxis> axes;
@@ -599,6 +743,7 @@ final class _ActivityDraft {
     required this.grades,
     required this.date,
   });
+
   final String title;
   final FormativeField field;
   final Set<PrimaryGrade> grades;
@@ -608,39 +753,48 @@ final class _ActivityDraft {
 String _dateLabel(BuildContext context, DateTime? date) => date == null
     ? _label(context, 'Fecha no registrada', 'Date not recorded')
     : MaterialLocalizations.of(context).formatMediumDate(date);
+
 String _label(BuildContext context, String es, String en) =>
     Localizations.localeOf(context).languageCode == 'en' ? en : es;
-String _methodologyLabel(ProjectMethodology v, AppLocalizations l) =>
-    switch (v) {
-      ProjectMethodology.unspecified => l.methodologyUnspecified,
-      ProjectMethodology.communityProjects => l.methodologyCommunityProjects,
-      ProjectMethodology.inquirySteam => l.methodologyInquirySteam,
-      ProjectMethodology.problemBasedLearning => l.methodologyProblemBased,
-      ProjectMethodology.serviceLearning => l.methodologyServiceLearning,
+
+String _methodologyLabel(ProjectMethodology value, AppLocalizations l10n) =>
+    switch (value) {
+      ProjectMethodology.unspecified => l10n.methodologyUnspecified,
+      ProjectMethodology.communityProjects => l10n.methodologyCommunityProjects,
+      ProjectMethodology.inquirySteam => l10n.methodologyInquirySteam,
+      ProjectMethodology.problemBasedLearning => l10n.methodologyProblemBased,
+      ProjectMethodology.serviceLearning => l10n.methodologyServiceLearning,
     };
-String _fieldLabel(FormativeField v, AppLocalizations l) => switch (v) {
-  FormativeField.unspecified => l.formativeFieldUnspecified,
-  FormativeField.languages => l.formativeFieldLanguages,
-  FormativeField.knowledgeAndScientificThought =>
-    l.formativeFieldScientificThought,
-  FormativeField.ethicsNatureAndSocieties => l.formativeFieldEthicsNature,
-  FormativeField.humanAndCommunity => l.formativeFieldHumanCommunity,
-};
-String _axisLabel(ArticulatingAxis v, AppLocalizations l) => switch (v) {
-  ArticulatingAxis.inclusion => l.axisInclusion,
-  ArticulatingAxis.criticalThinking => l.axisCriticalThinking,
-  ArticulatingAxis.criticalInterculturality => l.axisCriticalInterculturality,
-  ArticulatingAxis.genderEquality => l.axisGenderEquality,
-  ArticulatingAxis.healthyLife => l.axisHealthyLife,
-  ArticulatingAxis.culturesThroughReadingAndWriting =>
-    l.axisCulturesReadingWriting,
-  ArticulatingAxis.artsAndAestheticExperiences => l.axisArtsAesthetic,
-};
-String _gradeLabel(PrimaryGrade g, AppLocalizations l) => switch (g) {
-  PrimaryGrade.first => l.grade1,
-  PrimaryGrade.second => l.grade2,
-  PrimaryGrade.third => l.grade3,
-  PrimaryGrade.fourth => l.grade4,
-  PrimaryGrade.fifth => l.grade5,
-  PrimaryGrade.sixth => l.grade6,
+
+String _fieldLabel(FormativeField value, AppLocalizations l10n) =>
+    switch (value) {
+      FormativeField.unspecified => l10n.formativeFieldUnspecified,
+      FormativeField.languages => l10n.formativeFieldLanguages,
+      FormativeField.knowledgeAndScientificThought =>
+        l10n.formativeFieldScientificThought,
+      FormativeField.ethicsNatureAndSocieties => l10n.formativeFieldEthicsNature,
+      FormativeField.humanAndCommunity => l10n.formativeFieldHumanCommunity,
+    };
+
+String _axisLabel(ArticulatingAxis value, AppLocalizations l10n) =>
+    switch (value) {
+      ArticulatingAxis.inclusion => l10n.axisInclusion,
+      ArticulatingAxis.criticalThinking => l10n.axisCriticalThinking,
+      ArticulatingAxis.criticalInterculturality =>
+        l10n.axisCriticalInterculturality,
+      ArticulatingAxis.genderEquality => l10n.axisGenderEquality,
+      ArticulatingAxis.healthyLife => l10n.axisHealthyLife,
+      ArticulatingAxis.culturesThroughReadingAndWriting =>
+        l10n.axisCulturesReadingWriting,
+      ArticulatingAxis.artsAndAestheticExperiences =>
+        l10n.axisArtsAesthetic,
+    };
+
+String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) => switch (grade) {
+  PrimaryGrade.first => l10n.grade1,
+  PrimaryGrade.second => l10n.grade2,
+  PrimaryGrade.third => l10n.grade3,
+  PrimaryGrade.fourth => l10n.grade4,
+  PrimaryGrade.fifth => l10n.grade5,
+  PrimaryGrade.sixth => l10n.grade6,
 };

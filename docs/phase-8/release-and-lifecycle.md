@@ -11,7 +11,7 @@ A production release is created from a tag that exactly matches the semantic ver
 - `AulaRaiz-Setup-<version>.exe` — production-signed per-user Windows installer;
 - `AulaRaiz-Setup-<version>.exe.sha256` — Windows installer checksum.
 
-The Windows installer contains both the Flutter desktop application (`aularaiz.exe`) and, from Phase 9 onward, the standalone local automation executable (`aularaiz-agent.exe`).
+The Windows installer contains the Flutter desktop application (`aularaiz.exe`), the standalone local automation executable (`aularaiz-agent.exe`) and the small update coordinator (`aularaiz-updater.exe`).
 
 The workflow refuses to publish when the tag and application version disagree or when production signing credentials are missing.
 
@@ -39,7 +39,7 @@ The release workflow requires:
 - `WINDOWS_CERTIFICATE_PFX_BASE64`;
 - `WINDOWS_CERTIFICATE_PASSWORD`.
 
-It signs `aularaiz.exe`, `aularaiz-agent.exe` and the final installer with SHA-256 and an RFC 3161 timestamp. The certificate is materialized only on the ephemeral runner and removed before artifact upload.
+It signs `aularaiz.exe`, `aularaiz-agent.exe`, `aularaiz-updater.exe` and the final installer with SHA-256 and an RFC 3161 timestamp. The certificate is materialized only on the ephemeral runner and removed before artifact upload.
 
 The installer intentionally does not delete application-support data during uninstall. Classroom data belongs to the user, not to the program package.
 
@@ -58,30 +58,46 @@ This separation is a lifecycle invariant:
 
 ## Windows update flow
 
-Windows updates are user-initiated from Preferences. AulaRaíz:
+Windows update discovery is non-blocking. After the main screen becomes usable, AulaRaíz performs a best-effort background check and surfaces a short notification only when a newer eligible release exists. Opening **Preferences → Updates** also checks automatically, while **Check again** remains available for an explicit retry. Network failure never blocks local classroom work.
 
-1. requests the latest stable release metadata from the official GitHub repository;
-2. compares the release tag with the installed semantic version;
-3. accepts only the exact versioned Windows installer and checksum asset names;
-4. downloads the SHA-256 file and installer;
+AulaRaíz reads published Releases from the official `atraineedeveloper/aularaiz` repository. During the 0.x Preview line, published prereleases are eligible; once the installed major version is 1 or greater, prereleases are ignored. Draft releases are always ignored. The client selects the highest compatible semantic version greater than the installed version.
+
+For an eligible release AulaRaíz:
+
+1. requires the exact release URL for the official repository/tag;
+2. requires the exact versioned Windows installer and `.sha256` asset names;
+3. requires each asset URL to remain bound to that same repository/tag/file name, with no query or fragment ambiguity;
+4. downloads the checksum and installer to an application-created temporary directory;
 5. verifies the installer bytes against the published SHA-256;
-6. verifies that Windows reports a valid Authenticode signature on the installer;
-7. opens the verified installer so the user remains in control of the update.
+6. verifies Windows Authenticode before considering the download ready; unsigned installers are accepted only for version `0.x` betas after SHA-256 succeeds;
+7. keeps the running application open and presents **Close and update** only after verification succeeds.
 
-Because the automation executable ships inside the same signed installer, updating AulaRaíz also updates `aularaiz-agent.exe` as one versioned product.
+When the teacher chooses **Close and update**, AulaRaíz copies the installed `aularaiz-updater.exe` beside the verified temporary installer, launches that copy with only technical arguments, closes its SQLite connection and exits. The coordinator:
 
-Drafts and prereleases are ignored by the update parser. Android updates are distributed through Google Play rather than this Windows flow.
+1. re-verifies the installer SHA-256;
+2. re-verifies Authenticode using the same beta exception policy;
+3. waits for the previous AulaRaíz process to exit;
+4. runs Inno Setup silently with restart suppressed;
+5. requires a successful installer exit code;
+6. verifies that the installed `aularaiz.exe` still exists;
+7. relaunches AulaRaíz automatically.
+
+The coordinator runs from the temporary update directory so the installer can replace the installed coordinator itself. It receives only process id, installer path, expected SHA-256 and application executable path; no school, group, student or other classroom data is passed to it.
+
+The first seamless-updater beta is `0.1.2`. An existing `0.1.0` or `0.1.1` installation still uses its older manual installer-opening flow to reach `0.1.2`; subsequent updates can use the coordinated close/install/reopen path.
+
+Android updates are distributed through Google Play rather than the Windows updater.
 
 ## Creating a release
 
 1. Update `pubspec.yaml` to the intended application version and increment the Android build number after every Play upload.
 2. Merge the version change only after normal CI passes.
 3. Push a matching `v<version>` tag, or run the Release workflow manually with that exact tag.
-4. The workflow reruns quality checks, builds the signed App Bundle, builds/signs the Windows application and automation executable, builds/signs the installer, creates SHA-256 files, and publishes the GitHub Release.
+4. The workflow reruns quality checks, builds the signed App Bundle, builds/signs the Windows application, automation executable and update coordinator, builds/signs the installer, creates SHA-256 files, and publishes the GitHub Release.
 5. Upload the `.aab` from that release to the intended Google Play track.
 
 Production artifacts must never be built with debug signing or with a certificate/private key committed to the repository.
 
 ## Backup-encryption lifecycle note
 
-Current encrypted `.aularaiz` backups are protected with an installation key held in OS secure storage. This is deliberate confidentiality protection, but it also means a protected backup cannot be restored on a different installation unless that installation has the original key. Password/recovery-key portability remains a separate future enhancement; legacy unencrypted backups remain readable for compatibility.
+Current encrypted `.aularaiz` backups are protected with an installation key held in OS secure storage. This is deliberate confidentiality protection, but it also means a protected backup cannot be restored on a different installation unless that installation has the original key. Password/recovery-key portability is intentionally not part of the current update work; legacy unencrypted backups remain readable for compatibility.

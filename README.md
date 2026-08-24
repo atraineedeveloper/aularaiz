@@ -31,7 +31,7 @@ Implemented foundations and workflows now include:
 - versioned `.aularaiz` backups with SQLite integrity validation and crash-safe restore rollback;
 - AES-256-GCM backup encryption using an installation key held in OS secure storage;
 - separation of program files from classroom SQLite data;
-- a per-user Windows installer and user-initiated verified update flow;
+- a per-user Windows installer with non-blocking update discovery, in-app download/verification and coordinated close/install/reopen updates;
 - Android App Bundle production-signing configuration for Google Play;
 - a signed GitHub Release pipeline for Android and Windows with SHA-256 release assets;
 - lifecycle tests covering recovery and program/data preservation;
@@ -40,6 +40,7 @@ Implemented foundations and workflows now include:
 - evidence-backed attendance/evaluation review recommendations;
 - dry-run-by-default student-note mutations routed through application use cases;
 - a standalone Windows `aularaiz-agent.exe` included in the installer and production signing pipeline;
+- a standalone Windows `aularaiz-updater.exe` that re-verifies and coordinates verified updates outside the running app;
 - automated Drift, formatting, analysis, tests, automation-agent and Android/Windows package validation in CI.
 
 The planned delivery roadmap through **Phase 9 — Advanced local automation** is implemented. Further product work can now be prioritized by real classroom feedback rather than a required roadmap phase.
@@ -63,5 +64,5 @@ The planned delivery roadmap through **Phase 9 — Advanced local automation** i
 - [`privacy-baseline.md`](docs/phase-0/privacy-baseline.md) — local-data, diagnostics, exports, backups and agent privacy boundaries.
 - [`delivery-roadmap.md`](docs/phase-0/delivery-roadmap.md) — implementation phases from Flutter foundation through distribution and automation.
 - [`decisions-and-open-questions.md`](docs/phase-0/decisions-and-open-questions.md) — accepted defaults and decisions that still require an explicit product-owner choice.
-- [`release-and-lifecycle.md`](docs/phase-8/release-and-lifecycle.md) — production signing, package, update and data-preservation contract.
+- [`release-and-lifecycle.md`](docs/phase-8/release-and-lifecycle.md) — production signing, package, coordinated Windows update and data-preservation contract.
 - [`local-automation.md`](docs/phase-9/local-automation.md) — Phase 9 CLI/agent, privacy projection matrix, dry-run mutations and evidence contract.

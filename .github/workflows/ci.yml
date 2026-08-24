@@ -24,11 +24,10 @@ jobs:
       - name: Verify Drift schema snapshot
         run: |
           set -euo pipefail
-          schema_dir="$(mktemp -d)"
-          dart run drift_dev schema dump lib/data/local/app_database.dart "$schema_dir/"
-          diff -u \
-            drift_schemas/app_database/drift_schema_v4.json \
-            "$schema_dir/drift_schema_v4.json"
+          dart run drift_dev schema dump \
+            lib/data/local/app_database.dart \
+            drift_schemas/app_database/
+          git diff --exit-code -- drift_schemas/app_database
       - run: flutter gen-l10n
       - name: Verify Dart formatting
         run: |

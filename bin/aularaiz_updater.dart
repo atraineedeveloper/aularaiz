@@ -159,6 +159,6 @@ if (\$null -ne \$process) {
     <String>['-NoProfile', '-NonInteractive', '-Command', script],
   );
   if (result.exitCode != 0) {
-    throw const StateError('AulaRaíz did not close before the update timeout.');
+    throw StateError('AulaRaíz did not close before the update timeout.');
   }
 }

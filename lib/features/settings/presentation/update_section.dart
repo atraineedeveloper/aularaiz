@@ -127,6 +127,7 @@ class _UpdateSectionState extends State<UpdateSection> {
     );
     if (confirmed != true || !mounted) return;
 
+    final database = context.read<AppDatabase>();
     setState(() {
       _launching = true;
       _status = strings.closing;
@@ -134,7 +135,7 @@ class _UpdateSectionState extends State<UpdateSection> {
 
     try {
       await _service.launchUpdateCoordinator(prepared);
-      await context.read<AppDatabase>().close();
+      await database.close();
       exit(0);
     } catch (_) {
       if (!mounted) return;

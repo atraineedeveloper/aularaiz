@@ -34,9 +34,7 @@ final class StudentRosterController extends ChangeNotifier {
        _createStudentInGroup = createStudentInGroup,
        _deactivateStudentInGroup =
            deactivateStudentInGroup ??
-           DeactivateStudentInGroup(
-             enrollmentRepository: enrollmentRepository,
-           ),
+           DeactivateStudentInGroup(enrollmentRepository: enrollmentRepository),
        _reactivateStudentInGroup = reactivateStudentInGroup;
 
   final StudentRepository _studentRepository;

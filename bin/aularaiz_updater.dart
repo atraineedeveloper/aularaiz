@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:aularaiz/infrastructure/update/app_update.dart';
+import 'package:aularaiz/infrastructure/update/windows_update_install_plan.dart';
 import 'package:crypto/crypto.dart';
 
 Future<void> main(List<String> args) async {
@@ -42,17 +43,13 @@ Future<void> main(List<String> args) async {
       '${request.installer.parent.path}${Platform.pathSeparator}'
       'aularaiz-installer.log',
     );
+    final installerArguments = buildWindowsUpdateInstallerArguments(
+      installDirectory: request.app.parent.path,
+      installerLogPath: installerLog.path,
+    );
     final result = await Process.run(
       request.installer.path,
-      <String>[
-        '/VERYSILENT',
-        '/SUPPRESSMSGBOXES',
-        '/NORESTART',
-        '/SP-',
-        '/CLOSEAPPLICATIONS',
-        '/DIR=${request.app.parent.path}',
-        '/LOG=${installerLog.path}',
-      ],
+      installerArguments,
       workingDirectory: request.installer.parent.path,
     );
     await _writeDiagnostic(
@@ -213,13 +210,13 @@ Future<void> _waitForFile(File file) async {
   throw StateError('AulaRaíz executable was not found after update.');
 }
 
-Future<void> _launchApp(File app) {
-  return Process.start(
+Future<void> _launchApp(File app) async {
+  await Process.start(
     app.path,
     const <String>[],
     workingDirectory: app.parent.path,
     mode: ProcessStartMode.detached,
-  ).then((_) {});
+  );
 }
 
 Future<void> _tryRelaunch(File app, File? diagnosticLog) async {

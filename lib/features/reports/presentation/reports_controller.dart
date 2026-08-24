@@ -102,8 +102,7 @@ final class ReportsController extends ChangeNotifier {
       return switch (format) {
         GroupExportFormat.csv => _publicationService.publishFile(
           bytes: renderer.renderCsv(data, dataset: dataset),
-          fileName:
-              'aularaiz-${dataset.name.toLowerCase()}-${_monthKey()}.csv',
+          fileName: 'aularaiz-${dataset.name.toLowerCase()}-${_monthKey()}.csv',
           mimeType: 'text/csv',
           extension: 'csv',
           typeLabel: 'CSV',
@@ -111,8 +110,7 @@ final class ReportsController extends ChangeNotifier {
         GroupExportFormat.xlsx => _publicationService.publishFile(
           bytes: renderer.renderXlsx(data),
           fileName: 'aularaiz-grupo-completo-${_monthKey()}.xlsx',
-          mimeType:
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           extension: 'xlsx',
           typeLabel: 'Excel',
         ),

@@ -5,14 +5,26 @@ import 'package:aularaiz/infrastructure/update/app_update.dart';
 import 'package:crypto/crypto.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-const _latestReleaseUri =
-    'https://api.github.com/repos/atraineedeveloper/aularaiz/releases/latest';
+const _releasesUri =
+    'https://api.github.com/repos/atraineedeveloper/aularaiz/releases?per_page=20';
 const _maxMetadataBytes = 1024 * 1024;
 const _maxChecksumBytes = 16 * 1024;
 const _maxInstallerBytes = 300 * 1024 * 1024;
 
 typedef PackageVersionProvider = Future<String> Function();
 typedef UpdateHttpClientFactory = HttpClient Function();
+
+final class VerifiedUpdateInstaller {
+  const VerifiedUpdateInstaller({
+    required this.file,
+    required this.sha256,
+    required this.update,
+  });
+
+  final File file;
+  final String sha256;
+  final AppUpdate update;
+}
 
 final class GithubUpdateService {
   GithubUpdateService({
@@ -32,14 +44,17 @@ final class GithubUpdateService {
 
     final installedVersion = await currentVersion();
     final metadata = await _getText(
-      Uri.parse(_latestReleaseUri),
+      Uri.parse(_releasesUri),
       maxBytes: _maxMetadataBytes,
       acceptGithubJson: true,
     );
-    return parseLatestGithubRelease(metadata, currentVersion: installedVersion);
+    return parseLatestGithubReleases(
+      metadata,
+      currentVersion: installedVersion,
+    );
   }
 
-  Future<File> downloadAndVerify(AppUpdate update) async {
+  Future<VerifiedUpdateInstaller> downloadAndVerify(AppUpdate update) async {
     if (!Platform.isWindows) {
       throw UnsupportedError('Windows updates are only available on Windows.');
     }
@@ -75,7 +90,12 @@ final class GithubUpdateService {
           'Downloaded installer failed SHA-256 verification.',
         );
       }
-      return installer;
+      await _verifyAuthenticodeSignature(installer);
+      return VerifiedUpdateInstaller(
+        file: installer,
+        sha256: expectedChecksum,
+        update: update,
+      );
     } catch (_) {
       if (await temporaryDirectory.exists()) {
         await temporaryDirectory.delete(recursive: true);
@@ -84,20 +104,39 @@ final class GithubUpdateService {
     }
   }
 
-  Future<void> launchInstaller(File installer) async {
+  Future<void> launchUpdateCoordinator(VerifiedUpdateInstaller verified) async {
     if (!Platform.isWindows) {
       throw UnsupportedError('Windows updates are only available on Windows.');
     }
-    if (!await installer.exists()) {
+    if (!await verified.file.exists()) {
       throw StateError('The verified update installer no longer exists.');
     }
 
-    await _verifyAuthenticodeSignature(installer);
-    await Process.start(
-      installer.path,
-      const <String>[],
-      mode: ProcessStartMode.detached,
+    final appExecutable = File(Platform.resolvedExecutable);
+    final installedUpdater = File(
+      '${appExecutable.parent.path}${Platform.pathSeparator}'
+      'aularaiz-updater.exe',
     );
+    if (!await installedUpdater.exists()) {
+      throw StateError('The AulaRaíz update coordinator is not installed.');
+    }
+
+    final coordinatorCopy = File(
+      '${verified.file.parent.path}${Platform.pathSeparator}'
+      'aularaiz-updater.exe',
+    );
+    await installedUpdater.copy(coordinatorCopy.path);
+
+    await Process.start(coordinatorCopy.path, <String>[
+      '--pid',
+      pid.toString(),
+      '--installer',
+      verified.file.path,
+      '--sha256',
+      verified.sha256,
+      '--app',
+      appExecutable.path,
+    ], mode: ProcessStartMode.detached);
   }
 
   Future<void> _verifyAuthenticodeSignature(File installer) async {

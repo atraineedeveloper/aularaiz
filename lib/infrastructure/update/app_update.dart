@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+const _repositoryOwner = 'atraineedeveloper';
+const _repositoryName = 'aularaiz';
+
 final class SemanticVersion implements Comparable<SemanticVersion> {
   const SemanticVersion(this.major, this.minor, this.patch);
 
@@ -42,6 +45,7 @@ final class AppUpdate {
     required this.checksumUri,
     required this.releaseUri,
     required this.installerFileName,
+    this.releaseNotes,
   });
 
   final SemanticVersion version;
@@ -49,6 +53,7 @@ final class AppUpdate {
   final Uri checksumUri;
   final Uri releaseUri;
   final String installerFileName;
+  final String? releaseNotes;
 }
 
 bool mayLaunchUnsignedBetaInstaller({
@@ -64,6 +69,46 @@ bool mayLaunchUnsignedBetaInstaller({
   return SemanticVersion.parse(match.group(1)!).major == 0;
 }
 
+AppUpdate? parseLatestGithubReleases(
+  String source, {
+  required String currentVersion,
+}) {
+  final decoded = jsonDecode(source);
+  final installedVersion = SemanticVersion.parse(currentVersion);
+  final allowPrerelease = installedVersion.major == 0;
+
+  if (decoded is Map<String, dynamic>) {
+    return _parseRelease(
+      decoded,
+      installedVersion: installedVersion,
+      allowPrerelease: allowPrerelease,
+    );
+  }
+  if (decoded is! List) {
+    throw const FormatException('GitHub releases payload must be a list.');
+  }
+
+  AppUpdate? newest;
+  for (final item in decoded) {
+    if (item is! Map<String, dynamic>) continue;
+    AppUpdate? candidate;
+    try {
+      candidate = _parseRelease(
+        item,
+        installedVersion: installedVersion,
+        allowPrerelease: allowPrerelease,
+      );
+    } on FormatException {
+      continue;
+    }
+    if (candidate == null) continue;
+    if (newest == null || candidate.version.compareTo(newest.version) > 0) {
+      newest = candidate;
+    }
+  }
+  return newest;
+}
+
 AppUpdate? parseLatestGithubRelease(
   String source, {
   required String currentVersion,
@@ -73,7 +118,20 @@ AppUpdate? parseLatestGithubRelease(
     throw const FormatException('GitHub release payload must be an object.');
   }
 
-  if (decoded['draft'] == true || decoded['prerelease'] == true) {
+  return _parseRelease(
+    decoded,
+    installedVersion: SemanticVersion.parse(currentVersion),
+    allowPrerelease: false,
+  );
+}
+
+AppUpdate? _parseRelease(
+  Map<String, dynamic> decoded, {
+  required SemanticVersion installedVersion,
+  required bool allowPrerelease,
+}) {
+  if (decoded['draft'] == true ||
+      (decoded['prerelease'] == true && !allowPrerelease)) {
     return null;
   }
 
@@ -85,7 +143,6 @@ AppUpdate? parseLatestGithubRelease(
   }
 
   final availableVersion = SemanticVersion.parse(tagName);
-  final installedVersion = SemanticVersion.parse(currentVersion);
   if (availableVersion.compareTo(installedVersion) <= 0) {
     return null;
   }
@@ -102,9 +159,17 @@ AppUpdate? parseLatestGithubRelease(
     if (name is! String || url is! String) continue;
 
     if (name == installerFileName) {
-      installerUri = _validatedGithubAssetUri(url);
+      installerUri = _validatedGithubAssetUri(
+        url,
+        tagName: tagName,
+        fileName: installerFileName,
+      );
     } else if (name == checksumFileName) {
-      checksumUri = _validatedGithubAssetUri(url);
+      checksumUri = _validatedGithubAssetUri(
+        url,
+        tagName: tagName,
+        fileName: checksumFileName,
+      );
     }
   }
 
@@ -115,9 +180,18 @@ AppUpdate? parseLatestGithubRelease(
   }
 
   final releaseUri = Uri.parse(htmlUrl);
-  if (releaseUri.scheme != 'https' || releaseUri.host != 'github.com') {
+  final expectedReleasePath =
+      '/$_repositoryOwner/$_repositoryName/releases/tag/$tagName';
+  if (releaseUri.scheme != 'https' ||
+      releaseUri.host != 'github.com' ||
+      releaseUri.path != expectedReleasePath ||
+      releaseUri.hasQuery ||
+      releaseUri.hasFragment) {
     throw const FormatException('Unexpected GitHub release URL.');
   }
+
+  final rawNotes = decoded['body'];
+  final normalizedNotes = rawNotes is String ? rawNotes.trim() : '';
 
   return AppUpdate(
     version: availableVersion,
@@ -125,6 +199,7 @@ AppUpdate? parseLatestGithubRelease(
     checksumUri: checksumUri,
     releaseUri: releaseUri,
     installerFileName: installerFileName,
+    releaseNotes: normalizedNotes.isEmpty ? null : normalizedNotes,
   );
 }
 
@@ -143,9 +218,19 @@ String parseSha256Checksum(String source, {required String fileName}) {
   throw FormatException('Checksum for $fileName was not found.');
 }
 
-Uri _validatedGithubAssetUri(String value) {
+Uri _validatedGithubAssetUri(
+  String value, {
+  required String tagName,
+  required String fileName,
+}) {
   final uri = Uri.parse(value);
-  if (uri.scheme != 'https' || uri.host != 'github.com') {
+  final expectedPath =
+      '/$_repositoryOwner/$_repositoryName/releases/download/$tagName/$fileName';
+  if (uri.scheme != 'https' ||
+      uri.host != 'github.com' ||
+      uri.path != expectedPath ||
+      uri.hasQuery ||
+      uri.hasFragment) {
     throw const FormatException('Unexpected GitHub asset URL.');
   }
   return uri;

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
@@ -7,6 +10,7 @@ import 'package:aularaiz/features/school_setup/presentation/school_setup_control
 import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
+import 'package:aularaiz/infrastructure/update/github_update_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -23,11 +27,44 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<List<InitialSchoolSetup>>? _setupsFuture;
   String? _selectedSchoolId;
   bool _creatingSchool = false;
+  bool _startupUpdateCheckStarted = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _setupsFuture ??= context.read<SchoolSetupRepository>().listSetups();
+    _startBackgroundUpdateCheck();
+  }
+
+  void _startBackgroundUpdateCheck() {
+    if (_startupUpdateCheckStarted || !Platform.isWindows) return;
+    _startupUpdateCheckStarted = true;
+    unawaited(_checkForUpdateAfterStartup());
+  }
+
+  Future<void> _checkForUpdateAfterStartup() async {
+    try {
+      final update = await GithubUpdateService().checkForUpdate();
+      if (!mounted || update == null) return;
+
+      final english = Localizations.localeOf(context).languageCode == 'en';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            english
+                ? 'AulaRaíz ${update.version} is available.'
+                : 'AulaRaíz ${update.version} está disponible.',
+          ),
+          action: SnackBarAction(
+            label: english ? 'Update' : 'Actualizar',
+            onPressed: () => context.push('/settings'),
+          ),
+          duration: const Duration(seconds: 12),
+        ),
+      );
+    } catch (_) {
+      // Update discovery must never interrupt classroom startup or local work.
+    }
   }
 
   @override

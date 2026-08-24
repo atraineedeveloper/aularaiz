@@ -38,7 +38,7 @@ Implemented foundations and workflows now include:
 - a local machine-readable automation contract (`aularaiz.automation/v1`);
 - minimized group/status projections with explicit personal-data opt-in;
 - evidence-backed attendance/evaluation review recommendations;
-- dry-run-by-default student-note mutations routed through application use cases;
+- dry-run-by-default student-note, attendance, deactivation and reactivation mutations routed through application use cases;
 - a standalone Windows `aularaiz-agent.exe` included in the installer and production signing pipeline;
 - a standalone Windows `aularaiz-updater.exe` that re-verifies and coordinates verified updates outside the running app;
 - automated Drift, formatting, analysis, tests, automation-agent and Android/Windows package validation in CI.

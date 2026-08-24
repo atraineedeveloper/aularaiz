@@ -54,9 +54,8 @@ Future<void> main(List<String> arguments) async {
     } else {
       final demoDatabase = AppDatabase.demo();
       try {
-        await DemoDataSeeder(
-          demoDatabase,
-        ).ensureSeeded(reset: runtimeConfig.resetDemo);
+        await DemoDataSeeder(demoDatabase)
+            .ensureSeeded(reset: runtimeConfig.resetDemo);
       } finally {
         await demoDatabase.close();
       }

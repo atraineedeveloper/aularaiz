@@ -111,9 +111,8 @@ final class _MemoryEnrollmentRepository implements EnrollmentRepository {
   Future<List<Enrollment>> findByGroupId(String groupId) async => values;
 
   @override
-  Future<List<Enrollment>> findByStudentId(String studentId) async => values
-      .where((enrollment) => enrollment.studentId == studentId)
-      .toList();
+  Future<List<Enrollment>> findByStudentId(String studentId) async =>
+      values.where((enrollment) => enrollment.studentId == studentId).toList();
 
   @override
   Future<void> save(Enrollment enrollment) async {}

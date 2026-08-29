@@ -111,11 +111,22 @@ final class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(activities, activities.generalObservations);
       }
       if (from < 6 && to >= 6) {
-        await migrator.addColumn(
-          teachingGroups,
-          teachingGroups.contractStartsOn,
-        );
-        await migrator.addColumn(teachingGroups, teachingGroups.contractEndsOn);
+        final columns = await customSelect(
+          "PRAGMA table_info('teaching_groups')",
+        ).get();
+        final names = columns.map((row) => row.read<String>('name')).toSet();
+        if (!names.contains('contract_starts_on')) {
+          await migrator.addColumn(
+            teachingGroups,
+            teachingGroups.contractStartsOn,
+          );
+        }
+        if (!names.contains('contract_ends_on')) {
+          await migrator.addColumn(
+            teachingGroups,
+            teachingGroups.contractEndsOn,
+          );
+        }
       }
     },
     beforeOpen: (details) async {

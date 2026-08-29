@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 
 Future<void> main(List<String> arguments) async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SafeLog.initialize();
 
   FlutterError.onError = (details) {
     SafeLog.frameworkError(details.exception);

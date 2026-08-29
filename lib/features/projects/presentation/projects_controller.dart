@@ -2,6 +2,7 @@ import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
@@ -54,6 +55,7 @@ final class ProjectsController extends ChangeNotifier {
       await _reload();
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_projects', error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -222,9 +224,11 @@ final class ProjectsController extends ChangeNotifier {
     try {
       await mutation();
       await _reload();
+      SafeLog.operationSuccess('mutate_project');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('mutate_project', error);
       return false;
     } finally {
       _isSaving = false;

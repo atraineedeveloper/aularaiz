@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
@@ -74,7 +75,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           child: controller.isLoading
               ? const Center(child: CircularProgressIndicator())
               : controller.error != null
-              ? _ErrorState(message: l10n.attendanceLoadError)
+              ? _ErrorState(
+                  message: friendlyErrorMessage(
+                    context,
+                    controller.error,
+                    fallback: l10n.attendanceLoadError,
+                  ),
+                )
               : _MonthlyAttendanceGrid(controller: controller),
         ),
       ),
@@ -190,7 +197,12 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                                               'Asistencia guardada.',
                                               'Attendance saved.',
                                             )
-                                          : l10n.attendanceLoadError,
+                                          : friendlyErrorMessage(
+                                              context,
+                                              controller.error,
+                                              fallback:
+                                                  l10n.attendanceLoadError,
+                                            ),
                                     ),
                                   ),
                                 );

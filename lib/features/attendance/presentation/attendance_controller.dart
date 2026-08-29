@@ -2,6 +2,7 @@ import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
@@ -220,9 +221,11 @@ final class AttendanceController extends ChangeNotifier {
         if (attendance != null) await _attendanceRepository.save(attendance);
       }
       await _loadMonth(notify: false);
+      SafeLog.operationSuccess('save_attendance');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('save_attendance', error);
       return false;
     } finally {
       _isSaving = false;
@@ -280,6 +283,7 @@ final class AttendanceController extends ChangeNotifier {
       _monthStudents = await _buildMonthStudents();
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_attendance', error);
     } finally {
       _isLoading = false;
       if (notify) notifyListeners();

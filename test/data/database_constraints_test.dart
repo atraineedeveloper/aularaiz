@@ -82,6 +82,42 @@ void main() {
     }
   });
 
+  test('group contract dates must be complete and ordered', () async {
+    await _seedSchoolYear(database);
+
+    final invalidContracts = <TeachingGroupsCompanion>[
+      TeachingGroupsCompanion(
+        id: const Value('group-contract-incomplete-start'),
+        schoolId: const Value('school-1'),
+        schoolYearId: const Value('year-1'),
+        name: const Value('Contrato con solo inicio'),
+        contractStartsOn: Value(DateTime(2026, 8, 31)),
+      ),
+      TeachingGroupsCompanion(
+        id: const Value('group-contract-incomplete-end'),
+        schoolId: const Value('school-1'),
+        schoolYearId: const Value('year-1'),
+        name: const Value('Contrato con solo fin'),
+        contractEndsOn: Value(DateTime(2026, 12, 15)),
+      ),
+      TeachingGroupsCompanion(
+        id: const Value('group-contract-reversed'),
+        schoolId: const Value('school-1'),
+        schoolYearId: const Value('year-1'),
+        name: const Value('Contrato invertido'),
+        contractStartsOn: Value(DateTime(2026, 12, 16)),
+        contractEndsOn: Value(DateTime(2026, 10, 30)),
+      ),
+    ];
+
+    for (final companion in invalidContracts) {
+      await expectLater(
+        database.into(database.teachingGroups).insert(companion),
+        throwsA(isA<Exception>()),
+      );
+    }
+  });
+
   test(
     'enrollment persistence enforces grade, list number and dates',
     () async {

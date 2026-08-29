@@ -1,9 +1,12 @@
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
+import 'package:aularaiz/application/school_setup/start_school_year.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
 import 'package:aularaiz/domain/school/school.dart';
+import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:flutter/foundation.dart';
 
@@ -12,13 +15,16 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     required SchoolSetupRepository setupRepository,
     required TeachingGroupRepository groupRepository,
     required CreateTeachingGroup createTeachingGroup,
+    required StartSchoolYear startSchoolYear,
   }) : _setupRepository = setupRepository,
        _groupRepository = groupRepository,
-       _createTeachingGroup = createTeachingGroup;
+       _createTeachingGroup = createTeachingGroup,
+       _startSchoolYear = startSchoolYear;
 
   final SchoolSetupRepository _setupRepository;
   final TeachingGroupRepository _groupRepository;
   final CreateTeachingGroup _createTeachingGroup;
+  final StartSchoolYear _startSchoolYear;
 
   InitialSchoolSetup? _setup;
   List<TeachingGroup> _groups = const [];
@@ -30,7 +36,7 @@ final class SchoolWorkspaceController extends ChangeNotifier {
   List<TeachingGroup> get groups => _groups;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
-  bool get canCreateGroup => _groups.isEmpty;
+  bool get canCreateGroup => _setup != null;
   Object? get error => _error;
 
   Future<void> load(String schoolId) async {
@@ -59,6 +65,7 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     required Set<PrimaryGrade> grades,
     String? shift,
     ClassSchedule? schedule,
+    TeachingContract? contract,
   }) async {
     final setup = _setup;
     if (setup == null || _isSaving || !canCreateGroup) return false;
@@ -75,11 +82,46 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         grades: grades,
         shift: shift,
         schedule: schedule,
+        contract: contract,
       );
       await _reloadGroups(setup);
+      SafeLog.operationSuccess('create_group');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('create_group', error);
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> startSchoolYear({
+    required String schoolYearLabel,
+    required DateTime startsOn,
+    required DateTime endsOn,
+  }) async {
+    final setup = _setup;
+    if (setup == null || _isSaving) return false;
+
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _startSchoolYear(
+        schoolId: setup.school.id,
+        schoolYearLabel: schoolYearLabel,
+        startsOn: startsOn,
+        endsOn: endsOn,
+      );
+      await load(setup.school.id);
+      SafeLog.operationSuccess('start_school_year');
+      return true;
+    } catch (error) {
+      _error = error;
+      SafeLog.operationFailure('start_school_year', error);
       return false;
     } finally {
       _isSaving = false;
@@ -111,9 +153,11 @@ final class SchoolWorkspaceController extends ChangeNotifier {
       );
       await _setupRepository.updateSchool(school);
       _setup = (school: school, schoolYear: setup.schoolYear);
+      SafeLog.operationSuccess('update_school');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('update_school', error);
       return false;
     } finally {
       _isSaving = false;
@@ -126,6 +170,7 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     required String name,
     required Set<PrimaryGrade> grades,
     String? shift,
+    TeachingContract? contract,
   }) async {
     if (_isSaving) return false;
     _isSaving = true;
@@ -140,15 +185,18 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         grades: grades,
         shift: shift,
         schedule: group.schedule,
+        contract: contract,
       );
       await _groupRepository.save(updated);
       _groups = List<TeachingGroup>.unmodifiable([
         for (final current in _groups)
           if (current.id == updated.id) updated else current,
       ]);
+      SafeLog.operationSuccess('update_group');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('update_group', error);
       return false;
     } finally {
       _isSaving = false;
@@ -166,9 +214,11 @@ final class SchoolWorkspaceController extends ChangeNotifier {
       _groups = List<TeachingGroup>.unmodifiable(
         _groups.where((current) => current.id != group.id),
       );
+      SafeLog.operationSuccess('delete_group');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('delete_group', error);
       return false;
     } finally {
       _isSaving = false;

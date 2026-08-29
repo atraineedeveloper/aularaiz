@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -62,7 +63,11 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               if (controller.error != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  l10n.evaluationSaveError,
+                  friendlyErrorMessage(
+                    context,
+                    controller.error,
+                    fallback: l10n.evaluationSaveError,
+                  ),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],

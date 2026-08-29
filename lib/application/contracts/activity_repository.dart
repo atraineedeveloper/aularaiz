@@ -16,7 +16,9 @@ extension ActivityRepositoryDeletion on ActivityRepository {
   Future<void> deleteActivity(String activityId) {
     final repository = this;
     if (repository is DeletableActivityRepository) {
-      return repository.deleteActivity(activityId);
+      return (repository as DeletableActivityRepository).deleteActivity(
+        activityId,
+      );
     }
     throw UnsupportedError(
       'This activity repository does not support deletion.',

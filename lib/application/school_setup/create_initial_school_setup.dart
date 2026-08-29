@@ -14,7 +14,7 @@ final class CreateInitialSchoolSetup {
   final SchoolSetupRepository _repository;
   final IdGenerator _idGenerator;
 
-  Future<void> call({
+  Future<InitialSchoolSetup> call({
     required String schoolName,
     String? cct,
     SchoolOrganization organization = SchoolOrganization.unspecified,
@@ -59,5 +59,6 @@ final class CreateInitialSchoolSetup {
     );
 
     await _repository.saveInitialSetup(school: school, schoolYear: schoolYear);
+    return (school: school, schoolYear: schoolYear);
   }
 }

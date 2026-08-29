@@ -1,11 +1,14 @@
-import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
+import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:flutter/foundation.dart';
 
 final class SchoolSetupController extends ChangeNotifier {
-  SchoolSetupController(this._createInitialSchoolSetup);
+  SchoolSetupController(this._createInitialWorkspace);
 
-  final CreateInitialSchoolSetup _createInitialSchoolSetup;
+  final CreateInitialWorkspace _createInitialWorkspace;
 
   bool _isSaving = false;
   Object? _error;
@@ -23,6 +26,10 @@ final class SchoolSetupController extends ChangeNotifier {
     required String schoolYearLabel,
     required DateTime startsOn,
     required DateTime endsOn,
+    required String groupName,
+    required Set<PrimaryGrade> grades,
+    String? shift,
+    TeachingContract? contract,
   }) async {
     if (_isSaving) return false;
 
@@ -31,7 +38,7 @@ final class SchoolSetupController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _createInitialSchoolSetup(
+      await _createInitialWorkspace(
         schoolName: schoolName,
         cct: cct,
         organization: organization,
@@ -41,10 +48,16 @@ final class SchoolSetupController extends ChangeNotifier {
         schoolYearLabel: schoolYearLabel,
         startsOn: startsOn,
         endsOn: endsOn,
+        groupName: groupName,
+        grades: grades,
+        shift: shift,
+        contract: contract,
       );
+      SafeLog.operationSuccess('create_initial_workspace');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('create_school_setup', error);
       return false;
     } finally {
       _isSaving = false;

@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
@@ -316,10 +317,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   void _showResult(ReportPublishResult result) {
     final l10n = AppLocalizations.of(context);
+    final controller = context.read<ReportsController>();
     final message = switch (result) {
       ReportPublishResult.published => l10n.reportsPublished,
       ReportPublishResult.cancelled => l10n.reportsCancelled,
-      ReportPublishResult.failed => l10n.reportsError,
+      ReportPublishResult.failed => friendlyErrorMessage(
+        context,
+        controller.error,
+        fallback: l10n.reportsError,
+      ),
     };
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));

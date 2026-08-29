@@ -1,6 +1,10 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
+import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
+import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -20,10 +24,17 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   final _schoolNameController = TextEditingController();
   final _cctController = TextEditingController();
   final _localityController = TextEditingController();
+  final _groupNameController = TextEditingController();
 
   SchoolOrganization _organization = SchoolOrganization.unspecified;
   String? _stateCode;
   String? _municipality;
+  String _shift = SchoolShiftCatalog.unspecified;
+  final Set<PrimaryGrade> _grades = {};
+  bool _showGradesError = false;
+  DateTime? _contractStartsOn;
+  DateTime? _contractEndsOn;
+  bool _showContractError = false;
   late String _schoolYearLabel =
       SchoolYearCatalog.currentBasicEducation().label;
 
@@ -41,6 +52,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     _schoolNameController.dispose();
     _cctController.dispose();
     _localityController.dispose();
+    _groupNameController.dispose();
     super.dispose();
   }
 
@@ -260,10 +272,158 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                               }
                             },
                     ),
+                    const SizedBox(height: 28),
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'en'
+                          ? 'Your class'
+                          : 'Tu grupo',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _groupNameController,
+                      enabled: !controller.isSaving,
+                      decoration: InputDecoration(labelText: l10n.groupName),
+                      validator: (value) => _required(value, l10n),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: _shift,
+                      isExpanded: true,
+                      decoration: InputDecoration(labelText: l10n.shift),
+                      items: [
+                        DropdownMenuItem(
+                          value: SchoolShiftCatalog.unspecified,
+                          child: Text(
+                            Localizations.localeOf(context).languageCode == 'en'
+                                ? 'Unspecified'
+                                : 'Sin especificar',
+                          ),
+                        ),
+                        for (final shift in SchoolShiftCatalog.officialValues)
+                          DropdownMenuItem(value: shift, child: Text(shift)),
+                      ],
+                      onChanged: controller.isSaving
+                          ? null
+                          : (value) {
+                              if (value != null) setState(() => _shift = value);
+                            },
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n.contractDates,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: controller.isSaving
+                              ? null
+                              : () => _pickContractDate(start: true),
+                          icon: const Icon(Icons.event_outlined),
+                          label: Text(
+                            '${l10n.contractStartDate}: '
+                            '${_contractDateLabel(context, _contractStartsOn)}',
+                          ),
+                        ),
+                        if (_contractStartsOn != null)
+                          TextButton(
+                            onPressed: controller.isSaving
+                                ? null
+                                : () => setState(() {
+                                    _contractStartsOn = null;
+                                    _showContractError = false;
+                                  }),
+                            child: Text(
+                              Localizations.localeOf(context).languageCode ==
+                                      'en'
+                                  ? 'Clear start'
+                                  : 'Quitar inicio',
+                            ),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: controller.isSaving
+                              ? null
+                              : () => _pickContractDate(start: false),
+                          icon: const Icon(Icons.event_outlined),
+                          label: Text(
+                            '${l10n.contractEndDate}: '
+                            '${_contractDateLabel(context, _contractEndsOn)}',
+                          ),
+                        ),
+                        if (_contractEndsOn != null)
+                          TextButton(
+                            onPressed: controller.isSaving
+                                ? null
+                                : () => setState(() {
+                                    _contractEndsOn = null;
+                                    _showContractError = false;
+                                  }),
+                            child: Text(
+                              Localizations.localeOf(context).languageCode ==
+                                      'en'
+                                  ? 'Clear end'
+                                  : 'Quitar fin',
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (_showContractError) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _contractErrorMessage(context),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    Text(
+                      l10n.grades,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final grade in PrimaryGrade.values)
+                          FilterChip(
+                            label: Text('${grade.number}°'),
+                            selected: _grades.contains(grade),
+                            onSelected: controller.isSaving
+                                ? null
+                                : (selected) {
+                                    setState(() {
+                                      selected
+                                          ? _grades.add(grade)
+                                          : _grades.remove(grade);
+                                      _showGradesError = false;
+                                    });
+                                  },
+                          ),
+                      ],
+                    ),
+                    if (_showGradesError) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.selectAtLeastOneGrade,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
                     if (controller.error != null) ...[
                       const SizedBox(height: 16),
                       Text(
-                        l10n.setupSaveError,
+                        friendlyErrorMessage(
+                          context,
+                          controller.error,
+                          fallback: l10n.setupSaveError,
+                        ),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.error,
                         ),
@@ -324,16 +484,72 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     });
   }
 
+  Future<void> _pickContractDate({required bool start}) async {
+    final current = start ? _contractStartsOn : _contractEndsOn;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? _contractStartsOn ?? _schoolYear.startsOn,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2040),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      if (start) {
+        _contractStartsOn = picked;
+      } else {
+        _contractEndsOn = picked;
+      }
+      _showContractError = false;
+    });
+  }
+
+  String _contractDateLabel(BuildContext context, DateTime? date) {
+    if (date == null) {
+      return AppLocalizations.of(context).selectDate;
+    }
+    return MaterialLocalizations.of(context).formatMediumDate(date);
+  }
+
+  bool get _contractIsIncomplete =>
+      (_contractStartsOn == null) != (_contractEndsOn == null);
+
+  bool get _contractIsReversed =>
+      _contractStartsOn != null &&
+      _contractEndsOn != null &&
+      _contractEndsOn!.isBefore(_contractStartsOn!);
+
+  String _contractErrorMessage(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _contractIsReversed
+        ? l10n.invalidDateRange
+        : l10n.contractIncomplete;
+  }
+
   String? _required(String? value, AppLocalizations l10n) {
     return value == null || value.trim().isEmpty ? l10n.requiredField : null;
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _showGradesError = _grades.isEmpty;
+      _showContractError = _contractIsIncomplete || _contractIsReversed;
+    });
+    if (!_formKey.currentState!.validate() ||
+        _grades.isEmpty ||
+        _showContractError) {
+      return;
+    }
 
     final state = _selectedState;
     final municipality = _municipality;
     if (state == null || municipality == null) return;
+
+    final contractStart = _contractStartsOn;
+    final contractEnd = _contractEndsOn;
+    final contract = contractStart != null && contractEnd != null
+        ? TeachingContract(startsOn: contractStart, endsOn: contractEnd)
+        : null;
 
     final schoolYear = _schoolYear;
     final saved = await context.read<SchoolSetupController>().save(
@@ -346,6 +562,10 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       schoolYearLabel: schoolYear.label,
       startsOn: schoolYear.startsOn,
       endsOn: schoolYear.endsOn,
+      groupName: _groupNameController.text.trim(),
+      grades: Set<PrimaryGrade>.of(_grades),
+      shift: SchoolShiftCatalog.persistenceValue(_shift),
+      contract: contract,
     );
 
     if (saved && mounted) {

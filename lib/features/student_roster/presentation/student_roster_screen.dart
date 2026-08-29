@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/application/student_import/import_students.dart';
 import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
@@ -134,7 +135,11 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                   StudentRosterFailureKind.mutation) ...[
                 const SizedBox(height: 12),
                 Text(
-                  l10n.studentSaveError,
+                  friendlyErrorMessage(
+                    context,
+                    controller.error,
+                    fallback: l10n.studentSaveError,
+                  ),
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],

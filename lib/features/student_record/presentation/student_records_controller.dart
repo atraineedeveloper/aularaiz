@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
@@ -78,6 +79,7 @@ final class StudentRecordsController extends ChangeNotifier {
       _entries = List<StudentRecordRosterEntry>.unmodifiable(result);
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_student_records', error);
       _entries = const [];
     } finally {
       _isLoading = false;

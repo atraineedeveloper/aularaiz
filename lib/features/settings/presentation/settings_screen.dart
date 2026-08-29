@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/features/settings/presentation/update_section.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -126,6 +127,19 @@ class SettingsScreen extends StatelessWidget {
                 const BackupRestoreSection(),
                 const SizedBox(height: 20),
                 const UpdateSection(),
+                if (SafeLog.filePath != null) ...[
+                  const SizedBox(height: 20),
+                  _SettingsSection(
+                    icon: Icons.bug_report_outlined,
+                    title: Localizations.localeOf(context).languageCode == 'en'
+                        ? 'Diagnostics'
+                        : 'Diagnóstico',
+                    child: SelectableText(
+                      SafeLog.filePath!,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -17,7 +17,10 @@ import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
+import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
+import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_screen.dart';
@@ -59,6 +62,7 @@ class SchoolWorkspaceScreen extends StatefulWidget {
 class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   bool _loadStarted = false;
   int _selectedDestination = 0;
+  String? _activeGroupId;
   Future<bool> Function()? _activeLeaveGuard;
   StudentRecordRosterEntry? _selectedStudentRecord;
 
@@ -98,12 +102,32 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       );
     }
 
-    final group = controller.groups.isEmpty ? null : controller.groups.first;
+    final groups = controller.groups;
+    final group = groups.isEmpty
+        ? null
+        : (groups
+                  .where((candidate) => candidate.id == _activeGroupId)
+                  .firstOrNull ??
+              groups.first);
     return SchoolWorkspaceShell(
       schoolName: setup.school.name,
       schoolYearLabel: setup.schoolYear.label,
       groupName: group?.name ?? _label(context, 'Sin grupo', 'No class'),
       selectedIndex: _selectedDestination,
+      groupChoices: [
+        for (final candidate in groups)
+          SchoolWorkspaceGroupChoice(
+            id: candidate.id,
+            name: candidate.name,
+            subtitle: _contractSubtitle(context, candidate),
+          ),
+      ],
+      activeGroupId: group?.id,
+      onChooseGroup: groups.isEmpty
+          ? null
+          : (groupId) {
+              setState(() => _activeGroupId = groupId);
+            },
       onChooseSchool: widget.onChooseSchool,
       onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
       onOpenSettings: () => context.push('/settings'),
@@ -255,9 +279,38 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                       Text(
                         _label(
                           context,
-                          'En primaria AulaRaíz administra un solo grupo por escuela y ciclo escolar. Puede ser unigrado o multigrado.',
-                          'For primary school, AulaRaíz manages one class per school and school year. It may be single-grade or multigrade.',
+                          'Cada grupo es una asignación con sus propias fechas de contratación. Puedes registrar otro grupo en el mismo ciclo si tu contratación cambia, o iniciar el siguiente ciclo escolar cuando te recontraten.',
+                          'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: controller.isSaving
+                                ? null
+                                : _showCreateGroupDialog,
+                            icon: const Icon(Icons.add_rounded),
+                            label: Text(
+                              _label(context, 'Agregar grupo', 'Add class'),
+                            ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: controller.isSaving
+                                ? null
+                                : _showStartSchoolYearDialog,
+                            icon: const Icon(Icons.event_repeat_rounded),
+                            label: Text(
+                              _label(
+                                context,
+                                'Iniciar nuevo ciclo',
+                                'Start new school year',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       if (controller.error != null) ...[
                         const SizedBox(height: 12),
@@ -290,12 +343,18 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                     onEdit: () => _showEditGroupDialog(group),
                                     onDelete: () => _confirmDeleteGroup(group),
                                     onDashboard: () => _openDashboard(group),
-                                    onStudents: () => _selectDestination(1),
-                                    onAttendance: () => _selectDestination(2),
-                                    onProjects: () => _selectDestination(3),
-                                    onEvaluation: () => _selectDestination(4),
-                                    onRecords: () => _selectDestination(5),
-                                    onReports: () => _selectDestination(6),
+                                    onStudents: () =>
+                                        _openGroupDestination(group, 1),
+                                    onAttendance: () =>
+                                        _openGroupDestination(group, 2),
+                                    onProjects: () =>
+                                        _openGroupDestination(group, 3),
+                                    onEvaluation: () =>
+                                        _openGroupDestination(group, 4),
+                                    onRecords: () =>
+                                        _openGroupDestination(group, 5),
+                                    onReports: () =>
+                                        _openGroupDestination(group, 6),
                                     modernOverview: true,
                                   );
                                 },
@@ -316,6 +375,24 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       _selectedDestination = index;
       _selectedStudentRecord = null;
     });
+  }
+
+  Future<void> _openGroupDestination(TeachingGroup group, int index) async {
+    if (_selectedDestination == index && _activeGroupId == group.id) return;
+    if (!await _canLeaveActiveDestination()) return;
+    setState(() {
+      _activeGroupId = group.id;
+      _selectedDestination = index;
+      _selectedStudentRecord = null;
+    });
+  }
+
+  String? _contractSubtitle(BuildContext context, TeachingGroup group) {
+    final contract = group.contract;
+    if (contract == null) return null;
+    final localizations = MaterialLocalizations.of(context);
+    return '${localizations.formatMediumDate(contract.startsOn)} — '
+        '${localizations.formatMediumDate(contract.endsOn)}';
   }
 
   void _openRecordsList() {
@@ -371,6 +448,12 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
           ),
         ),
       );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_schoolMutationMessage(context, controller.error)),
+        ),
+      );
     }
   }
 
@@ -386,6 +469,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       name: draft.name,
       grades: draft.grades,
       shift: draft.shift,
+      contract: draft.contract,
     );
   }
 
@@ -401,6 +485,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       name: draft.name,
       grades: draft.grades,
       shift: draft.shift,
+      contract: draft.contract,
     );
     if (mounted && saved) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -411,6 +496,45 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _showStartSchoolYearDialog() async {
+    final controller = context.read<SchoolWorkspaceController>();
+    final setup = controller.setup;
+    if (setup == null || controller.isSaving) return;
+
+    final draft = await showDialog<_SchoolYearDraft>(
+      context: context,
+      builder: (context) => _StartSchoolYearDialog(
+        currentLabel: setup.schoolYear.label,
+        currentStartsOn: setup.schoolYear.startsOn,
+      ),
+    );
+    if (draft == null || !mounted) return;
+
+    final started = await controller.startSchoolYear(
+      schoolYearLabel: draft.label,
+      startsOn: draft.startsOn,
+      endsOn: draft.endsOn,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          started
+              ? _label(
+                  context,
+                  'Ciclo ${draft.label} iniciado. Configura tu grupo.',
+                  'School year ${draft.label} started. Set up your class.',
+                )
+              : _label(
+                  context,
+                  'No se pudo iniciar el ciclo. Revisa los datos e inténtalo de nuevo.',
+                  'The school year could not be started. Check the data and try again.',
+                ),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDeleteGroup(TeachingGroup group) async {
@@ -763,23 +887,27 @@ class _GroupDialog extends StatefulWidget {
 class _GroupDialogState extends State<_GroupDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _shiftController;
+  late String _shift;
   late final Set<PrimaryGrade> _grades;
   bool _showGradesError = false;
+  DateTime? _contractStartsOn;
+  DateTime? _contractEndsOn;
+  bool _showContractError = false;
 
   @override
   void initState() {
     super.initState();
     final group = widget.initialGroup;
     _nameController = TextEditingController(text: group?.name ?? '');
-    _shiftController = TextEditingController(text: group?.shift ?? '');
+    _shift = SchoolShiftCatalog.normalizeForSelection(group?.shift);
     _grades = Set<PrimaryGrade>.of(group?.grades ?? const <PrimaryGrade>{});
+    _contractStartsOn = group?.contract?.startsOn;
+    _contractEndsOn = group?.contract?.endsOn;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _shiftController.dispose();
     super.dispose();
   }
 
@@ -812,10 +940,94 @@ class _GroupDialogState extends State<_GroupDialog> {
                       : null,
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _shiftController,
+                DropdownButtonFormField<String>(
+                  initialValue: _shift,
+                  isExpanded: true,
                   decoration: InputDecoration(labelText: l10n.shift),
+                  items: [
+                    DropdownMenuItem(
+                      value: SchoolShiftCatalog.unspecified,
+                      child: Text(
+                        _label(context, 'Sin especificar', 'Unspecified'),
+                      ),
+                    ),
+                    for (final shift in SchoolShiftCatalog.officialValues)
+                      DropdownMenuItem(
+                        value: shift,
+                        child: Text(_shiftLabel(context, shift)),
+                      ),
+                    if (_shift.isNotEmpty &&
+                        !SchoolShiftCatalog.isOfficial(_shift))
+                      DropdownMenuItem(
+                        value: _shift,
+                        child: Text(
+                          _label(
+                            context,
+                            'Heredado: $_shift',
+                            'Legacy: $_shift',
+                          ),
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _shift = value);
+                  },
                 ),
+                const SizedBox(height: 20),
+                Text(
+                  l10n.contractDates,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _pickContractDate(start: true),
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        '${l10n.contractStartDate}: '
+                        '${_contractDateLabel(context, _contractStartsOn)}',
+                      ),
+                    ),
+                    if (_contractStartsOn != null)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _contractStartsOn = null;
+                          _showContractError = false;
+                        }),
+                        child: Text(
+                          _label(context, 'Quitar inicio', 'Clear start'),
+                        ),
+                      ),
+                    OutlinedButton.icon(
+                      onPressed: () => _pickContractDate(start: false),
+                      icon: const Icon(Icons.event_outlined),
+                      label: Text(
+                        '${l10n.contractEndDate}: '
+                        '${_contractDateLabel(context, _contractEndsOn)}',
+                      ),
+                    ),
+                    if (_contractEndsOn != null)
+                      TextButton(
+                        onPressed: () => setState(() {
+                          _contractEndsOn = null;
+                          _showContractError = false;
+                        }),
+                        child: Text(_label(context, 'Quitar fin', 'Clear end')),
+                      ),
+                  ],
+                ),
+                if (_showContractError) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _contractErrorMessage(context),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Text(
                   l10n.grades,
@@ -872,14 +1084,184 @@ class _GroupDialogState extends State<_GroupDialog> {
 
   void _submit() {
     final hasGrades = _grades.isNotEmpty;
-    setState(() => _showGradesError = !hasGrades);
-    if (!_formKey.currentState!.validate() || !hasGrades) return;
+    setState(() {
+      _showGradesError = !hasGrades;
+      _showContractError = _contractIsIncomplete || _contractIsReversed;
+    });
+    if (!_formKey.currentState!.validate() ||
+        !hasGrades ||
+        _showContractError) {
+      return;
+    }
+
+    final contractStart = _contractStartsOn;
+    final contractEnd = _contractEndsOn;
     Navigator.of(context).pop(
       _GroupDraft(
         name: _nameController.text.trim(),
-        shift: _shiftController.text.trim(),
+        shift: SchoolShiftCatalog.persistenceValue(_shift),
         grades: Set<PrimaryGrade>.of(_grades),
+        contract: contractStart != null && contractEnd != null
+            ? TeachingContract(startsOn: contractStart, endsOn: contractEnd)
+            : null,
       ),
+    );
+  }
+
+  Future<void> _pickContractDate({required bool start}) async {
+    final current = start ? _contractStartsOn : _contractEndsOn;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? _contractStartsOn ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2040),
+    );
+    if (picked == null) return;
+
+    setState(() {
+      if (start) {
+        _contractStartsOn = picked;
+      } else {
+        _contractEndsOn = picked;
+      }
+      _showContractError = false;
+    });
+  }
+
+  String _contractDateLabel(BuildContext context, DateTime? date) {
+    if (date == null) {
+      return AppLocalizations.of(context).selectDate;
+    }
+    return MaterialLocalizations.of(context).formatMediumDate(date);
+  }
+
+  bool get _contractIsIncomplete =>
+      (_contractStartsOn == null) != (_contractEndsOn == null);
+
+  bool get _contractIsReversed =>
+      _contractStartsOn != null &&
+      _contractEndsOn != null &&
+      _contractEndsOn!.isBefore(_contractStartsOn!);
+
+  String _contractErrorMessage(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _contractIsReversed
+        ? l10n.invalidDateRange
+        : l10n.contractIncomplete;
+  }
+}
+
+final class _SchoolYearDraft {
+  const _SchoolYearDraft({
+    required this.label,
+    required this.startsOn,
+    required this.endsOn,
+  });
+
+  final String label;
+  final DateTime startsOn;
+  final DateTime endsOn;
+}
+
+class _StartSchoolYearDialog extends StatefulWidget {
+  const _StartSchoolYearDialog({
+    required this.currentLabel,
+    required this.currentStartsOn,
+  });
+
+  final String currentLabel;
+  final DateTime currentStartsOn;
+
+  @override
+  State<_StartSchoolYearDialog> createState() => _StartSchoolYearDialogState();
+}
+
+class _StartSchoolYearDialogState extends State<_StartSchoolYearDialog> {
+  late final SchoolYearPreset _preset;
+
+  @override
+  void initState() {
+    super.initState();
+    final options = _upcomingOptions();
+    _preset = options.isEmpty
+        ? SchoolYearCatalog.basicEducationOptions.last
+        : options.first;
+  }
+
+  List<SchoolYearPreset> _upcomingOptions() {
+    return SchoolYearCatalog.basicEducationOptions
+        .where((option) => option.startsOn.isAfter(widget.currentStartsOn))
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final options = _upcomingOptions();
+
+    return AlertDialog(
+      title: Text(
+        _label(context, 'Iniciar nuevo ciclo', 'Start new school year'),
+      ),
+      content: SizedBox(
+        width: 460,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _label(
+                context,
+                'El ciclo “${widget.currentLabel}” quedará guardado con sus grupos y registros. El ciclo que elijas será el activo para trabajar.',
+                'The “${widget.currentLabel}” school year will remain saved with its classes and records. The school year you choose becomes the active one.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              initialValue: _preset.label,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l10n.schoolYear),
+              items: [
+                for (final option
+                    in options.isEmpty
+                        ? SchoolYearCatalog.basicEducationOptions
+                        : options)
+                  DropdownMenuItem(
+                    value: option.label,
+                    child: Text(option.label),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _preset = SchoolYearCatalog.basicEducationOptions.firstWhere(
+                    (option) => option.label == value,
+                  );
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton.icon(
+          onPressed: () {
+            Navigator.of(context).pop(
+              _SchoolYearDraft(
+                label: _preset.label,
+                startsOn: _preset.startsOn,
+                endsOn: _preset.endsOn,
+              ),
+            );
+          },
+          icon: const Icon(Icons.event_repeat_rounded),
+          label: Text(_label(context, 'Iniciar ciclo', 'Start school year')),
+        ),
+      ],
     );
   }
 }
@@ -1057,11 +1439,13 @@ final class _GroupDraft {
     required this.name,
     required this.shift,
     required this.grades,
+    this.contract,
   });
 
   final String name;
-  final String shift;
+  final String? shift;
   final Set<PrimaryGrade> grades;
+  final TeachingContract? contract;
 }
 
 final class _SchoolDraft {
@@ -1091,8 +1475,37 @@ String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {
   };
 }
 
+String _shiftLabel(BuildContext context, String shift) {
+  final english = Localizations.localeOf(context).languageCode == 'en';
+  if (!english) return shift;
+  return switch (shift) {
+    SchoolShiftCatalog.morning => 'Morning',
+    SchoolShiftCatalog.afternoon => 'Afternoon',
+    SchoolShiftCatalog.night => 'Night',
+    SchoolShiftCatalog.discontinuous => 'Discontinuous',
+    SchoolShiftCatalog.continuous => 'Continuous',
+    _ => shift,
+  };
+}
+
 String _label(BuildContext context, String spanish, String english) {
   return Localizations.localeOf(context).languageCode == 'en'
       ? english
       : spanish;
+}
+
+String _schoolMutationMessage(BuildContext context, Object? error) {
+  final detail = error.toString().toLowerCase();
+  final english = Localizations.localeOf(context).languageCode == 'en';
+  if (detail.contains('unique') || detail.contains('schools.cct')) {
+    return english
+        ? 'The CCT is already assigned to another school.'
+        : 'El CCT ya está asignado a otra escuela.';
+  }
+  if (detail.contains('locked') || detail.contains('readonly')) {
+    return english
+        ? 'The local data file is in use or cannot be written.'
+        : 'El archivo de datos local está en uso o no se puede modificar.';
+  }
+  return AppLocalizations.of(context).setupSaveError;
 }

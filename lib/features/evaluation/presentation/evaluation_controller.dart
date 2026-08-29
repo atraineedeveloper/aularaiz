@@ -4,6 +4,7 @@ import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -238,6 +239,7 @@ final class EvaluationController extends ChangeNotifier {
       await _loadMatrix();
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_evaluation', error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -301,9 +303,11 @@ final class EvaluationController extends ChangeNotifier {
       );
       final current = _rowsByActivity[activityId]![studentId]!;
       _rowsByActivity[activityId]![studentId] = current.withEvaluation(saved);
+      SafeLog.operationSuccess('save_evaluation');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('save_evaluation', error);
       return false;
     } finally {
       _isSaving = false;

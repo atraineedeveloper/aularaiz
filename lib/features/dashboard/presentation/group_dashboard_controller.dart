@@ -4,6 +4,7 @@ import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
@@ -146,6 +147,7 @@ final class GroupDashboardController extends ChangeNotifier {
       }
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_group_dashboard', error);
     } finally {
       _isLoading = false;
       notifyListeners();

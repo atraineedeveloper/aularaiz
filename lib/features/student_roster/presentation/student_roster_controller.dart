@@ -4,6 +4,7 @@ import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
@@ -85,6 +86,7 @@ final class StudentRosterController extends ChangeNotifier {
       await _reloadEntries();
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_students', error);
       _failureKind = StudentRosterFailureKind.load;
     } finally {
       _isLoading = false;
@@ -191,9 +193,12 @@ final class StudentRosterController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      return await mutation();
+      final result = await mutation();
+      if (result) SafeLog.operationSuccess('mutate_student');
+      return result;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('mutate_student', error);
       _failureKind = StudentRosterFailureKind.mutation;
       return false;
     } finally {

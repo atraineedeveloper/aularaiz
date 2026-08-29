@@ -4,6 +4,7 @@ import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
@@ -136,6 +137,7 @@ final class StudentRecordController extends ChangeNotifier {
       );
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_student_record', error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -183,9 +185,11 @@ final class StudentRecordController extends ChangeNotifier {
     notifyListeners();
     try {
       await mutation();
+      SafeLog.operationSuccess('mutate_student_record');
       return true;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('mutate_student_record', error);
       return false;
     } finally {
       _isSaving = false;

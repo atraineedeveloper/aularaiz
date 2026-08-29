@@ -1,6 +1,7 @@
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
+import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:drift/drift.dart';
 
@@ -49,6 +50,8 @@ final class DriftTeachingGroupRepository
               shift: Value(group.shift),
               scheduleStartMinutes: Value(group.schedule?.startsAtMinutes),
               scheduleEndMinutes: Value(group.schedule?.endsAtMinutes),
+              contractStartsOn: Value(group.contract?.startsOn),
+              contractEndsOn: Value(group.contract?.endsOn),
             ),
           );
 
@@ -191,6 +194,7 @@ final class DriftTeachingGroupRepository
       grades: gradeRows.map((gradeRow) => gradeRow.grade).toSet(),
       shift: row.shift,
       schedule: _readSchedule(row),
+      contract: _readContract(row),
     );
   }
 
@@ -206,5 +210,19 @@ final class DriftTeachingGroupRepository
     }
 
     return ClassSchedule(startsAtMinutes: startsAt, endsAtMinutes: endsAt);
+  }
+
+  TeachingContract? _readContract(TeachingGroupRow row) {
+    final startsOn = row.contractStartsOn;
+    final endsOn = row.contractEndsOn;
+
+    if (startsOn == null && endsOn == null) return null;
+    if (startsOn == null || endsOn == null) {
+      throw StateError(
+        'Persisted teaching-group contract must contain both boundaries.',
+      );
+    }
+
+    return TeachingContract(startsOn: startsOn, endsOn: endsOn);
   }
 }

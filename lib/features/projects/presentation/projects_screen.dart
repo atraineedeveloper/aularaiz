@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
@@ -79,7 +80,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         children: [
                           if (controller.error != null) ...[
                             Text(
-                              l10n.projectSaveError,
+                              friendlyErrorMessage(
+                                context,
+                                controller.error,
+                                fallback: l10n.projectSaveError,
+                              ),
                               style: TextStyle(
                                 color: Theme.of(context).colorScheme.error,
                               ),

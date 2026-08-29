@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -83,7 +84,11 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                         if (controller.error != null) ...[
                           const SizedBox(height: 12),
                           Text(
-                            l10n.studentRecordSaveError,
+                            friendlyErrorMessage(
+                              context,
+                              controller.error,
+                              fallback: l10n.studentRecordSaveError,
+                            ),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                             ),

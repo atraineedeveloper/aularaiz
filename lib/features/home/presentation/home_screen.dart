@@ -5,7 +5,9 @@ import 'package:aularaiz/app/layout/app_state_panel.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
-import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
+import 'package:aularaiz/application/school_setup/start_school_year.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/school_selection/presentation/school_selection_screen.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.dart';
@@ -99,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (setups.isEmpty || _creatingSchool) {
           return ChangeNotifierProvider(
             create: (context) =>
-                SchoolSetupController(context.read<CreateInitialSchoolSetup>()),
+                SchoolSetupController(context.read<CreateInitialWorkspace>()),
             child: SchoolSetupScreen(onCompleted: _schoolSaved),
           );
         }
@@ -125,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
             setupRepository: context.read<SchoolSetupRepository>(),
             groupRepository: context.read<TeachingGroupRepository>(),
             createTeachingGroup: context.read<CreateTeachingGroup>(),
+            startSchoolYear: context.read<StartSchoolYear>(),
           ),
           child: SchoolWorkspaceScreen(
             schoolId: selectedSchoolId,
@@ -140,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _deleteSchool(String schoolId) async {
     try {
       await context.read<SchoolSetupRepository>().deleteSchool(schoolId);
+      SafeLog.operationSuccess('delete_school');
       if (!mounted) return;
       setState(() {
         if (_selectedSchoolId == schoolId) _selectedSchoolId = null;
@@ -154,10 +158,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       );
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('delete_school', error);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).setupSaveError)),
+        SnackBar(content: Text(_schoolDeletionMessage(context, error))),
       );
     }
   }
@@ -169,4 +174,17 @@ class _HomeScreenState extends State<HomeScreen> {
       _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
     });
   }
+}
+
+String _schoolDeletionMessage(BuildContext context, Object error) {
+  final detail = error.toString().toLowerCase();
+  final english = Localizations.localeOf(context).languageCode == 'en';
+  if (detail.contains('locked') || detail.contains('readonly')) {
+    return english
+        ? 'The local data file is in use or cannot be written.'
+        : 'El archivo de datos local está en uso o no se puede modificar.';
+  }
+  return english
+      ? 'The school could not be deleted. Check the local data log for details.'
+      : 'No se pudo eliminar la escuela. Revisa el registro local para ver el detalle.';
 }

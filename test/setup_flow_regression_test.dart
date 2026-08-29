@@ -2,6 +2,7 @@ import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/school/school.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
@@ -46,7 +47,17 @@ void main() {
       await tester.tap(find.text('Balancán').last);
       await tester.pumpAndSettle();
 
-      final submit = find.text('Guardar y continuar');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Nombre del grupo'),
+        '1° A',
+      );
+      final firstGrade = find.text('1°').last;
+      await tester.ensureVisible(firstGrade);
+      await tester.pumpAndSettle();
+      await tester.tap(firstGrade);
+      await tester.pumpAndSettle();
+
+      final submit = find.text('Guardar y comenzar');
       await tester.ensureVisible(submit);
       await tester.pumpAndSettle();
       await tester.tap(submit);
@@ -85,13 +96,96 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Configura tu escuela'), findsOneWidget);
 
-    final submit = find.text('Guardar y continuar');
+    final submit = find.text('Guardar y comenzar');
     await tester.ensureVisible(submit);
     await tester.pumpAndSettle();
 
     expect(submit, findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('school setup captures contract dates for the group', (
+    tester,
+  ) async {
+    final setupRepository = _MemorySchoolSetupRepository();
+    final groupRepository = _MemoryTeachingGroupRepository();
+    final ids = _TestIdGenerator();
+
+    await tester.pumpWidget(
+      _testApp(
+        setupRepository: setupRepository,
+        groupRepository: groupRepository,
+        ids: ids,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Nombre de la escuela'),
+      'Primaria de prueba',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'CCT (opcional)'),
+      '27DPR1064V',
+    );
+    await tester.pump();
+
+    final municipality = find.byKey(const ValueKey('municipality-27-none'));
+    expect(municipality, findsOneWidget);
+    await tester.tap(municipality);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Balancán').last);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Nombre del grupo'),
+      '1° A',
+    );
+    final firstGrade = find.text('1°').last;
+    await tester.ensureVisible(firstGrade);
+    await tester.pumpAndSettle();
+    await tester.tap(firstGrade);
+    await tester.pumpAndSettle();
+
+    final contractStart = find.textContaining('Inicio de contratación');
+    await tester.ensureVisible(contractStart);
+    await tester.pumpAndSettle();
+    await tester.tap(contractStart);
+    await tester.pumpAndSettle();
+    await _confirmDatePicker(tester);
+
+    final contractEnd = find.textContaining('Fin de contratación');
+    await tester.ensureVisible(contractEnd);
+    await tester.pumpAndSettle();
+    await tester.tap(contractEnd);
+    await tester.pumpAndSettle();
+    await _confirmDatePicker(tester);
+
+    final submit = find.text('Guardar y comenzar');
+    await tester.ensureVisible(submit);
+    await tester.pumpAndSettle();
+    await tester.tap(submit);
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    await tester.pumpAndSettle();
+
+    final groups = groupRepository.groups;
+    expect(groups, hasLength(1));
+    expect(groups.single.contract, isNotNull);
+    expect(groups.single.contract!.startsOn, isNotNull);
+    expect(groups.single.contract!.endsOn, groups.single.contract!.startsOn);
+  });
+}
+
+Future<void> _confirmDatePicker(WidgetTester tester) async {
+  final dialog = find.byType(DatePickerDialog);
+  expect(dialog, findsOneWidget);
+  final confirm = find
+      .descendant(of: dialog, matching: find.byType(TextButton))
+      .last;
+  await tester.tap(confirm);
+  await tester.pumpAndSettle();
 }
 
 Widget _testApp({
@@ -113,6 +207,13 @@ Widget _testApp({
       Provider<CreateTeachingGroup>(
         create: (_) =>
             CreateTeachingGroup(repository: groupRepository, idGenerator: ids),
+      ),
+      Provider<CreateInitialWorkspace>(
+        create: (context) => CreateInitialWorkspace(
+          createSchoolSetup: context.read<CreateInitialSchoolSetup>(),
+          createTeachingGroup: context.read<CreateTeachingGroup>(),
+          schoolSetupRepository: setupRepository,
+        ),
       ),
     ],
     child: MaterialApp(
@@ -160,6 +261,8 @@ final class _MemorySchoolSetupRepository implements SchoolSetupRepository {
 
 final class _MemoryTeachingGroupRepository implements TeachingGroupRepository {
   final List<TeachingGroup> _groups = [];
+
+  List<TeachingGroup> get groups => List<TeachingGroup>.unmodifiable(_groups);
 
   @override
   Future<TeachingGroup?> findById(String id) async {

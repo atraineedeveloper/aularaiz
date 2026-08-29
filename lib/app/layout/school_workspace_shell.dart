@@ -12,6 +12,18 @@ final class SchoolWorkspaceDestination {
   final VoidCallback onSelect;
 }
 
+final class SchoolWorkspaceGroupChoice {
+  const SchoolWorkspaceGroupChoice({
+    required this.id,
+    required this.name,
+    this.subtitle,
+  });
+
+  final String id;
+  final String name;
+  final String? subtitle;
+}
+
 class SchoolWorkspaceShell extends StatelessWidget {
   const SchoolWorkspaceShell({
     required this.schoolName,
@@ -19,6 +31,9 @@ class SchoolWorkspaceShell extends StatelessWidget {
     required this.groupName,
     required this.destinations,
     this.selectedIndex = 0,
+    this.groupChoices = const <SchoolWorkspaceGroupChoice>[],
+    this.activeGroupId,
+    this.onChooseGroup,
     required this.onChooseSchool,
     this.onEditSchool,
     required this.onOpenSettings,
@@ -31,6 +46,9 @@ class SchoolWorkspaceShell extends StatelessWidget {
   final String groupName;
   final List<SchoolWorkspaceDestination> destinations;
   final int selectedIndex;
+  final List<SchoolWorkspaceGroupChoice> groupChoices;
+  final String? activeGroupId;
+  final ValueChanged<String>? onChooseGroup;
   final VoidCallback onChooseSchool;
   final VoidCallback? onEditSchool;
   final VoidCallback onOpenSettings;
@@ -38,6 +56,8 @@ class SchoolWorkspaceShell extends StatelessWidget {
 
   static const double _desktopBreakpoint = 980;
   static const double _mobileBreakpoint = 600;
+
+  bool get _canChooseGroup => groupChoices.length > 1 && onChooseGroup != null;
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +109,20 @@ class SchoolWorkspaceShell extends StatelessWidget {
         groupName: groupName,
       ),
       actions: [
+        if (_canChooseGroup)
+          PopupMenuButton<String>(
+            tooltip: 'Cambiar grupo',
+            icon: const Icon(Icons.groups_rounded),
+            initialValue: activeGroupId,
+            onSelected: onChooseGroup,
+            itemBuilder: (context) => [
+              for (final choice in groupChoices)
+                PopupMenuItem(
+                  value: choice.id,
+                  child: _GroupChoiceLabel(choice: choice),
+                ),
+            ],
+          ),
         IconButton(
           tooltip: 'Cambiar escuela',
           onPressed: onChooseSchool,
@@ -181,6 +215,35 @@ class SchoolWorkspaceShell extends StatelessWidget {
             groupName: groupName,
           ),
         ),
+        if (_canChooseGroup) ...[
+          for (final choice in groupChoices)
+            ListTile(
+              dense: true,
+              leading: Icon(
+                choice.id == activeGroupId
+                    ? Icons.groups_rounded
+                    : Icons.groups_outlined,
+              ),
+              title: Text(
+                choice.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: choice.subtitle == null
+                  ? null
+                  : Text(
+                      choice.subtitle!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+              selected: choice.id == activeGroupId,
+              onTap: () {
+                Navigator.of(context).pop();
+                onChooseGroup!(choice.id);
+              },
+            ),
+          const Divider(),
+        ],
         const Divider(),
         for (final destination in destinations)
           NavigationDrawerDestination(
@@ -241,6 +304,30 @@ class SchoolWorkspaceShell extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _GroupChoiceLabel extends StatelessWidget {
+  const _GroupChoiceLabel({required this.choice});
+
+  final SchoolWorkspaceGroupChoice choice;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(choice.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        if (choice.subtitle != null)
+          Text(
+            choice.subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+      ],
     );
   }
 }

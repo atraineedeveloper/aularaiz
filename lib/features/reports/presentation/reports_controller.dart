@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/infrastructure/reports/group_export_renderer.dart';
 import 'package:aularaiz/infrastructure/reports/pdf_report_renderer.dart';
@@ -155,6 +156,7 @@ final class ReportsController extends ChangeNotifier {
       );
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('load_reports', error);
       _groupReport = null;
     } finally {
       _isLoading = false;
@@ -170,11 +172,13 @@ final class ReportsController extends ChangeNotifier {
     notifyListeners();
     try {
       final published = await operation();
+      if (published) SafeLog.operationSuccess('publish_report');
       return published
           ? ReportPublishResult.published
           : ReportPublishResult.cancelled;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('publish_report', error);
       return ReportPublishResult.failed;
     } finally {
       _isPublishing = false;

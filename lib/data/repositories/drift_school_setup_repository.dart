@@ -8,7 +8,8 @@ final class DriftSchoolSetupRepository
     implements
         SchoolSetupRepository,
         EditableSchoolSetupRepository,
-        DeletableSchoolSetupRepository {
+        DeletableSchoolSetupRepository,
+        SchoolYearStarterRepository {
   DriftSchoolSetupRepository(this.database);
 
   final AppDatabase database;
@@ -87,6 +88,34 @@ final class DriftSchoolSetupRepository
           .insert(
             SchoolContextsCompanion(
               schoolId: Value(school.id),
+              schoolYearId: Value(schoolYear.id),
+            ),
+          );
+    });
+  }
+
+  @override
+  Future<void> startSchoolYear({
+    required String schoolId,
+    required SchoolYear schoolYear,
+  }) async {
+    await database.transaction(() async {
+      await database
+          .into(database.schoolYears)
+          .insert(
+            SchoolYearsCompanion(
+              id: Value(schoolYear.id),
+              label: Value(schoolYear.label),
+              startsOn: Value(schoolYear.startsOn),
+              endsOn: Value(schoolYear.endsOn),
+            ),
+          );
+
+      await database
+          .into(database.schoolContexts)
+          .insertOnConflictUpdate(
+            SchoolContextsCompanion(
+              schoolId: Value(schoolId),
               schoolYearId: Value(schoolYear.id),
             ),
           );

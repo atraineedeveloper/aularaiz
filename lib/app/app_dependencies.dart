@@ -20,6 +20,8 @@ import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
+import 'package:aularaiz/application/school_setup/start_school_year.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/application/student_import/import_students.dart';
@@ -167,6 +169,24 @@ class AppDependencies extends StatelessWidget {
         Provider<CreateTeachingGroup>(
           create: (context) => CreateTeachingGroup(
             repository: context.read<TeachingGroupRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<CreateInitialWorkspace>(
+          create: (context) => CreateInitialWorkspace(
+            createSchoolSetup: context.read<CreateInitialSchoolSetup>(),
+            createTeachingGroup: context.read<CreateTeachingGroup>(),
+            schoolSetupRepository: context.read<SchoolSetupRepository>(),
+          ),
+        ),
+        Provider<SchoolYearStarterRepository>(
+          create: (context) =>
+              DriftSchoolSetupRepository(context.read<AppDatabase>()),
+        ),
+        Provider<StartSchoolYear>(
+          create: (context) => StartSchoolYear(
+            setupRepository: context.read<SchoolSetupRepository>(),
+            starterRepository: context.read<SchoolYearStarterRepository>(),
             idGenerator: context.read<IdGenerator>(),
           ),
         ),

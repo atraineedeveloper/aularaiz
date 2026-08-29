@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/infrastructure/update/app_update.dart';
 import 'package:aularaiz/infrastructure/update/github_update_service.dart';
@@ -43,7 +44,8 @@ class _UpdateSectionState extends State<UpdateSection> {
       final version = await _service.currentVersion();
       if (!mounted) return;
       setState(() => _currentVersion = version);
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('read_app_version', error);
       // Version display is informative only. Update checks still surface errors.
     }
   }
@@ -69,7 +71,8 @@ class _UpdateSectionState extends State<UpdateSection> {
             ? strings.upToDate
             : strings.updateAvailable(update.version.toString());
       });
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('check_for_updates', error);
       if (!mounted) return;
       if (!automatic) {
         setState(() => _status = strings.checkFailed);
@@ -96,7 +99,8 @@ class _UpdateSectionState extends State<UpdateSection> {
         _preparedInstaller = prepared;
         _status = strings.readyToRestart(update.version.toString());
       });
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('prepare_update', error);
       if (!mounted) return;
       setState(() => _status = strings.installFailed);
     } finally {
@@ -137,7 +141,8 @@ class _UpdateSectionState extends State<UpdateSection> {
       await _service.launchUpdateCoordinator(prepared);
       await database.close();
       exit(0);
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('launch_update', error);
       if (!mounted) return;
       setState(() {
         _launching = false;

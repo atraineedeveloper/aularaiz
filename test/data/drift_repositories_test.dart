@@ -56,6 +56,9 @@ void main() {
     expect(group.shift, 'Matutino');
     expect(group.schedule?.startsAtMinutes, 8 * 60);
     expect(group.schedule?.endsAtMinutes, 13 * 60);
+    expect(group.contract, isNotNull);
+    expect(group.contract!.startsOn, DateTime(2026, 9, 1));
+    expect(group.contract!.endsOn, DateTime(2026, 12, 15));
   });
 
   test('enroll student persists and round-trips through Drift', () async {
@@ -160,14 +163,16 @@ Future<void> _seedSchoolContext(AppDatabase database) async {
   await database
       .into(database.teachingGroups)
       .insert(
-        const TeachingGroupsCompanion(
-          id: Value('group-1'),
-          schoolId: Value('school-1'),
-          schoolYearId: Value('year-1'),
-          name: Value('1.º y 2.º A'),
-          shift: Value('Matutino'),
-          scheduleStartMinutes: Value(480),
-          scheduleEndMinutes: Value(780),
+        TeachingGroupsCompanion(
+          id: const Value('group-1'),
+          schoolId: const Value('school-1'),
+          schoolYearId: const Value('year-1'),
+          name: const Value('1.º y 2.º A'),
+          shift: const Value('Matutino'),
+          scheduleStartMinutes: const Value(480),
+          scheduleEndMinutes: const Value(780),
+          contractStartsOn: Value(DateTime(2026, 9, 1)),
+          contractEndsOn: Value(DateTime(2026, 12, 15)),
         ),
       );
   await database

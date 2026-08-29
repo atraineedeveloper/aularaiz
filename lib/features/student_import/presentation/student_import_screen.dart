@@ -1,4 +1,5 @@
 import 'package:aularaiz/application/student_import/student_import_models.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_controller.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_localization.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -139,7 +140,8 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
         fileName: file.name,
         bytes: bytes,
       );
-    } catch (_) {
+    } catch (error) {
+      SafeLog.operationFailure('read_student_import_file', error);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

@@ -2,6 +2,7 @@ import 'package:aularaiz/application/student_import/import_students.dart';
 import 'package:aularaiz/application/student_import/student_import_models.dart';
 import 'package:aularaiz/application/student_import/student_import_parser.dart';
 import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/infrastructure/student_import/student_import_file_reader.dart';
 import 'package:flutter/foundation.dart';
@@ -81,6 +82,7 @@ final class StudentImportController extends ChangeNotifier {
       _error = error;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('prepare_student_import', error);
     } finally {
       _isReading = false;
       notifyListeners();
@@ -151,6 +153,7 @@ final class StudentImportController extends ChangeNotifier {
       return null;
     } catch (error) {
       _error = error;
+      SafeLog.operationFailure('validate_student_import', error);
       return null;
     } finally {
       _isImporting = false;
@@ -180,6 +183,7 @@ final class StudentImportController extends ChangeNotifier {
     } catch (error) {
       _preview = null;
       _error = error;
+      SafeLog.operationFailure('refresh_student_import', error);
     }
     notifyListeners();
   }

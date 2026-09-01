@@ -77,6 +77,9 @@ jobs:
           $agentExe = Join-Path $destination 'bin\aularaiz-agent.exe'
           if (-not (Test-Path $sourceExe)) { throw "Automation executable not found: $sourceExe" }
           Rename-Item $sourceExe 'aularaiz-agent.exe'
+          Copy-Item 'windows\terminal\aula.cmd' (Join-Path $destination 'bin\aula.cmd') -Force
+          Copy-Item 'windows\terminal\aularaiz.cmd' (Join-Path $destination 'bin\aularaiz.cmd') -Force
+          if (-not (Test-Path (Join-Path $destination 'bin\aula.cmd'))) { throw 'Terminal command shim not found.' }
           & $agentExe --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw 'Bundled automation agent failed to start.' }
       - name: Build update coordinator

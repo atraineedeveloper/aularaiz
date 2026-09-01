@@ -28,6 +28,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
 RestartApplications=no
+ChangesEnvironment=yes
 UninstallDisplayIcon={app}\aularaiz.exe
 VersionInfoCompany=MindTzijib
 VersionInfoDescription=AulaRaíz Installer
@@ -37,8 +38,28 @@ VersionInfoVersion={#AppVersion}.0
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+; Exposes aula.cmd / aularaiz.cmd / aularaiz-agent.exe as terminal commands by
+; adding {app}\automation\bin to the per-user PATH. preservestringtype keeps the
+; existing value type, and NeedsAddPath prevents duplicates on reinstall/update.
+[Registry]
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\automation\bin"; Flags: preservestringtype; Check: NeedsAddPath("{app}\automation\bin")
+
 [Icons]
 Name: "{autoprograms}\AulaRaíz"; Filename: "{app}\aularaiz.exe"
 
 [Run]
 Filename: "{app}\aularaiz.exe"; Description: "Abrir AulaRaíz"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function NeedsAddPath(Param: string): Boolean;
+var
+  OrigPath: string;
+  AppDir: string;
+begin
+  AppDir := Param;
+  if not RegQueryStringValue(
+    HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
+    OrigPath := '';
+  Result := Pos(
+    ';' + Uppercase(AppDir) + ';', ';' + Uppercase(OrigPath) + ';') = 0;
+end;

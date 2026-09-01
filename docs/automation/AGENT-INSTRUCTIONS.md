@@ -1,6 +1,6 @@
 # Instrucciones para agentes externos (OpenClaw u otros)
 
-Estas reglas aplican a cualquier agente automatizado que opere el CLI `aularaiz-agent.exe` (o `dart run bin\aularaiz_agent.dart`). El contrato completo de comandos, JSON y errores está en [`docs/automation/agent-cli.md`](./agent-cli.md).
+Estas reglas aplican a cualquier agente automatizado que opere el CLI de AulaRaíz — `aula`, `aularaiz` o `aularaiz-agent.exe` (o `dart run bin\aularaiz_agent.dart` en desarrollo). El contrato completo de comandos, JSON y errores está en [`docs/automation/agent-cli.md`](./agent-cli.md).
 
 1. **Ejecuta `status` primero.** Confirma que la base existe (`database.exists`) y lee las capacidades antes de cualquier otra operación.
 2. **No uses `--include-personal-data` sin autorización explícita del docente.** La salida minimizada es suficiente para casi todo flujo de trabajo.

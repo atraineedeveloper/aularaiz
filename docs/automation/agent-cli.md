@@ -6,6 +6,22 @@ El ejecutable `aularaiz-agent.exe` (fuente: `bin/aularaiz_agent.dart`) es un age
 
 Fuente de verdad del contrato: este documento. La documentación de fase (`docs/phase-9/local-automation.md`) se mantiene como referencia histórica.
 
+## Comando de terminal
+
+A partir del instalador 0.1.12, el instalador registra `%LOCALAPPDATA%\Programs\AulaRaiz\automation\bin` en el `Path` del usuario. En cualquier terminal **nueva** (PowerShell, CMD) el agente responde a tres nombres equivalentes:
+
+```
+aula --help          # comando corto (recomendado)
+aularaiz --help      # nombre largo
+aularaiz-agent --help
+```
+
+- Las terminales ya abiertas antes de instalar deben reabrirse para heredar el `Path` actualizado.
+- El alta es idempotente: reinstalar o actualizar no duplica la entrada.
+- Sin instalador (desarrollo), usa `dart run bin\aularaiz_agent.dart ...` o `.\tool\aularaiz-agent.ps1 ...`.
+
+En los ejemplos de abajo se usa `aula`; los tres nombres aceptan las mismas opciones.
+
 ## Contrato de salida
 
 Todos los comandos (incluidos los errores) imprimen un único JSON en `stdout`:

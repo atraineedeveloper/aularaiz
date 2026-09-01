@@ -1,9 +1,15 @@
 import 'package:aularaiz/application/automation/automation_models.dart';
+import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
+import 'package:aularaiz/domain/project/activity.dart';
+import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 
@@ -26,12 +32,18 @@ final class AutomationService {
     required SchoolSetupRepository schoolSetupRepository,
     required TeachingGroupRepository teachingGroupRepository,
     required StudentRepository studentRepository,
+    required ProjectRepository projectRepository,
+    required ActivityRepository activityRepository,
+    required EnrollmentRepository enrollmentRepository,
     required AutomationGroupReportLoader groupReportLoader,
     required AutomationStudentNoteWriter studentNoteWriter,
     AutomationClock? clock,
   }) : _schoolSetupRepository = schoolSetupRepository,
        _teachingGroupRepository = teachingGroupRepository,
        _studentRepository = studentRepository,
+       _projectRepository = projectRepository,
+       _activityRepository = activityRepository,
+       _enrollmentRepository = enrollmentRepository,
        _groupReportLoader = groupReportLoader,
        _studentNoteWriter = studentNoteWriter,
        _clock = clock ?? DateTime.now;
@@ -39,6 +51,9 @@ final class AutomationService {
   final SchoolSetupRepository _schoolSetupRepository;
   final TeachingGroupRepository _teachingGroupRepository;
   final StudentRepository _studentRepository;
+  final ProjectRepository _projectRepository;
+  final ActivityRepository _activityRepository;
+  final EnrollmentRepository _enrollmentRepository;
   final AutomationGroupReportLoader _groupReportLoader;
   final AutomationStudentNoteWriter _studentNoteWriter;
   final AutomationClock _clock;
@@ -65,6 +80,26 @@ final class AutomationService {
     );
   }
 
+  Future<AutomationEnvelope> listSchools() async {
+    final setups = await _schoolSetupRepository.listSetups();
+    return _envelope(
+      kind: 'schools',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'schools': [
+          for (final setup in setups)
+            <String, Object?>{
+              'id': setup.school.id,
+              'name': setup.school.name,
+              'school_year': setup.schoolYear.label,
+              'school_year_id': setup.schoolYear.id,
+              'organization': setup.school.organization.name,
+            },
+        ],
+      },
+    );
+  }
+
   Future<AutomationEnvelope> listGroups() async {
     final setup = await _schoolSetupRepository.loadInitialSetup();
     if (setup == null) {
@@ -82,6 +117,106 @@ final class AutomationService {
       data: <String, Object?>{
         'school_year': setup.schoolYear.label,
         'groups': groups.map(_groupProjection).toList(growable: false),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> listProjects({required String groupId}) async {
+    final group = await _requireGroup(groupId);
+    final projects = List<Project>.of(
+      await _projectRepository.listForGroup(group.id),
+    );
+    projects.sort((left, right) => left.title.compareTo(right.title));
+
+    return _envelope(
+      kind: 'projects',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'group': _groupProjection(group),
+        'project_count': projects.length,
+        'projects': projects.map(_projectProjection).toList(growable: false),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> listActivities({required String projectId}) async {
+    final project = await _projectRepository.findById(projectId);
+    if (project == null) throw StateError('Project does not exist.');
+
+    final activities = List<Activity>.of(
+      await _activityRepository.listForProject(project.id),
+    );
+    activities.sort((left, right) {
+      final byTitle = left.title.compareTo(right.title);
+      if (byTitle != 0) return byTitle;
+      final leftDate = left.occursOn;
+      final rightDate = right.occursOn;
+      if (leftDate == null || rightDate == null) return 0;
+      return leftDate.compareTo(rightDate);
+    });
+
+    return _envelope(
+      kind: 'activities',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'project': <String, Object?>{'id': project.id, 'title': project.title},
+        'activity_count': activities.length,
+        'activities': activities
+            .map(_activityProjection)
+            .toList(growable: false),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> listStudents({
+    required String groupId,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
+    final group = await _requireGroup(groupId);
+    final now = _date(_clock());
+    final enrollments = await _enrollmentRepository.findByGroupId(group.id);
+    final latestByStudent = <String, Enrollment>{};
+    for (final enrollment in enrollments) {
+      final current = latestByStudent[enrollment.studentId];
+      if (current == null || enrollment.startsOn.isAfter(current.startsOn)) {
+        latestByStudent[enrollment.studentId] = enrollment;
+      }
+    }
+
+    final students = <_AutomationStudentRow>[];
+    for (final enrollment in latestByStudent.values) {
+      final student = await _studentRepository.findById(enrollment.studentId);
+      if (student == null) continue;
+      students.add(
+        _AutomationStudentRow(
+          student: student,
+          enrollment: enrollment,
+          active: enrollment.isActiveOn(now),
+        ),
+      );
+    }
+    students.sort((left, right) => left.listNumber.compareTo(right.listNumber));
+
+    final gradeCounts = <int, int>{};
+    for (final row in students) {
+      final grade = row.enrollment.grade.number;
+      gradeCounts[grade] = (gradeCounts[grade] ?? 0) + 1;
+    }
+
+    return _envelope(
+      kind: 'students',
+      privacy: privacy,
+      data: <String, Object?>{
+        'group': _groupProjection(group),
+        'student_count': students.length,
+        'active_count': students.where((row) => row.active).length,
+        'inactive_count': students.where((row) => !row.active).length,
+        'enrollment_by_grade': <String, Object?>{
+          for (final entry in gradeCounts.entries)
+            entry.key.toString(): entry.value,
+        },
+        if (privacy.includePersonalData)
+          'students': students.map(_personalStudentRow).toList(growable: false),
       },
     );
   }
@@ -115,6 +250,17 @@ final class AutomationService {
               .map(_personalStudentProjection)
               .toList(growable: false),
       },
+    );
+  }
+
+  Future<GroupReportData> loadGroupReport({
+    required String groupId,
+    required DateTime referenceMonth,
+  }) async {
+    final group = await _requireGroup(groupId);
+    return _groupReportLoader(
+      group: group,
+      referenceMonth: _month(referenceMonth),
     );
   }
 
@@ -321,6 +467,54 @@ Map<String, Object?> _groupProjection(TeachingGroup group) => <String, Object?>{
   if (group.shift != null) 'shift': group.shift,
 };
 
+Map<String, Object?> _projectProjection(Project project) => <String, Object?>{
+  'id': project.id,
+  'title': project.title,
+  'lifecycle': project.lifecycle.name,
+  'methodology': project.methodology.name,
+  'grades':
+      project.targetGrades.map((grade) => grade.number).toList(growable: false)
+        ..sort(),
+};
+
+Map<String, Object?> _activityProjection(
+  Activity activity,
+) => <String, Object?>{
+  'id': activity.id,
+  'title': activity.title,
+  'formative_field': activity.formativeField.name,
+  'grades':
+      activity.targetGrades.map((grade) => grade.number).toList(growable: false)
+        ..sort(),
+  if (activity.occursOn != null) 'occurs_on': _dateLabel(activity.occursOn!),
+};
+
+final class _AutomationStudentRow {
+  const _AutomationStudentRow({
+    required this.student,
+    required this.enrollment,
+    required this.active,
+  });
+
+  final Student student;
+  final Enrollment enrollment;
+  final bool active;
+
+  int get listNumber => enrollment.listNumber;
+}
+
+Map<String, Object?> _personalStudentRow(_AutomationStudentRow row) =>
+    <String, Object?>{
+      'student_id': row.student.id,
+      'name': row.student.displayName,
+      'list_number': row.enrollment.listNumber,
+      'grade': row.enrollment.grade.number,
+      'active': row.active,
+      'starts_on': _dateLabel(row.enrollment.startsOn),
+      if (row.enrollment.endsOn != null)
+        'ends_on': _dateLabel(row.enrollment.endsOn!),
+    };
+
 Map<String, Object?> _aggregateAttendance(List<StudentReportRow> rows) {
   var present = 0;
   var absent = 0;
@@ -407,6 +601,8 @@ Map<String, Object?> _personalStudentIdentity(Student student) =>
     <String, Object?>{'student_id': student.id, 'name': student.displayName};
 
 DateTime _month(DateTime value) => DateTime(value.year, value.month);
+
+DateTime _date(DateTime value) => DateTime(value.year, value.month, value.day);
 
 String _monthLabel(DateTime value) =>
     '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}';

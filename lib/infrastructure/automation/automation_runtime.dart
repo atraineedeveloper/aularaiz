@@ -5,7 +5,13 @@ import 'package:aularaiz/application/attendance/set_student_attendance_status.da
 import 'package:aularaiz/application/automation/automation_mutation_service.dart';
 import 'package:aularaiz/application/automation/automation_service.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
+import 'package:aularaiz/application/group/create_teaching_group.dart';
+import 'package:aularaiz/application/project/create_activity.dart';
+import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
+import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
+import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
+import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
@@ -19,6 +25,7 @@ import 'package:aularaiz/data/repositories/drift_evaluation_repository.dart';
 import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
+import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
@@ -139,6 +146,35 @@ final class AutomationRuntime {
       enrollStudent: enrollStudent,
       idGenerator: idGenerator,
     );
+    final createTeachingGroup = CreateTeachingGroup(
+      repository: teachingGroupRepository,
+      idGenerator: idGenerator,
+    );
+    final createInitialWorkspace = CreateInitialWorkspace(
+      createSchoolSetup: CreateInitialSchoolSetup(
+        repository: schoolSetupRepository,
+        idGenerator: idGenerator,
+      ),
+      createTeachingGroup: createTeachingGroup,
+      schoolSetupRepository: schoolSetupRepository,
+    );
+    final createStudentInGroup = CreateStudentInGroup(
+      teachingGroupRepository: teachingGroupRepository,
+      schoolYearRepository: schoolYearRepository,
+      enrollmentRepository: enrollmentRepository,
+      writer: DriftStudentEnrollmentWriter(database),
+      idGenerator: idGenerator,
+    );
+    final createProject = CreateProject(
+      repository: projectRepository,
+      idGenerator: idGenerator,
+    );
+    final createActivity = CreateActivity(
+      activityRepository: activityRepository,
+      projectRepository: projectRepository,
+      enrollmentRepository: enrollmentRepository,
+      idGenerator: idGenerator,
+    );
 
     return AutomationRuntime._(
       database: database,
@@ -146,6 +182,9 @@ final class AutomationRuntime {
         schoolSetupRepository: schoolSetupRepository,
         teachingGroupRepository: teachingGroupRepository,
         studentRepository: studentRepository,
+        projectRepository: projectRepository,
+        activityRepository: activityRepository,
+        enrollmentRepository: enrollmentRepository,
         groupReportLoader: ({required group, required referenceMonth}) {
           return reportProjectionBuilder.buildGroup(
             group: group,
@@ -174,6 +213,14 @@ final class AutomationRuntime {
         setStudentAttendanceStatus: setStudentAttendanceStatus,
         deactivateStudentInGroup: deactivateStudentInGroup,
         reactivateStudentInGroup: reactivateStudentInGroup,
+        schoolSetupRepository: schoolSetupRepository,
+        createInitialWorkspace: createInitialWorkspace,
+        createTeachingGroup: createTeachingGroup,
+        createStudentInGroup: createStudentInGroup,
+        createProject: createProject,
+        createActivity: createActivity,
+        projectRepository: projectRepository,
+        activityRepository: activityRepository,
       ),
     );
   }

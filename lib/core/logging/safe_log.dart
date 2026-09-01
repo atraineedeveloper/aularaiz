@@ -18,9 +18,10 @@ abstract final class SafeLog {
     } catch (_) {}
   }
 
-  static void operationFailure(String operation, Object error) {
+  static void operationFailure(String operation, Object error, {String? code}) {
     _event(
-      'operation_failed operation=$operation errorType=${error.runtimeType}',
+      'operation_failed operation=$operation errorType=${error.runtimeType}'
+      '${code == null ? '' : ' code=$code'}',
     );
   }
 

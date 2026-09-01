@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:aularaiz/application/student_import/student_import_models.dart';
+import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 
@@ -16,18 +17,29 @@ final class StudentImportFileReader {
       if (lowerName.endsWith('.csv')) {
         return _readCsv(fileName: fileName, bytes: bytes);
       }
-      if (lowerName.endsWith('.xlsx')) {
+      if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xlsm')) {
         return _readXlsx(fileName: fileName, bytes: bytes);
       }
       throw const StudentImportFormatException(
         StudentImportFormatProblem.unsupportedFile,
       );
-    } on StudentImportFormatException {
+    } on StudentImportFormatException catch (error) {
+      SafeLog.operationFailure(
+        'parse_student_import',
+        error,
+        code: error.problem.name,
+      );
       rethrow;
-    } catch (_) {
-      throw const StudentImportFormatException(
+    } catch (error) {
+      const formatError = StudentImportFormatException(
         StudentImportFormatProblem.unreadableFile,
       );
+      SafeLog.operationFailure(
+        'parse_student_import',
+        error,
+        code: formatError.problem.name,
+      );
+      throw formatError;
     }
   }
 

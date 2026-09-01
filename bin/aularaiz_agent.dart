@@ -2,16 +2,21 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:aularaiz/application/automation/automation_models.dart';
-import 'package:aularaiz/data/local/storage_profile.dart';
+import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
+import 'package:aularaiz/domain/project/project_methodology.dart';
+import 'package:aularaiz/domain/school/school_organization.dart';
+import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:aularaiz/infrastructure/automation/agent_invocation.dart';
 import 'package:aularaiz/infrastructure/automation/automation_runtime.dart';
 
 Future<void> main(List<String> arguments) async {
   var pretty = arguments.contains('--pretty');
   try {
-    final invocation = _Invocation.parse(arguments);
+    final invocation = AgentInvocation.parse(arguments);
     pretty = invocation.pretty;
 
     if (invocation.help || invocation.command == null) {
@@ -49,7 +54,7 @@ Future<void> main(List<String> arguments) async {
     }
 
     if (databaseFile == null) {
-      throw const _CliFailure(
+      throw const AgentCliFailure(
         'database-not-found',
         'No se encontró la base local de AulaRaíz. Usa --database <ruta> para indicar su ubicación.',
         3,
@@ -66,7 +71,18 @@ Future<void> main(List<String> arguments) async {
       );
       final envelope = switch (invocation.command) {
         'status' => await runtime.service.status(),
+        'schools' => await runtime.service.listSchools(),
         'groups' => await runtime.service.listGroups(),
+        'projects' => await runtime.service.listProjects(
+          groupId: invocation.requireOption('group'),
+        ),
+        'activities' => await runtime.service.listActivities(
+          projectId: invocation.requireOption('project'),
+        ),
+        'students' => await runtime.service.listStudents(
+          groupId: invocation.requireOption('group'),
+          privacy: privacy,
+        ),
         'group-summary' => await runtime.service.groupSummary(
           groupId: invocation.requireOption('group'),
           referenceMonth: _parseMonth(invocation.requireOption('month')),
@@ -77,6 +93,117 @@ Future<void> main(List<String> arguments) async {
           referenceMonth: _parseMonth(invocation.requireOption('month')),
           privacy: privacy,
         ),
+        'workspace-create' => await runtime.mutations.createWorkspace(
+          schoolName: invocation.requireOption('school-name'),
+          cct: invocation.options['cct'],
+          organization: _parseOrganization(
+            invocation.options['organization'] ?? 'unspecified',
+          ),
+          state: invocation.options['state'],
+          municipality: invocation.options['municipality'],
+          locality: invocation.options['locality'],
+          schoolYearLabel: invocation.requireOption('school-year'),
+          startsOn: _parseDate(invocation.requireOption('starts-on')),
+          endsOn: _parseDate(invocation.requireOption('ends-on')),
+          groupName: invocation.requireOption('group-name'),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          shift: invocation.options['shift'],
+          apply: invocation.apply,
+        ),
+        'school-update' => await runtime.mutations.updateSchool(
+          schoolId: invocation.requireOption('school'),
+          name: invocation.requireOption('school-name'),
+          cct: invocation.options['cct'],
+          state: invocation.options['state'],
+          municipality: invocation.options['municipality'],
+          locality: invocation.options['locality'],
+          apply: invocation.apply,
+        ),
+        'school-delete' => await runtime.mutations.deleteSchool(
+          schoolId: invocation.requireOption('school'),
+          apply: invocation.apply,
+        ),
+        'group-create' => await runtime.mutations.createGroup(
+          schoolId: invocation.requireOption('school'),
+          schoolYearId: invocation.requireOption('school-year-id'),
+          name: invocation.requireOption('group-name'),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          shift: invocation.options['shift'],
+          apply: invocation.apply,
+        ),
+        'group-update' => await runtime.mutations.updateGroup(
+          groupId: invocation.requireOption('group'),
+          name: invocation.requireOption('group-name'),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          shift: invocation.options['shift'],
+          apply: invocation.apply,
+        ),
+        'group-delete' => await runtime.mutations.deleteGroup(
+          groupId: invocation.requireOption('group'),
+          apply: invocation.apply,
+        ),
+        'student-create' => await runtime.mutations.createStudent(
+          groupId: invocation.requireOption('group'),
+          givenNames: invocation.requireOption('given-names'),
+          firstSurname: invocation.requireOption('first-surname'),
+          secondSurname: invocation.options['second-surname'],
+          sex: _parseSex(invocation.options['sex']),
+          birthDate: invocation.options['birth-date'] == null
+              ? null
+              : _parseDate(invocation.options['birth-date']!),
+          grade: _parseGrade(invocation.requireOption('grade')),
+          listNumber: _parsePositiveInt(
+            invocation.requireOption('list-number'),
+            option: 'list-number',
+          ),
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
+        'student-update' => await runtime.mutations.updateStudent(
+          studentId: invocation.requireOption('student'),
+          givenNames: invocation.requireOption('given-names'),
+          firstSurname: invocation.requireOption('first-surname'),
+          secondSurname: invocation.options['second-surname'],
+          sex: _parseSex(invocation.options['sex']),
+          birthDate: invocation.options['birth-date'] == null
+              ? null
+              : _parseDate(invocation.options['birth-date']!),
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
+        'project-create' => await runtime.mutations.createProject(
+          groupId: invocation.requireOption('group'),
+          title: invocation.requireOption('title'),
+          methodology: _parseMethodology(
+            invocation.options['methodology'] ?? 'unspecified',
+          ),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          apply: invocation.apply,
+        ),
+        'project-update' => await runtime.mutations.updateProject(
+          projectId: invocation.requireOption('project'),
+          title: invocation.requireOption('title'),
+          methodology: _parseMethodology(
+            invocation.options['methodology'] ?? 'unspecified',
+          ),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          apply: invocation.apply,
+        ),
+        'activity-create' => await runtime.mutations.createActivity(
+          projectId: invocation.requireOption('project'),
+          title: invocation.requireOption('title'),
+          formativeField: _parseFormativeField(
+            invocation.requireOption('formative-field'),
+          ),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          occursOn: _parseDate(invocation.requireOption('date')),
+          apply: invocation.apply,
+        ),
+        'activity-delete' => await runtime.mutations.deleteActivity(
+          activityId: invocation.requireOption('activity'),
+          apply: invocation.apply,
+        ),
+        'database-diagnose' => await _diagnoseDatabase(runtime),
         'student-note' => await runtime.service.studentNote(
           studentId: invocation.requireOption('student'),
           kind: _parseEntryKind(invocation.requireOption('kind')),
@@ -118,7 +245,9 @@ Future<void> main(List<String> arguments) async {
           apply: invocation.apply,
           privacy: privacy,
         ),
-        _ => throw _UsageFailure('Comando desconocido: ${invocation.command}'),
+        _ => throw AgentUsageFailure(
+          'Comando desconocido: ${invocation.command}',
+        ),
       };
 
       final json = envelope.toJson();
@@ -138,7 +267,7 @@ Future<void> main(List<String> arguments) async {
     } finally {
       await runtime.close();
     }
-  } on _CliFailure catch (error) {
+  } on AgentCliFailure catch (error) {
     _writeJson(_errorEnvelope(error.code, error.message), pretty: pretty);
     exitCode = error.exitCode;
   } on FormatException catch (error) {
@@ -177,103 +306,10 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-final class _Invocation {
-  const _Invocation({
-    required this.command,
-    required this.options,
-    required this.flags,
-  });
-
-  factory _Invocation.parse(List<String> arguments) {
-    const valueOptions = <String>{
-      'database',
-      'profile',
-      'group',
-      'month',
-      'student',
-      'kind',
-      'date',
-      'text',
-      'status',
-      'grade',
-      'list-number',
-    };
-    const booleanFlags = <String>{
-      'apply',
-      'include-personal-data',
-      'pretty',
-      'help',
-      'text-stdin',
-    };
-
-    String? command;
-    final options = <String, String>{};
-    final flags = <String>{};
-
-    var index = 0;
-    while (index < arguments.length) {
-      final argument = arguments[index];
-      if (!argument.startsWith('--')) {
-        if (command != null) {
-          throw _UsageFailure('Argumento inesperado: $argument');
-        }
-        command = argument;
-        index++;
-        continue;
-      }
-
-      final name = argument.substring(2);
-      if (booleanFlags.contains(name)) {
-        flags.add(name);
-        index++;
-        continue;
-      }
-      if (!valueOptions.contains(name)) {
-        throw _UsageFailure('Opción desconocida: --$name');
-      }
-      if (index + 1 >= arguments.length ||
-          arguments[index + 1].startsWith('--')) {
-        throw _UsageFailure('Falta el valor de --$name.');
-      }
-      options[name] = arguments[index + 1];
-      index += 2;
-    }
-
-    return _Invocation(command: command, options: options, flags: flags);
-  }
-
-  final String? command;
-  final Map<String, String> options;
-  final Set<String> flags;
-
-  bool get apply => flags.contains('apply');
-  bool get includePersonalData => flags.contains('include-personal-data');
-  bool get pretty => flags.contains('pretty');
-  bool get help => flags.contains('help');
-  bool get textFromStdin => flags.contains('text-stdin');
-  String? get databasePath => options['database'];
-
-  StorageProfile get profile {
-    final value = options['profile'] ?? StorageProfile.production.name;
-    for (final profile in StorageProfile.values) {
-      if (profile.name == value) return profile;
-    }
-    throw _UsageFailure('--profile debe ser production o demo.');
-  }
-
-  String requireOption(String name) {
-    final value = options[name]?.trim();
-    if (value == null || value.isEmpty) {
-      throw _UsageFailure('El comando $command requiere --$name.');
-    }
-    return value;
-  }
-}
-
-Future<String> _resolveNoteText(_Invocation invocation) async {
+Future<String> _resolveNoteText(AgentInvocation invocation) async {
   final inlineText = invocation.options['text'];
   if (inlineText != null && invocation.textFromStdin) {
-    throw _UsageFailure('Usa --text o --text-stdin, pero no ambos.');
+    throw AgentUsageFailure('Usa --text o --text-stdin, pero no ambos.');
   }
   if (!invocation.textFromStdin) {
     return invocation.requireOption('text');
@@ -281,9 +317,31 @@ Future<String> _resolveNoteText(_Invocation invocation) async {
 
   final text = await utf8.decoder.bind(stdin).join();
   if (text.trim().isEmpty) {
-    throw _UsageFailure('--text-stdin no recibió contenido.');
+    throw AgentUsageFailure('--text-stdin no recibió contenido.');
   }
   return text;
+}
+
+Future<AutomationEnvelope> _diagnoseDatabase(AutomationRuntime runtime) async {
+  final integrity = await runtime.database
+      .customSelect('PRAGMA integrity_check')
+      .get();
+  final foreignKeys = await runtime.database
+      .customSelect('PRAGMA foreign_key_check')
+      .get();
+  final version = await runtime.database
+      .customSelect('PRAGMA user_version')
+      .getSingle();
+  return AutomationEnvelope(
+    kind: 'database-diagnose',
+    privacy: const AutomationPrivacy(),
+    data: {
+      'integrity': integrity.map((row) => row.data.values.first).toList(),
+      'foreign_key_violation_count': foreignKeys.length,
+      'user_version': version.read<int>('user_version'),
+      'expected_version': AppDatabase.currentSchemaVersion,
+    },
+  );
 }
 
 DateTime _parseMonth(String value) {
@@ -339,6 +397,55 @@ PrimaryGrade _parseGrade(String value) {
   }
 }
 
+Set<PrimaryGrade> _parseGrades(String value) {
+  final grades = value
+      .split(',')
+      .map((item) => int.tryParse(item.trim()))
+      .whereType<int>()
+      .map(PrimaryGrade.fromNumber)
+      .toSet();
+  if (grades.isEmpty) {
+    throw AgentUsageFailure(
+      '--grades debe contener grados 1..6 separados por coma.',
+    );
+  }
+  return grades;
+}
+
+SchoolOrganization _parseOrganization(String value) {
+  for (final organization in SchoolOrganization.values) {
+    if (organization.name == value.trim()) return organization;
+  }
+  throw AgentUsageFailure(
+    '--organization debe ser unspecified, unitary, twoTeacher, threeTeacher, fourTeacher, fiveTeacher o complete.',
+  );
+}
+
+StudentSex? _parseSex(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  return switch (value.trim()) {
+    'male' => StudentSex.male,
+    'female' => StudentSex.female,
+    _ => throw AgentUsageFailure('--sex debe ser male o female.'),
+  };
+}
+
+ProjectMethodology _parseMethodology(String value) {
+  for (final methodology in ProjectMethodology.values) {
+    if (methodology.name == value.trim()) return methodology;
+  }
+  throw AgentUsageFailure('--methodology no corresponde al catálogo admitido.');
+}
+
+FormativeField _parseFormativeField(String value) {
+  for (final field in FormativeField.values) {
+    if (field.name == value.trim()) return field;
+  }
+  throw AgentUsageFailure(
+    '--formative-field no corresponde al catálogo admitido.',
+  );
+}
+
 int _parsePositiveInt(String value, {required String option}) {
   final number = int.tryParse(value);
   if (number == null || number <= 0) {
@@ -369,7 +476,106 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
     'usage': 'dart run bin/aularaiz_agent.dart <command> [options]',
     'commands': <Map<String, Object?>>[
       <String, Object?>{'name': 'status'},
+      <String, Object?>{'name': 'schools'},
       <String, Object?>{'name': 'groups'},
+      <String, Object?>{
+        'name': 'projects',
+        'required': <String>['--group'],
+      },
+      <String, Object?>{
+        'name': 'activities',
+        'required': <String>['--project'],
+      },
+      <String, Object?>{
+        'name': 'students',
+        'required': <String>['--group'],
+        'optional': <String>['--include-personal-data'],
+      },
+      <String, Object?>{
+        'name': 'workspace-create',
+        'required': <String>[
+          '--school-name',
+          '--school-year',
+          '--starts-on',
+          '--ends-on',
+          '--group-name',
+          '--grades 1,2,...',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'school-update',
+        'required': <String>['--school', '--school-name'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'school-delete',
+        'required': <String>['--school'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'group-create',
+        'required': <String>[
+          '--school',
+          '--school-year-id',
+          '--group-name',
+          '--grades 1,2,...',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'group-update',
+        'required': <String>['--group', '--group-name', '--grades 1,2,...'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'group-delete',
+        'required': <String>['--group'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'student-create',
+        'required': <String>[
+          '--group',
+          '--given-names',
+          '--first-surname',
+          '--grade',
+          '--list-number',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'student-update',
+        'required': <String>['--student', '--given-names', '--first-surname'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'project-create',
+        'required': <String>['--group', '--title', '--grades'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'project-update',
+        'required': <String>['--project', '--title', '--grades'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'activity-create',
+        'required': <String>[
+          '--project',
+          '--title',
+          '--formative-field',
+          '--grades',
+          '--date',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'activity-delete',
+        'required': <String>['--activity'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{'name': 'database-diagnose'},
       <String, Object?>{
         'name': 'group-summary',
         'required': <String>['--group', '--month YYYY-MM'],
@@ -420,6 +626,7 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
       '--profile production|demo',
       '--apply',
       '--include-personal-data',
+      '--confirm-delete',
       '--pretty',
       '--help',
     ],
@@ -439,16 +646,4 @@ void _writeJson(Map<String, Object?> value, {required bool pretty}) {
       ? const JsonEncoder.withIndent('  ').convert(value)
       : jsonEncode(value);
   stdout.writeln(encoded);
-}
-
-class _CliFailure implements Exception {
-  const _CliFailure(this.code, this.message, this.exitCode);
-
-  final String code;
-  final String message;
-  final int exitCode;
-}
-
-final class _UsageFailure extends _CliFailure {
-  _UsageFailure(String message) : super('usage', message, 2);
 }

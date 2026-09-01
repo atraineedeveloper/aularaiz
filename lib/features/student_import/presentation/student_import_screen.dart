@@ -16,8 +16,8 @@ class StudentImportScreen extends StatefulWidget {
 
 class _StudentImportScreenState extends State<StudentImportScreen> {
   static const _fileTypes = XTypeGroup(
-    label: 'CSV / XLSX',
-    extensions: ['csv', 'xlsx'],
+    label: 'CSV / Excel',
+    extensions: ['csv', 'xlsx', 'xlsm'],
   );
 
   @override

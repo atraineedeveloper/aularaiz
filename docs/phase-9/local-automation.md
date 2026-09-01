@@ -1,5 +1,7 @@
 # Phase 9 — Automatización local segura
 
+> **Documento canónico actualizado:** el contrato completo del agente CLI (todos los comandos de lectura/mutación, opciones globales, errores y limitaciones) vive ahora en [`docs/automation/agent-cli.md`](../automation/agent-cli.md). Las reglas breves para agentes externos están en [`docs/automation/AGENT-INSTRUCTIONS.md`](../automation/AGENT-INSTRUCTIONS.md). Este documento conserva el diseño original de la fase.
+
 La Fase 9 añade una interfaz de automatización local para AulaRaíz sin convertir SQLite en una API pública ni permitir que un agente salte las reglas del dominio.
 
 ## Principios

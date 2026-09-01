@@ -7,10 +7,10 @@ extension StudentImportLocalization on AppLocalizations {
   String get importStudentsTitle =>
       _importEnglish ? 'Import students' : 'Importar alumnos';
   String get importStudentsDescription => _importEnglish
-      ? 'Import a CSV or XLSX file, map its columns, review every row, and confirm the batch only when it is ready.'
-      : 'Importa un archivo CSV o XLSX, mapea sus columnas, revisa cada fila y confirma el lote solo cuando esté listo.';
+      ? 'Import a CSV, XLSX or XLSM file, map its columns, review every row, and confirm the batch only when it is ready.'
+      : 'Importa un archivo CSV, XLSX o XLSM, mapea sus columnas, revisa cada fila y confirma el lote solo cuando esté listo.';
   String get importSelectFile =>
-      _importEnglish ? 'Select CSV or XLSX' : 'Seleccionar CSV o XLSX';
+      _importEnglish ? 'Select CSV or Excel' : 'Seleccionar CSV o Excel';
   String get importChangeFile =>
       _importEnglish ? 'Change file' : 'Cambiar archivo';
   String get importFileHint => _importEnglish
@@ -61,8 +61,8 @@ extension StudentImportLocalization on AppLocalizations {
       ? 'The batch could not be imported. Review the preview and try again.'
       : 'No se pudo importar el lote. Revisa la vista previa e inténtalo de nuevo.';
   String get importFileUnsupported => _importEnglish
-      ? 'Only .csv and .xlsx files are supported.'
-      : 'Solo se admiten archivos .csv y .xlsx.';
+      ? 'Only .csv, .xlsx and .xlsm files are supported.'
+      : 'Solo se admiten archivos .csv, .xlsx y .xlsm.';
   String get importFileUnreadable => _importEnglish
       ? 'The file could not be read.'
       : 'No se pudo leer el archivo.';

@@ -38,7 +38,24 @@ final class AutomationCapabilityCatalog {
 
   static const List<Map<String, Object?>> capabilities = <Map<String, Object?>>[
     <String, Object?>{'id': 'status', 'mode': 'read', 'personal_data': false},
+    <String, Object?>{'id': 'schools', 'mode': 'read', 'personal_data': false},
     <String, Object?>{'id': 'groups', 'mode': 'read', 'personal_data': false},
+    <String, Object?>{'id': 'projects', 'mode': 'read', 'personal_data': false},
+    <String, Object?>{
+      'id': 'activities',
+      'mode': 'read',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'students',
+      'mode': 'read',
+      'personal_data': 'opt-in',
+    },
+    <String, Object?>{
+      'id': 'database-diagnose',
+      'mode': 'read',
+      'personal_data': false,
+    },
     <String, Object?>{
       'id': 'group-summary',
       'mode': 'read',
@@ -48,6 +65,66 @@ final class AutomationCapabilityCatalog {
       'id': 'recommend',
       'mode': 'read',
       'personal_data': 'opt-in',
+    },
+    <String, Object?>{
+      'id': 'workspace-create',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'school-update',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'school-delete',
+      'mode': 'dry-run-default-with-confirm',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'group-create',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'group-update',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'group-delete',
+      'mode': 'dry-run-default-with-confirm',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'student-create',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'student-update',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'project-create',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'project-update',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'activity-create',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'activity-delete',
+      'mode': 'dry-run-default-with-confirm',
+      'personal_data': false,
     },
     <String, Object?>{
       'id': 'student-note',

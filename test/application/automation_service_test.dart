@@ -2,14 +2,23 @@ import 'dart:convert';
 
 import 'package:aularaiz/application/automation/automation_models.dart';
 import 'package:aularaiz/application/automation/automation_service.dart';
+import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/enrollment_repository.dart';
+import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/project/activity.dart';
+import 'package:aularaiz/domain/project/formative_field.dart';
+import 'package:aularaiz/domain/project/project.dart';
+import 'package:aularaiz/domain/project/project_lifecycle.dart';
+import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +27,12 @@ void main() {
   late _SchoolSetupRepository schoolSetupRepository;
   late _TeachingGroupRepository groupRepository;
   late _StudentRepository studentRepository;
+  late _ProjectRepository projectRepository;
+  late _ActivityRepository activityRepository;
+  late _EnrollmentRepository enrollmentRepository;
   late TeachingGroup group;
+  late Project project;
+  late Activity activity;
   late GroupReportData report;
   var writes = 0;
 
@@ -57,6 +71,48 @@ void main() {
         firstSurname: 'García',
       ),
     });
+    project = Project(
+      id: 'project-1',
+      groupId: group.id,
+      title: 'Nuestra comunidad',
+      lifecycle: ProjectLifecycle.inProgress,
+      methodology: ProjectMethodology.communityProjects,
+      targetGrades: <PrimaryGrade>{PrimaryGrade.third},
+    );
+    activity = Activity(
+      id: 'activity-1',
+      projectId: project.id,
+      title: 'Entrevista comunitaria',
+      formativeField: FormativeField.languages,
+      occursOn: DateTime(2026, 9, 21),
+      targetGrades: <PrimaryGrade>{PrimaryGrade.third},
+      roster: const [],
+    );
+    projectRepository = _ProjectRepository(<String, Project>{
+      project.id: project,
+    });
+    activityRepository = _ActivityRepository(<String, Activity>{
+      activity.id: activity,
+    });
+    enrollmentRepository = _EnrollmentRepository(<String, Enrollment>{
+      'enrollment-1': Enrollment(
+        id: 'enrollment-1',
+        studentId: 'student-1',
+        groupId: group.id,
+        grade: PrimaryGrade.third,
+        listNumber: 1,
+        startsOn: DateTime(2026, 8, 1),
+      ),
+      'enrollment-2': Enrollment(
+        id: 'enrollment-2',
+        studentId: 'student-2',
+        groupId: group.id,
+        grade: PrimaryGrade.third,
+        listNumber: 2,
+        startsOn: DateTime(2026, 8, 1),
+        endsOn: DateTime(2026, 8, 15),
+      ),
+    });
     report = _groupReport();
     writes = 0;
   });
@@ -65,6 +121,9 @@ void main() {
     schoolSetupRepository: schoolSetupRepository,
     teachingGroupRepository: groupRepository,
     studentRepository: studentRepository,
+    projectRepository: projectRepository,
+    activityRepository: activityRepository,
+    enrollmentRepository: enrollmentRepository,
     groupReportLoader: ({required group, required referenceMonth}) async {
       return report;
     },
@@ -198,6 +257,66 @@ void main() {
     expect(writes, 1);
     expect(jsonEncode(result.toJson()), contains('Ana Pérez'));
   });
+
+  test('projects listing exposes metadata without personal data', () async {
+    final result = await buildService().listProjects(groupId: group.id);
+    final encoded = jsonEncode(result.toJson());
+
+    expect(result.kind, 'projects');
+    expect(result.data['project_count'], 1);
+    final projects = result.data['projects']! as List<Map<String, Object?>>;
+    expect(projects.single['id'], 'project-1');
+    expect(projects.single['title'], 'Nuestra comunidad');
+    expect(projects.single['lifecycle'], 'inProgress');
+    expect(encoded, isNot(contains('Ana Pérez')));
+  });
+
+  test('activities listing exposes metadata for one project', () async {
+    final result = await buildService().listActivities(projectId: project.id);
+    final encoded = jsonEncode(result.toJson());
+
+    expect(result.kind, 'activities');
+    expect(result.data['activity_count'], 1);
+    final activities = result.data['activities']! as List<Map<String, Object?>>;
+    expect(activities.single['id'], 'activity-1');
+    expect(activities.single['occurs_on'], '2026-09-21');
+    expect(encoded, isNot(contains('Ana Pérez')));
+  });
+
+  test('students listing is minimized by default', () async {
+    final result = await buildService().listStudents(groupId: group.id);
+    final encoded = jsonEncode(result.toJson());
+
+    expect(result.kind, 'students');
+    expect(result.data['student_count'], 2);
+    expect(result.data['active_count'], 1);
+    expect(result.data['inactive_count'], 1);
+    final grades = result.data['enrollment_by_grade']! as Map<String, Object?>;
+    expect(grades['3'], 2);
+    expect(result.data.containsKey('students'), isFalse);
+    expect(encoded, isNot(contains('Ana Pérez')));
+    expect(encoded, isNot(contains('student-1')));
+    expect(encoded, isNot(contains('Luis')));
+  });
+
+  test('students listing requires explicit opt-in for identities', () async {
+    final result = await buildService().listStudents(
+      groupId: group.id,
+      privacy: const AutomationPrivacy(includePersonalData: true),
+    );
+    final encoded = jsonEncode(result.toJson());
+
+    final students = result.data['students']! as List<Map<String, Object?>>;
+    expect(students, hasLength(2));
+    expect(students.first['student_id'], 'student-1');
+    expect(students.first['name'], 'Ana Pérez');
+    expect(students.first['list_number'], 1);
+    expect(students.first['active'], isTrue);
+    expect(students.last['student_id'], 'student-2');
+    expect(students.last['active'], isFalse);
+    expect(students.last['ends_on'], '2026-08-15');
+    expect(encoded, contains('Ana Pérez'));
+  });
 }
 
 GroupReportData _groupReport() {
@@ -322,5 +441,72 @@ final class _StudentRepository implements StudentRepository {
   @override
   Future<void> save(Student student) async {
     students[student.id] = student;
+  }
+}
+
+final class _ProjectRepository implements ProjectRepository {
+  _ProjectRepository(this.projects);
+
+  final Map<String, Project> projects;
+
+  @override
+  Future<Project?> findById(String id) async => projects[id];
+
+  @override
+  Future<List<Project>> listForGroup(String groupId) async {
+    return projects.values
+        .where((project) => project.groupId == groupId)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> save(Project project) async {
+    projects[project.id] = project;
+  }
+}
+
+final class _ActivityRepository implements ActivityRepository {
+  _ActivityRepository(this.activities);
+
+  final Map<String, Activity> activities;
+
+  @override
+  Future<Activity?> findById(String id) async => activities[id];
+
+  @override
+  Future<List<Activity>> listForProject(String projectId) async {
+    return activities.values
+        .where((activity) => activity.projectId == projectId)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> save(Activity activity) async {
+    activities[activity.id] = activity;
+  }
+}
+
+final class _EnrollmentRepository implements EnrollmentRepository {
+  _EnrollmentRepository(this.enrollments);
+
+  final Map<String, Enrollment> enrollments;
+
+  @override
+  Future<List<Enrollment>> findByStudentId(String studentId) async {
+    return enrollments.values
+        .where((enrollment) => enrollment.studentId == studentId)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<Enrollment>> findByGroupId(String groupId) async {
+    return enrollments.values
+        .where((enrollment) => enrollment.groupId == groupId)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> save(Enrollment enrollment) async {
+    enrollments[enrollment.id] = enrollment;
   }
 }

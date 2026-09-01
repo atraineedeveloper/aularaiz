@@ -75,9 +75,32 @@ void main() {
     expect(table.rows[1][5], 1);
   });
 
+  test('accepts macro-enabled Excel workbooks with XLSM extension', () {
+    final workbook = Excel.createExcel();
+    workbook.appendRow('Alumnos', [TextCellValue('Nombres')]);
+    final bytes = workbook.encode();
+
+    final table = reader.read(fileName: 'alumnos.xlsm', bytes: bytes!);
+
+    expect(table.rows.single.single, 'Nombres');
+  });
+
   test('rejects unsupported file types before parsing', () {
     expect(
       () => reader.read(fileName: 'alumnos.pdf', bytes: const [1, 2, 3]),
+      throwsA(
+        isA<StudentImportFormatException>().having(
+          (error) => error.problem,
+          'problem',
+          StudentImportFormatProblem.unsupportedFile,
+        ),
+      ),
+    );
+  });
+
+  test('rejects legacy binary XLS workbooks before parsing', () {
+    expect(
+      () => reader.read(fileName: 'alumnos.xls', bytes: const [0, 0, 1, 4]),
       throwsA(
         isA<StudentImportFormatException>().having(
           (error) => error.problem,

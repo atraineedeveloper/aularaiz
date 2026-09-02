@@ -15,6 +15,7 @@ import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
+import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
@@ -28,6 +29,7 @@ import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
+import 'package:aularaiz/data/repositories/drift_teacher_profile_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:drift/native.dart';
 
@@ -108,6 +110,10 @@ final class AutomationRuntime {
     final activityRepository = DriftActivityRepository(database);
     final evaluationRepository = DriftEvaluationRepository(database);
     final studentRecordRepository = DriftStudentRecordRepository(database);
+    final teacherProfileRepository = DriftTeacherProfileRepository(database);
+    final saveTeacherProfile = SaveTeacherProfile(
+      repository: teacherProfileRepository,
+    );
 
     final reportProjectionBuilder = ReportProjectionBuilder(
       schoolSetupRepository: schoolSetupRepository,
@@ -118,6 +124,7 @@ final class AutomationRuntime {
       activityRepository: activityRepository,
       evaluationRepository: evaluationRepository,
       studentRecordRepository: studentRecordRepository,
+      teacherProfileRepository: teacherProfileRepository,
     );
     final addStudentRecordEntry = AddStudentRecordEntry(
       studentRepository: studentRepository,
@@ -185,6 +192,7 @@ final class AutomationRuntime {
         projectRepository: projectRepository,
         activityRepository: activityRepository,
         enrollmentRepository: enrollmentRepository,
+        teacherProfileRepository: teacherProfileRepository,
         groupReportLoader: ({required group, required referenceMonth}) {
           return reportProjectionBuilder.buildGroup(
             group: group,
@@ -221,6 +229,7 @@ final class AutomationRuntime {
         createActivity: createActivity,
         projectRepository: projectRepository,
         activityRepository: activityRepository,
+        saveTeacherProfile: saveTeacherProfile,
       ),
     );
   }

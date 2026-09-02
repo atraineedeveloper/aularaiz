@@ -1,6 +1,7 @@
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
+import 'package:aularaiz/features/settings/presentation/teacher_profile_section.dart';
 import 'package:aularaiz/features/settings/presentation/update_section.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -123,6 +124,8 @@ class SettingsScreen extends StatelessWidget {
                     },
                   ),
                 ),
+                const SizedBox(height: 20),
+                const TeacherProfileSection(),
                 const SizedBox(height: 20),
                 const BackupRestoreSection(),
                 const SizedBox(height: 20),

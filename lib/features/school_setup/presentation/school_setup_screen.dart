@@ -3,8 +3,10 @@ import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,9 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   final _schoolZoneController = TextEditingController();
   final _schoolSectorController = TextEditingController();
   final _groupNameController = TextEditingController();
+  final _teacherNameController = TextEditingController();
+  final _supervisorNameController = TextEditingController();
+  final _leadershipNameController = TextEditingController();
 
   SchoolOrganization _organization = SchoolOrganization.unspecified;
   String? _stateCode;
@@ -37,6 +42,11 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   DateTime? _contractStartsOn;
   DateTime? _contractEndsOn;
   bool _showContractError = false;
+  TeachingRole _teachingRole = TeachingRole.teacher;
+  SchoolLeadershipRole? _leadershipRole;
+  // Tracks the teacher name mirrored into the leadership field so editing
+  // the teacher name keeps the prefill in sync without clobbering edits.
+  String? _syncedLeadershipName;
   late String _schoolYearLabel =
       SchoolYearCatalog.currentBasicEducation().label;
 
@@ -57,6 +67,9 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     _schoolZoneController.dispose();
     _schoolSectorController.dispose();
     _groupNameController.dispose();
+    _teacherNameController.dispose();
+    _supervisorNameController.dispose();
+    _leadershipNameController.dispose();
     super.dispose();
   }
 
@@ -463,6 +476,73 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 28),
+                    Text(
+                      Localizations.localeOf(context).languageCode == 'en'
+                          ? 'Teacher profile and school authorities'
+                          : 'Perfil docente y autoridades escolares',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 620;
+                        final english =
+                            Localizations.localeOf(context).languageCode ==
+                            'en';
+                        final teacherNameField = TextFormField(
+                          controller: _teacherNameController,
+                          enabled: !controller.isSaving,
+                          decoration: InputDecoration(
+                            labelText: english
+                                ? 'Teacher full name'
+                                : 'Nombre completo del docente',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          textInputAction: TextInputAction.next,
+                          onChanged: _onTeacherNameChanged,
+                          validator: (value) => _required(value, l10n),
+                        );
+                        final teachingRoleField =
+                            DropdownButtonFormField<TeachingRole>(
+                          initialValue: _teachingRole,
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: english
+                                ? 'Teacher role'
+                                : 'Función del docente',
+                          ),
+                          items: [
+                            for (final role in TeachingRole.values)
+                              DropdownMenuItem(
+                                value: role,
+                                child: Text(_teachingRoleLabel(role, english)),
+                              ),
+                          ],
+                          onChanged: controller.isSaving
+                              ? null
+                              : _onTeachingRoleChanged,
+                        );
+                        return wide
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: teacherNameField),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: teachingRoleField),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  teacherNameField,
+                                  const SizedBox(height: 16),
+                                  teachingRoleField,
+                                ],
+                              );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAuthorityFields(context, controller.isSaving),
                     if (controller.error != null) ...[
                       const SizedBox(height: 16),
                       Text(
@@ -516,6 +596,143 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildAuthorityFields(BuildContext context, bool disabled) {
+    final english = Localizations.localeOf(context).languageCode == 'en';
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 620;
+        final supervisorField = TextFormField(
+          controller: _supervisorNameController,
+          enabled: !disabled,
+          decoration: InputDecoration(
+            labelText: english
+                ? 'School supervisor (optional)'
+                : 'Supervisor(a) escolar (opcional)',
+          ),
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+        );
+        final leadershipNameField = TextFormField(
+          controller: _leadershipNameController,
+          enabled: !disabled,
+          decoration: InputDecoration(
+            labelText: english
+                ? 'School leadership (optional)'
+                : 'Responsable de dirección (opcional)',
+          ),
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+        );
+        final leadershipRoleField = DropdownButtonFormField<
+          SchoolLeadershipRole?
+        >(
+          initialValue: _leadershipRole,
+          isExpanded: true,
+          decoration: InputDecoration(
+            labelText: english ? 'Leadership role' : 'Función de dirección',
+          ),
+          items: [
+            DropdownMenuItem(
+              value: null,
+              child: Text(english ? 'Unspecified' : 'Sin especificar'),
+            ),
+            for (final role in SchoolLeadershipRole.values)
+              DropdownMenuItem(
+                value: role,
+                child: Text(_leadershipRoleLabel(role, english)),
+              ),
+          ],
+          onChanged: disabled
+              ? null
+              : (value) => setState(() => _leadershipRole = value),
+        );
+
+        if (wide) {
+          return Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: supervisorField),
+                  const SizedBox(width: 16),
+                  Expanded(child: leadershipNameField),
+                ],
+              ),
+              const SizedBox(height: 16),
+              leadershipRoleField,
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            supervisorField,
+            const SizedBox(height: 16),
+            leadershipNameField,
+            const SizedBox(height: 16),
+            leadershipRoleField,
+          ],
+        );
+      },
+    );
+  }
+
+  void _onTeachingRoleChanged(TeachingRole? value) {
+    if (value == null) return;
+    setState(() {
+      _teachingRole = value;
+      if (value.hasLeadership) {
+        // Preselect the matching leadership role and mirror the teacher
+        // name into the editable leadership field when it is still empty.
+        _leadershipRole = value.leadershipRole;
+        final teacherName = _teacherNameController.text.trim();
+        if (teacherName.isNotEmpty &&
+            _leadershipNameController.text.trim().isEmpty) {
+          _leadershipNameController.text = teacherName;
+          _syncedLeadershipName = teacherName;
+        }
+      }
+    });
+  }
+
+  void _onTeacherNameChanged(String value) {
+    if (!_teachingRole.hasLeadership) return;
+    final current = _leadershipNameController.text.trim();
+    final synced = _syncedLeadershipName;
+    final mirrorsTeacherName =
+        current.isEmpty || (synced != null && current == synced);
+    if (!mirrorsTeacherName) return;
+    final teacherName = value.trim();
+    if (teacherName.isEmpty) return;
+    _leadershipNameController.text = teacherName;
+    _syncedLeadershipName = teacherName;
+  }
+
+  String _teachingRoleLabel(TeachingRole role, bool english) {
+    return switch (role) {
+      TeachingRole.teacher => english
+          ? 'Group teacher'
+          : 'Docente frente a grupo',
+      TeachingRole.teacherWithLeadership => english
+          ? 'Teacher with leadership duties'
+          : 'Docente con funciones de dirección',
+      TeachingRole.principal => english ? 'Principal' : 'Director(a)',
+      TeachingRole.actingPrincipal =>
+        english ? 'Acting principal' : 'Encargado(a) de dirección',
+    };
+  }
+
+  String _leadershipRoleLabel(SchoolLeadershipRole role, bool english) {
+    return switch (role) {
+      SchoolLeadershipRole.principal => english ? 'Principal' : 'Director(a)',
+      SchoolLeadershipRole.teacherWithLeadership => english
+          ? 'Teacher with leadership duties'
+          : 'Docente con funciones de dirección',
+      SchoolLeadershipRole.actingPrincipal =>
+        english ? 'Acting principal' : 'Encargado(a) de dirección',
+    };
   }
 
   void _syncStateFromCct(String value) {
@@ -608,6 +825,9 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       locality: _localityController.text,
       schoolZone: _schoolZoneController.text,
       schoolSector: _schoolSectorController.text,
+      supervisorName: _supervisorNameController.text,
+      leadershipName: _leadershipNameController.text,
+      leadershipRole: _leadershipRole,
       schoolYearLabel: schoolYear.label,
       startsOn: schoolYear.startsOn,
       endsOn: schoolYear.endsOn,
@@ -615,6 +835,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       grades: Set<PrimaryGrade>.of(_grades),
       shift: SchoolShiftCatalog.persistenceValue(_shift),
       contract: contract,
+      teachingRole: _teachingRole,
+      teacherName: _teacherNameController.text,
     );
 
     if (saved && mounted) {

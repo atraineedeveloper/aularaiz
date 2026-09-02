@@ -4,6 +4,7 @@ import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/project/activity.dart';
@@ -37,6 +38,7 @@ final class AutomationService {
     required EnrollmentRepository enrollmentRepository,
     required AutomationGroupReportLoader groupReportLoader,
     required AutomationStudentNoteWriter studentNoteWriter,
+    TeacherProfileRepository? teacherProfileRepository,
     AutomationClock? clock,
   }) : _schoolSetupRepository = schoolSetupRepository,
        _teachingGroupRepository = teachingGroupRepository,
@@ -46,6 +48,7 @@ final class AutomationService {
        _enrollmentRepository = enrollmentRepository,
        _groupReportLoader = groupReportLoader,
        _studentNoteWriter = studentNoteWriter,
+       _teacherProfileRepository = teacherProfileRepository,
        _clock = clock ?? DateTime.now;
 
   final SchoolSetupRepository _schoolSetupRepository;
@@ -56,9 +59,12 @@ final class AutomationService {
   final EnrollmentRepository _enrollmentRepository;
   final AutomationGroupReportLoader _groupReportLoader;
   final AutomationStudentNoteWriter _studentNoteWriter;
+  final TeacherProfileRepository? _teacherProfileRepository;
   final AutomationClock _clock;
 
-  Future<AutomationEnvelope> status() async {
+  Future<AutomationEnvelope> status({
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
     final setup = await _schoolSetupRepository.loadInitialSetup();
     var groupCount = 0;
     if (setup != null) {
@@ -67,24 +73,41 @@ final class AutomationService {
       )).length;
     }
 
+    // Teacher profile data is never part of the default (minimized) output;
+    // it is only echoed with an explicit --include-personal-data request.
+    String? teacherName;
+    if (privacy.includePersonalData) {
+      final repository = _teacherProfileRepository;
+      if (repository != null) {
+        try {
+          teacherName = (await repository.load())?.fullName;
+        } catch (_) {
+          teacherName = null;
+        }
+      }
+    }
+
     return _envelope(
       kind: 'status',
-      privacy: const AutomationPrivacy(),
+      privacy: privacy,
       data: <String, Object?>{
         'configured': setup != null,
         'schema_version': 1,
         if (setup != null) 'school_year': setup.schoolYear.label,
         'group_count': groupCount,
+        'teacher_name': ?teacherName,
         'capabilities': AutomationCapabilityCatalog.capabilities,
       },
     );
   }
 
-  Future<AutomationEnvelope> listSchools() async {
+  Future<AutomationEnvelope> listSchools({
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
     final setups = await _schoolSetupRepository.listSetups();
     return _envelope(
       kind: 'schools',
-      privacy: const AutomationPrivacy(),
+      privacy: privacy,
       data: <String, Object?>{
         'schools': [
           for (final setup in setups)
@@ -94,6 +117,18 @@ final class AutomationService {
               'school_year': setup.schoolYear.label,
               'school_year_id': setup.schoolYear.id,
               'organization': setup.school.organization.name,
+              if (setup.school.schoolZone != null)
+                'school_zone': setup.school.schoolZone,
+              if (setup.school.schoolSector != null)
+                'school_sector': setup.school.schoolSector,
+              if (privacy.includePersonalData) ...<String, Object?>{
+                if (setup.school.supervisorName != null)
+                  'supervisor_name': setup.school.supervisorName,
+                if (setup.school.leadershipName != null)
+                  'leadership_name': setup.school.leadershipName,
+                if (setup.school.leadershipRole != null)
+                  'leadership_role': setup.school.leadershipRole!.name,
+              },
             },
         ],
       },

@@ -71,6 +71,9 @@ final class DriftSchoolSetupRepository
               locality: Value(school.locality),
               schoolZone: Value(school.schoolZone),
               schoolSector: Value(school.schoolSector),
+              supervisorName: Value(school.supervisorName),
+              leadershipName: Value(school.leadershipName),
+              leadershipRole: Value(school.leadershipRole),
             ),
           );
 
@@ -139,6 +142,9 @@ final class DriftSchoolSetupRepository
             locality: Value(school.locality),
             schoolZone: Value(school.schoolZone),
             schoolSector: Value(school.schoolSector),
+            supervisorName: Value(school.supervisorName),
+            leadershipName: Value(school.leadershipName),
+            leadershipRole: Value(school.leadershipRole),
           ),
         );
     if (updated != 1) {
@@ -298,6 +304,9 @@ final class DriftSchoolSetupRepository
         locality: schoolRow.locality,
         schoolZone: schoolRow.schoolZone,
         schoolSector: schoolRow.schoolSector,
+        supervisorName: schoolRow.supervisorName,
+        leadershipName: schoolRow.leadershipName,
+        leadershipRole: schoolRow.leadershipRole,
       ),
       schoolYear: SchoolYear(
         id: schoolYearRow.id,

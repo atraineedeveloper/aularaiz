@@ -7,6 +7,7 @@ import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
 import 'package:aularaiz/application/school_setup/start_school_year.dart';
+import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/school_selection/presentation/school_selection_screen.dart';
 import 'package:aularaiz/features/school_setup/presentation/school_setup_controller.dart';
@@ -100,8 +101,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final setups = snapshot.data ?? const <InitialSchoolSetup>[];
         if (setups.isEmpty || _creatingSchool) {
           return ChangeNotifierProvider(
-            create: (context) =>
-                SchoolSetupController(context.read<CreateInitialWorkspace>()),
+            create: (context) => SchoolSetupController(
+              context.read<CreateInitialWorkspace>(),
+              saveTeacherProfile: context.read<SaveTeacherProfile>(),
+            ),
             child: SchoolSetupScreen(onCompleted: _schoolSaved),
           );
         }

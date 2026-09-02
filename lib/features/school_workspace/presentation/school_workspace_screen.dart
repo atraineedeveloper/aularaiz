@@ -20,6 +20,7 @@ import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
@@ -432,6 +433,9 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         locality: setup.school.locality,
         schoolZone: setup.school.schoolZone,
         schoolSector: setup.school.schoolSector,
+        supervisorName: setup.school.supervisorName,
+        leadershipName: setup.school.leadershipName,
+        leadershipRole: setup.school.leadershipRole,
       ),
     );
     if (draft == null || !mounted) return;
@@ -443,6 +447,9 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       locality: draft.locality,
       schoolZone: draft.schoolZone,
       schoolSector: draft.schoolSector,
+      supervisorName: draft.supervisorName,
+      leadershipName: draft.leadershipName,
+      leadershipRole: draft.leadershipRole,
     );
     if (mounted && saved) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1279,6 +1286,9 @@ class _EditSchoolDialog extends StatefulWidget {
     this.locality,
     this.schoolZone,
     this.schoolSector,
+    this.supervisorName,
+    this.leadershipName,
+    this.leadershipRole,
   });
 
   final String name;
@@ -1288,6 +1298,9 @@ class _EditSchoolDialog extends StatefulWidget {
   final String? locality;
   final String? schoolZone;
   final String? schoolSector;
+  final String? supervisorName;
+  final String? leadershipName;
+  final SchoolLeadershipRole? leadershipRole;
 
   @override
   State<_EditSchoolDialog> createState() => _EditSchoolDialogState();
@@ -1300,8 +1313,11 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
   late final TextEditingController _localityController;
   late final TextEditingController _schoolZoneController;
   late final TextEditingController _schoolSectorController;
+  late final TextEditingController _supervisorNameController;
+  late final TextEditingController _leadershipNameController;
   String? _state;
   String? _municipality;
+  SchoolLeadershipRole? _leadershipRole;
 
   @override
   void initState() {
@@ -1315,6 +1331,13 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
     _schoolSectorController = TextEditingController(
       text: widget.schoolSector ?? '',
     );
+    _supervisorNameController = TextEditingController(
+      text: widget.supervisorName ?? '',
+    );
+    _leadershipNameController = TextEditingController(
+      text: widget.leadershipName ?? '',
+    );
+    _leadershipRole = widget.leadershipRole;
     _state =
         MexicoGeographyCatalog.states.any((item) => item.name == widget.state)
         ? widget.state
@@ -1332,6 +1355,8 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
     _localityController.dispose();
     _schoolZoneController.dispose();
     _schoolSectorController.dispose();
+    _supervisorNameController.dispose();
+    _leadershipNameController.dispose();
     super.dispose();
   }
 
@@ -1432,6 +1457,62 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    _label(context, 'Autoridades escolares', 'School authorities'),
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _supervisorNameController,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Supervisor(a) escolar (opcional)',
+                      'School supervisor (optional)',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _leadershipNameController,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Responsable de dirección (opcional)',
+                      'School leadership (optional)',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<SchoolLeadershipRole?>(
+                  initialValue: _leadershipRole,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Función de dirección',
+                      'Leadership role',
+                    ),
+                  ),
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(
+                        _label(context, 'Sin especificar', 'Unspecified'),
+                      ),
+                    ),
+                    for (final role in SchoolLeadershipRole.values)
+                      DropdownMenuItem(
+                        value: role,
+                        child: Text(_schoolLeadershipRoleLabel(context, role)),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _leadershipRole = value),
+                ),
               ],
             ),
           ),
@@ -1458,8 +1539,34 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
         locality: _localityController.text.trim(),
         schoolZone: _schoolZoneController.text.trim(),
         schoolSector: _schoolSectorController.text.trim(),
+        supervisorName: _supervisorNameController.text.trim(),
+        leadershipName: _leadershipNameController.text.trim(),
+        leadershipRole: _leadershipRole,
       ),
     );
+  }
+
+  String _schoolLeadershipRoleLabel(
+    BuildContext context,
+    SchoolLeadershipRole role,
+  ) {
+    return switch (role) {
+      SchoolLeadershipRole.principal => _label(
+        context,
+        'Director(a)',
+        'Principal',
+      ),
+      SchoolLeadershipRole.teacherWithLeadership => _label(
+        context,
+        'Docente con funciones de dirección',
+        'Teacher with leadership duties',
+      ),
+      SchoolLeadershipRole.actingPrincipal => _label(
+        context,
+        'Encargado(a) de dirección',
+        'Acting principal',
+      ),
+    };
   }
 
   List<String> _municipalitiesFor(String? stateName) {
@@ -1495,6 +1602,9 @@ final class _SchoolDraft {
     required this.locality,
     required this.schoolZone,
     required this.schoolSector,
+    required this.supervisorName,
+    required this.leadershipName,
+    required this.leadershipRole,
   });
 
   final String name;
@@ -1504,6 +1614,9 @@ final class _SchoolDraft {
   final String locality;
   final String schoolZone;
   final String schoolSector;
+  final String supervisorName;
+  final String leadershipName;
+  final SchoolLeadershipRole? leadershipRole;
 }
 
 String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {

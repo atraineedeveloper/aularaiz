@@ -10,9 +10,11 @@ import 'package:aularaiz/domain/project/articulating_axis.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:drift/drift.dart';
 
 part 'app_database.g.dart';
@@ -39,6 +41,7 @@ part 'app_database.g.dart';
     ActivityEvaluations,
     StudentRecords,
     StudentRecordEntries,
+    TeacherProfiles,
   ],
 )
 final class AppDatabase extends _$AppDatabase {
@@ -59,7 +62,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 7;
+  static const int currentSchemaVersion = 8;
 
   final StorageProfile? storageProfile;
 
@@ -137,6 +140,58 @@ final class AppDatabase extends _$AppDatabase {
         }
         if (!names.contains('school_sector')) {
           await migrator.addColumn(schools, schools.schoolSector);
+        }
+      }
+      if (from < 8 && to >= 8) {
+        // Teacher profile table: tolerate a partially created table so a
+        // re-run after an interrupted migration cannot fail.
+        final teacherProfileTables = await customSelect(
+          "SELECT name FROM sqlite_master "
+          "WHERE type = 'table' AND name = 'teacher_profiles'",
+        ).get();
+        if (teacherProfileTables.isEmpty) {
+          await migrator.createTable(teacherProfiles);
+        } else {
+          final profileColumns = await customSelect(
+            "PRAGMA table_info('teacher_profiles')",
+          ).get();
+          final profileNames = profileColumns
+              .map((row) => row.read<String>('name'))
+              .toSet();
+          if (!profileNames.contains('id')) {
+            await migrator.addColumn(teacherProfiles, teacherProfiles.id);
+          }
+          if (!profileNames.contains('full_name')) {
+            await migrator.addColumn(teacherProfiles, teacherProfiles.fullName);
+          }
+        }
+
+        // Optional school authority fields.
+        final schoolColumns = await customSelect(
+          "PRAGMA table_info('schools')",
+        ).get();
+        final schoolNames = schoolColumns
+            .map((row) => row.read<String>('name'))
+            .toSet();
+        if (!schoolNames.contains('supervisor_name')) {
+          await migrator.addColumn(schools, schools.supervisorName);
+        }
+        if (!schoolNames.contains('leadership_name')) {
+          await migrator.addColumn(schools, schools.leadershipName);
+        }
+        if (!schoolNames.contains('leadership_role')) {
+          await migrator.addColumn(schools, schools.leadershipRole);
+        }
+
+        // Teaching role belongs to the group assignment (contract context).
+        final groupColumns = await customSelect(
+          "PRAGMA table_info('teaching_groups')",
+        ).get();
+        final groupNames = groupColumns
+            .map((row) => row.read<String>('name'))
+            .toSet();
+        if (!groupNames.contains('teaching_role')) {
+          await migrator.addColumn(teachingGroups, teachingGroups.teachingRole);
         }
       }
     },

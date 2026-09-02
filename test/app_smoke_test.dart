@@ -1,14 +1,17 @@
 import 'package:aularaiz/app/app.dart';
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
+import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/school/school.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/teacher/teacher_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +21,7 @@ void main() {
     final settings = AppSettingsController()..setLocale(const Locale('es'));
     final setupRepository = _EmptySchoolSetupRepository();
     final groupRepository = _EmptyTeachingGroupRepository();
+    final teacherProfileRepository = _EmptyTeacherProfileRepository();
     final ids = _TestIdGenerator();
 
     await tester.pumpWidget(
@@ -26,6 +30,13 @@ void main() {
           ChangeNotifierProvider.value(value: settings),
           Provider<SchoolSetupRepository>.value(value: setupRepository),
           Provider<TeachingGroupRepository>.value(value: groupRepository),
+          Provider<TeacherProfileRepository>.value(
+            value: teacherProfileRepository,
+          ),
+          Provider<SaveTeacherProfile>(
+            create: (_) =>
+                SaveTeacherProfile(repository: teacherProfileRepository),
+          ),
           Provider<CreateInitialSchoolSetup>(
             create: (_) => CreateInitialSchoolSetup(
               repository: setupRepository,
@@ -87,6 +98,14 @@ final class _EmptySchoolSetupRepository implements SchoolSetupRepository {
     required School school,
     required SchoolYear schoolYear,
   }) async {}
+}
+
+final class _EmptyTeacherProfileRepository implements TeacherProfileRepository {
+  @override
+  Future<TeacherProfile?> load() async => null;
+
+  @override
+  Future<void> save(TeacherProfile profile) async {}
 }
 
 final class _TestIdGenerator implements IdGenerator {

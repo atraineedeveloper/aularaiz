@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
-  test('partial migrations with existing columns recover through v7', () async {
-    final directory = await Directory.systemTemp.createTemp('aularaiz-v7-');
+  test('partial migrations with existing columns recover through v8', () async {
+    final directory = await Directory.systemTemp.createTemp('aularaiz-v8-');
     final file = File(
       '${directory.path}${Platform.pathSeparator}database.sqlite',
     );
@@ -27,6 +27,6 @@ void main() {
         .customSelect('PRAGMA user_version')
         .getSingle();
 
-    expect(version.read<int>('user_version'), 7);
+    expect(version.read<int>('user_version'), 8);
   });
 }

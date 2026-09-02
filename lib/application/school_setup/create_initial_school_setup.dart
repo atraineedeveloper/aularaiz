@@ -1,6 +1,7 @@
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/school/school.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 
@@ -23,6 +24,9 @@ final class CreateInitialSchoolSetup {
     String? locality,
     String? schoolZone,
     String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    SchoolLeadershipRole? leadershipRole,
     required String schoolYearLabel,
     required DateTime startsOn,
     required DateTime endsOn,
@@ -54,6 +58,9 @@ final class CreateInitialSchoolSetup {
       locality: locality,
       schoolZone: schoolZone,
       schoolSector: schoolSector,
+      supervisorName: supervisorName,
+      leadershipName: leadershipName,
+      leadershipRole: leadershipRole,
     );
     final schoolYear = SchoolYear(
       id: _idGenerator.newId(),

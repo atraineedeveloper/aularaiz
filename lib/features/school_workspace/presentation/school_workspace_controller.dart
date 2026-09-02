@@ -6,6 +6,7 @@ import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
 import 'package:aularaiz/domain/school/school.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:flutter/foundation.dart';
@@ -137,6 +138,9 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     String? locality,
     String? schoolZone,
     String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    SchoolLeadershipRole? leadershipRole,
   }) async {
     final setup = _setup;
     if (setup == null || _isSaving) return false;
@@ -154,6 +158,9 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         locality: locality,
         schoolZone: schoolZone,
         schoolSector: schoolSector,
+        supervisorName: supervisorName,
+        leadershipName: leadershipName,
+        leadershipRole: leadershipRole,
       );
       await _setupRepository.updateSchool(school);
       _setup = (school: school, schoolYear: setup.schoolYear);
@@ -190,6 +197,9 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         shift: shift,
         schedule: group.schedule,
         contract: contract,
+        // The assignment role is captured during onboarding/CLI; editing
+        // basic group data must not discard it.
+        teachingRole: group.teachingRole,
       );
       await _groupRepository.save(updated);
       _groups = List<TeachingGroup>.unmodifiable([

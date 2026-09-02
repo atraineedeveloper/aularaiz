@@ -7,9 +7,11 @@ import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -97,6 +99,90 @@ void main() {
     expect(remaining, hasLength(1));
     expect(remaining.single.school.name, 'Primaria Anterior');
   });
+
+  test(
+    'a school persists zone, sector, supervisor and leadership authorities',
+    () async {
+      final groupRepository = DriftTeachingGroupRepository(database);
+      final create = useCase(groupRepository);
+
+      await create(
+        schoolName: 'Primaria con Autoridades',
+        organization: SchoolOrganization.complete,
+        schoolZone: 'Zona 045',
+        schoolSector: 'Sector 12',
+        supervisorName: 'Jorge Villalobos',
+        leadershipName: 'María Pérez López',
+        leadershipRole: SchoolLeadershipRole.teacherWithLeadership,
+        schoolYearLabel: '2026-2027',
+        startsOn: DateTime(2026, 8, 31),
+        endsOn: DateTime(2027, 7, 15),
+        groupName: '3° A',
+        grades: {PrimaryGrade.third},
+        teachingRole: TeachingRole.teacherWithLeadership,
+      );
+
+      final setup = (await schoolRepository.listSetups()).single;
+      expect(setup.school.schoolZone, 'Zona 045');
+      expect(setup.school.schoolSector, 'Sector 12');
+      expect(setup.school.supervisorName, 'Jorge Villalobos');
+      expect(setup.school.leadershipName, 'María Pérez López');
+      expect(
+        setup.school.leadershipRole,
+        SchoolLeadershipRole.teacherWithLeadership,
+      );
+
+      final group = (await groupRepository.listForSchoolYear(
+        setup.schoolYear.id,
+      )).single;
+      expect(group.teachingRole, TeachingRole.teacherWithLeadership);
+    },
+  );
+
+  test(
+    'a previous school with authorities stays intact when a new school fails',
+    () async {
+      await useCase(DriftTeachingGroupRepository(database))(
+        schoolName: 'Primaria Anterior',
+        organization: SchoolOrganization.complete,
+        schoolZone: 'Zona 045',
+        schoolSector: 'Sector 12',
+        supervisorName: 'Jorge Villalobos',
+        leadershipName: 'María Pérez López',
+        leadershipRole: SchoolLeadershipRole.teacherWithLeadership,
+        schoolYearLabel: '2025-2026',
+        startsOn: DateTime(2025, 9),
+        endsOn: DateTime(2026, 7, 15),
+        groupName: '2° A',
+        grades: {PrimaryGrade.second},
+        teachingRole: TeachingRole.teacherWithLeadership,
+      );
+
+      final create = useCase(_FailingGroupRepository());
+      await expectLater(
+        create(
+          schoolName: 'Primaria Nueva',
+          organization: SchoolOrganization.unspecified,
+          schoolYearLabel: '2026-2027',
+          startsOn: DateTime(2026, 8, 31),
+          endsOn: DateTime(2027, 7, 15),
+          groupName: '1° A',
+          grades: {PrimaryGrade.first},
+        ),
+        throwsStateError,
+      );
+
+      final remaining = await schoolRepository.listSetups();
+      expect(remaining, hasLength(1));
+      final school = remaining.single.school;
+      expect(school.name, 'Primaria Anterior');
+      expect(school.schoolZone, 'Zona 045');
+      expect(school.schoolSector, 'Sector 12');
+      expect(school.supervisorName, 'Jorge Villalobos');
+      expect(school.leadershipName, 'María Pérez López');
+      expect(school.leadershipRole, SchoolLeadershipRole.teacherWithLeadership);
+    },
+  );
 }
 
 final class _FailingGroupRepository implements TeachingGroupRepository {

@@ -1,3 +1,4 @@
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 
 final class School {
@@ -11,14 +12,19 @@ final class School {
     String? locality,
     String? schoolZone,
     String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    this.leadershipRole,
   }) : id = id.trim(),
-       name = name.trim(),
-       cct = _normalizeOptionalText(cct),
-       state = _normalizeOptionalText(state),
-       municipality = _normalizeOptionalText(municipality),
-       locality = _normalizeOptionalText(locality),
-       schoolZone = _normalizeOptionalText(schoolZone),
-       schoolSector = _normalizeOptionalText(schoolSector) {
+        name = name.trim(),
+        cct = _normalizeOptionalText(cct),
+        state = _normalizeOptionalText(state),
+        municipality = _normalizeOptionalText(municipality),
+        locality = _normalizeOptionalText(locality),
+        schoolZone = _normalizeOptionalText(schoolZone),
+        schoolSector = _normalizeOptionalText(schoolSector),
+        supervisorName = _normalizeOptionalText(supervisorName),
+        leadershipName = _normalizeOptionalText(leadershipName) {
     if (this.id.isEmpty) {
       throw ArgumentError.value(id, 'id', 'School id cannot be empty.');
     }
@@ -36,6 +42,9 @@ final class School {
   final String? locality;
   final String? schoolZone;
   final String? schoolSector;
+  final String? supervisorName;
+  final String? leadershipName;
+  final SchoolLeadershipRole? leadershipRole;
 
   static String? _normalizeOptionalText(String? value) {
     final normalized = value?.trim();

@@ -36,6 +36,10 @@ final class GroupExportContextData {
     this.locality,
     this.schoolZone,
     this.schoolSector,
+    this.supervisorName,
+    this.leadershipName,
+    this.leadershipRole,
+    this.teacherName,
     this.shift,
     this.startsAtMinutes,
     this.endsAtMinutes,
@@ -48,6 +52,10 @@ final class GroupExportContextData {
   final String? locality;
   final String? schoolZone;
   final String? schoolSector;
+  final String? supervisorName;
+  final String? leadershipName;
+  final String? leadershipRole;
+  final String? teacherName;
   final String schoolOrganization;
   final String schoolYearLabel;
   final String groupName;

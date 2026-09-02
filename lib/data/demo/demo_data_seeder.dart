@@ -73,6 +73,7 @@ final class DemoDataSeeder {
     await database.delete(database.students).go();
     await database.delete(database.groupGrades).go();
     await database.delete(database.teachingGroups).go();
+    await database.delete(database.teacherProfiles).go();
     await database.delete(database.schoolContexts).go();
     await database.delete(database.schoolYears).go();
     await database.delete(database.schools).go();

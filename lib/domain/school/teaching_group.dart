@@ -2,6 +2,7 @@ import 'package:aularaiz/domain/education/nem_phase.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 
 final class TeachingGroup {
   TeachingGroup({
@@ -13,6 +14,7 @@ final class TeachingGroup {
     String? shift,
     this.schedule,
     this.contract,
+    this.teachingRole,
   }) : grades = Set<PrimaryGrade>.unmodifiable(grades),
        shift = _normalizeOptionalText(shift) {
     if (id.trim().isEmpty) {
@@ -52,6 +54,7 @@ final class TeachingGroup {
   final String? shift;
   final ClassSchedule? schedule;
   final TeachingContract? contract;
+  final TeachingRole? teachingRole;
 
   bool get isMultigrade => grades.length > 1;
 

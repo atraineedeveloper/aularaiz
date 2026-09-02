@@ -4,6 +4,7 @@ import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 
 final class CreateTeachingGroup {
   CreateTeachingGroup({
@@ -23,6 +24,7 @@ final class CreateTeachingGroup {
     String? shift,
     ClassSchedule? schedule,
     TeachingContract? contract,
+    TeachingRole? teachingRole,
   }) async {
     final existing = await _repository.listForSchoolYear(schoolYearId);
     final validatedContract = _validatedContract(
@@ -40,6 +42,7 @@ final class CreateTeachingGroup {
       shift: shift,
       schedule: schedule,
       contract: validatedContract,
+      teachingRole: teachingRole,
     );
 
     await _repository.save(group);

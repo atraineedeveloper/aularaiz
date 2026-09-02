@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -112,6 +113,15 @@ final class PdfReportRenderer {
       if (header.schoolZone != null) 'Zona escolar: ${header.schoolZone}',
       if (header.schoolSector != null) 'Sector escolar: ${header.schoolSector}',
     ].join(' · ');
+    final authorities = <String>[
+      if (header.supervisorName != null)
+        '${labels.schoolSupervisor}: ${header.supervisorName}',
+      if (header.leadershipName != null)
+        '${labels.schoolLeadership}: ${header.leadershipName}'
+        '${header.leadershipRole == null ? '' : ' (${_leadershipRoleLabel(header.leadershipRole!, labels)})'}',
+      if (header.teacherName != null)
+        '${labels.groupTeacher}: ${header.teacherName}',
+    ].join(' · ');
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -168,10 +178,21 @@ final class PdfReportRenderer {
           pw.Text(place, style: const pw.TextStyle(fontSize: 8)),
         if (administration.isNotEmpty)
           pw.Text(administration, style: const pw.TextStyle(fontSize: 8)),
+        if (authorities.isNotEmpty)
+          pw.Text(authorities, style: const pw.TextStyle(fontSize: 8)),
         pw.SizedBox(height: 6),
         pw.Divider(height: 1),
       ],
     );
+  }
+
+  String _leadershipRoleLabel(SchoolLeadershipRole role, _Labels labels) {
+    return switch (role) {
+      SchoolLeadershipRole.principal => labels.leadershipPrincipal,
+      SchoolLeadershipRole.teacherWithLeadership =>
+        labels.leadershipTeacherWithLeadership,
+      SchoolLeadershipRole.actingPrincipal => labels.leadershipActingPrincipal,
+    };
   }
 
   pw.Widget _footer(pw.Context context, _Labels labels) {
@@ -529,6 +550,17 @@ final class _Labels {
   String get sufficient => english ? 'Sufficient' : 'Suficiente';
   String get inProgress => english ? 'In progress' : 'En proceso';
   String get requiresSupport => english ? 'Requires support' : 'Requiere apoyo';
+  String get schoolSupervisor =>
+      english ? 'School supervisor' : 'Supervisor(a) escolar';
+  String get schoolLeadership =>
+      english ? 'School leadership' : 'Responsable de dirección';
+  String get groupTeacher => english ? 'Group teacher' : 'Docente del grupo';
+  String get leadershipPrincipal => english ? 'Principal' : 'Director(a)';
+  String get leadershipTeacherWithLeadership => english
+      ? 'Teacher with leadership duties'
+      : 'Docente con funciones de dirección';
+  String get leadershipActingPrincipal =>
+      english ? 'Acting principal' : 'Encargado(a) de dirección';
   String get groupSummaryNote => english
       ? 'Attendance and evaluation are kept as separate evidence. Non-delivery is not an achievement level.'
       : 'Asistencia y evaluación se conservan como evidencias separadas. No entregar no equivale a un nivel de logro.';

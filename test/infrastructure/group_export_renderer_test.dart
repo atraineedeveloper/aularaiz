@@ -7,7 +7,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  GroupExportData buildData({required bool sensitive}) {
+  GroupExportData buildData({required bool sensitive, bool authorities = false}) {
     return GroupExportData(
       context: GroupExportContextData(
         schoolName: 'Primaria de Prueba',
@@ -15,6 +15,12 @@ void main() {
         state: 'Tabasco',
         municipality: 'Centro',
         locality: 'Villahermosa',
+        schoolZone: authorities ? 'Zona 045' : null,
+        schoolSector: authorities ? 'Sector 12' : null,
+        supervisorName: authorities ? 'Jorge Villalobos' : null,
+        leadershipName: authorities ? 'María Pérez López' : null,
+        leadershipRole: authorities ? 'teacherWithLeadership' : null,
+        teacherName: authorities ? 'María Pérez López' : null,
         schoolOrganization: 'complete',
         schoolYearLabel: '2026-2027',
         groupName: '5° A',
@@ -119,25 +125,70 @@ void main() {
     );
   }
 
+  test('CSV exports one selected dataset and neutralizes formula-like text', () {
+    const renderer = GroupExportRenderer(english: false);
+    final bytes = renderer.renderCsv(
+      buildData(sensitive: false),
+      dataset: GroupExportDataset.students,
+    );
+    final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
+    final rows = const CsvDecoder().convert(text);
+
+    expect(rows, hasLength(2));
+    expect(rows.first, containsAll(['N. de lista', 'Alumno', 'Sexo']));
+    expect(rows.first, isNot(contains('Fortalezas')));
+    expect(rows[1][0], '7');
+    expect(rows[1][1], "'=HYPERLINK(\"https://example.com\")");
+    expect(rows[1][8], 'Femenino');
+  });
+
   test(
-    'CSV exports one selected dataset and neutralizes formula-like text',
+    'CSV context dataset includes zone, sector and school authorities',
     () {
       const renderer = GroupExportRenderer(english: false);
       final bytes = renderer.renderCsv(
-        buildData(sensitive: false),
-        dataset: GroupExportDataset.students,
+        buildData(sensitive: false, authorities: true),
+        dataset: GroupExportDataset.context,
       );
       final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
       final rows = const CsvDecoder().convert(text);
 
-      expect(rows, hasLength(2));
-      expect(rows.first, containsAll(['N. de lista', 'Alumno', 'Sexo']));
-      expect(rows.first, isNot(contains('Fortalezas')));
-      expect(rows[1][0], '7');
-      expect(rows[1][1], "'=HYPERLINK(\"https://example.com\")");
-      expect(rows[1][8], 'Femenino');
+      final byField = <String, String>{
+        for (final row in rows.skip(1))
+          if (row.length >= 2) row[0].toString(): row[1].toString(),
+      };
+      expect(byField['Zona escolar'], 'Zona 045');
+      expect(byField['Sector escolar'], 'Sector 12');
+      expect(byField['Supervisor(a) escolar'], 'Jorge Villalobos');
+      expect(byField['Responsable de dirección'], 'María Pérez López');
+      expect(
+        byField['Función de dirección'],
+        'Docente con funciones de dirección',
+      );
+      expect(byField['Docente del grupo'], 'María Pérez López');
     },
   );
+
+  test('CSV context dataset leaves authority fields empty when missing', () {
+    const renderer = GroupExportRenderer(english: false);
+    final bytes = renderer.renderCsv(
+      buildData(sensitive: false, authorities: false),
+      dataset: GroupExportDataset.context,
+    );
+    final text = utf8.decode(bytes).replaceFirst('\ufeff', '');
+    final rows = const CsvDecoder().convert(text);
+
+    final byField = <String, String>{
+      for (final row in rows.skip(1))
+        if (row.length >= 2) row[0].toString(): row[1].toString(),
+    };
+    expect(byField['Zona escolar'], '');
+    expect(byField['Sector escolar'], '');
+    expect(byField['Supervisor(a) escolar'], '');
+    expect(byField['Responsable de dirección'], '');
+    expect(byField['Función de dirección'], '');
+    expect(byField['Docente del grupo'], '');
+  });
 
   test('CSV exposes sensitive columns only after explicit opt-in', () {
     const renderer = GroupExportRenderer(english: false);

@@ -12,6 +12,7 @@ import 'package:aularaiz/application/contracts/student_enrollment_batch_writer.d
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
@@ -28,6 +29,7 @@ import 'package:aularaiz/application/student_import/import_students.dart';
 import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
+import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart';
@@ -43,6 +45,7 @@ import 'package:aularaiz/data/repositories/drift_student_enrollment_batch_writer
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
+import 'package:aularaiz/data/repositories/drift_teacher_profile_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/device_backup_protector.dart';
@@ -114,6 +117,10 @@ class AppDependencies extends StatelessWidget {
           create: (context) =>
               DriftStudentRecordRepository(context.read<AppDatabase>()),
         ),
+        Provider<TeacherProfileRepository>(
+          create: (context) =>
+              DriftTeacherProfileRepository(context.read<AppDatabase>()),
+        ),
         Provider<StudentEnrollmentWriter>(
           create: (context) =>
               DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
@@ -132,6 +139,13 @@ class AppDependencies extends StatelessWidget {
             activityRepository: context.read<ActivityRepository>(),
             evaluationRepository: context.read<EvaluationRepository>(),
             studentRecordRepository: context.read<StudentRecordRepository>(),
+            teacherProfileRepository:
+                context.read<TeacherProfileRepository>(),
+          ),
+        ),
+        Provider<SaveTeacherProfile>(
+          create: (context) => SaveTeacherProfile(
+            repository: context.read<TeacherProfileRepository>(),
           ),
         ),
         Provider<ReportPublicationService>(

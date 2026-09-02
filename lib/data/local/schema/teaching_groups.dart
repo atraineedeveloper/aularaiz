@@ -1,5 +1,6 @@
 import 'package:aularaiz/data/local/schema/school_years.dart';
 import 'package:aularaiz/data/local/schema/schools.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('TeachingGroupRow')
@@ -21,6 +22,7 @@ class TeachingGroups extends Table {
   late final scheduleEndMinutes = integer().nullable()();
   late final contractStartsOn = dateTime().nullable()();
   late final contractEndsOn = dateTime().nullable()();
+  late final teachingRole = textEnum<TeachingRole>().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

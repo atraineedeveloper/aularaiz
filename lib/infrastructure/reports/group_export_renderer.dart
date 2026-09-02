@@ -109,6 +109,22 @@ final class GroupExportRenderer {
         context.schoolSector ?? '',
       ],
       [
+        english ? 'School supervisor' : 'Supervisor(a) escolar',
+        context.supervisorName ?? '',
+      ],
+      [
+        english ? 'School leadership' : 'Responsable de dirección',
+        context.leadershipName ?? '',
+      ],
+      [
+        english ? 'Leadership role' : 'Función de dirección',
+        _leadershipRoleLabel(context.leadershipRole),
+      ],
+      [
+        english ? 'Group teacher' : 'Docente del grupo',
+        context.teacherName ?? '',
+      ],
+      [
         english ? 'School organization' : 'Organización escolar',
         _schoolOrganizationLabel(context.schoolOrganization),
       ],
@@ -447,6 +463,18 @@ final class GroupExportRenderer {
       'fiveTeacher' => english ? 'Five-teacher' : 'Pentadocente',
       'complete' => english ? 'Complete organization' : 'Organización completa',
       _ => english ? 'Unspecified' : 'Sin especificar',
+    };
+  }
+
+  String _leadershipRoleLabel(String? value) {
+    return switch (value) {
+      'principal' => english ? 'Principal' : 'Director(a)',
+      'teacherWithLeadership' => english
+          ? 'Teacher with leadership duties'
+          : 'Docente con funciones de dirección',
+      'actingPrincipal' =>
+        english ? 'Acting principal' : 'Encargado(a) de dirección',
+      _ => '',
     };
   }
 

@@ -6,6 +6,7 @@ import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/reports/group_export_models.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
@@ -29,6 +30,7 @@ final class ReportProjectionBuilder {
     required ActivityRepository activityRepository,
     required EvaluationRepository evaluationRepository,
     required StudentRecordRepository studentRecordRepository,
+    TeacherProfileRepository? teacherProfileRepository,
   }) : _schoolSetupRepository = schoolSetupRepository,
        _enrollmentRepository = enrollmentRepository,
        _studentRepository = studentRepository,
@@ -36,7 +38,8 @@ final class ReportProjectionBuilder {
        _projectRepository = projectRepository,
        _activityRepository = activityRepository,
        _evaluationRepository = evaluationRepository,
-       _studentRecordRepository = studentRecordRepository;
+       _studentRecordRepository = studentRecordRepository,
+       _teacherProfileRepository = teacherProfileRepository;
 
   final SchoolSetupRepository _schoolSetupRepository;
   final EnrollmentRepository _enrollmentRepository;
@@ -46,6 +49,20 @@ final class ReportProjectionBuilder {
   final ActivityRepository _activityRepository;
   final EvaluationRepository _evaluationRepository;
   final StudentRecordRepository _studentRecordRepository;
+  final TeacherProfileRepository? _teacherProfileRepository;
+
+  /// Name of the local teacher responsible for the group, when a profile
+  /// repository is configured and a profile exists.
+  Future<String?> _teacherName() async {
+    final repository = _teacherProfileRepository;
+    if (repository == null) return null;
+    try {
+      return (await repository.load())?.fullName;
+    } catch (_) {
+      // Report generation must survive an unreadable teacher profile.
+      return null;
+    }
+  }
 
   Future<GroupReportData> buildGroup({
     required TeachingGroup group,
@@ -352,6 +369,10 @@ final class ReportProjectionBuilder {
         locality: setup.school.locality,
         schoolZone: setup.school.schoolZone,
         schoolSector: setup.school.schoolSector,
+        supervisorName: setup.school.supervisorName,
+        leadershipName: setup.school.leadershipName,
+        leadershipRole: setup.school.leadershipRole?.name,
+        teacherName: await _teacherName(),
         schoolOrganization: setup.school.organization.name,
         schoolYearLabel: setup.schoolYear.label,
         groupName: group.name,
@@ -472,6 +493,10 @@ final class ReportProjectionBuilder {
         locality: setup.school.locality,
         schoolZone: setup.school.schoolZone,
         schoolSector: setup.school.schoolSector,
+        supervisorName: setup.school.supervisorName,
+        leadershipName: setup.school.leadershipName,
+        leadershipRole: setup.school.leadershipRole,
+        teacherName: await _teacherName(),
         schoolYearLabel: setup.schoolYear.label,
         groupName: group.name,
         referenceMonth: month,

@@ -52,6 +52,7 @@ final class DriftTeachingGroupRepository
               scheduleEndMinutes: Value(group.schedule?.endsAtMinutes),
               contractStartsOn: Value(group.contract?.startsOn),
               contractEndsOn: Value(group.contract?.endsOn),
+              teachingRole: Value(group.teachingRole),
             ),
           );
 
@@ -195,6 +196,7 @@ final class DriftTeachingGroupRepository
       shift: row.shift,
       schedule: _readSchedule(row),
       contract: _readContract(row),
+      teachingRole: row.teachingRole,
     );
   }
 

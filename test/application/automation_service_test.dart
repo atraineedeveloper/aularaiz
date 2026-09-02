@@ -7,6 +7,7 @@ import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
@@ -16,11 +17,13 @@ import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:aularaiz/domain/teacher/teacher_profile.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -117,27 +120,29 @@ void main() {
     writes = 0;
   });
 
-  AutomationService buildService() => AutomationService(
-    schoolSetupRepository: schoolSetupRepository,
-    teachingGroupRepository: groupRepository,
-    studentRepository: studentRepository,
-    projectRepository: projectRepository,
-    activityRepository: activityRepository,
-    enrollmentRepository: enrollmentRepository,
-    groupReportLoader: ({required group, required referenceMonth}) async {
-      return report;
-    },
-    studentNoteWriter:
-        ({
-          required studentId,
-          required kind,
-          required occurredAt,
-          required text,
-        }) async {
-          writes++;
+  AutomationService buildService({_TeacherProfileRepository? teacherProfiles}) =>
+      AutomationService(
+        schoolSetupRepository: schoolSetupRepository,
+        teachingGroupRepository: groupRepository,
+        studentRepository: studentRepository,
+        projectRepository: projectRepository,
+        activityRepository: activityRepository,
+        enrollmentRepository: enrollmentRepository,
+        teacherProfileRepository: teacherProfiles,
+        groupReportLoader: ({required group, required referenceMonth}) async {
+          return report;
         },
-    clock: () => DateTime.utc(2026, 8, 23, 12),
-  );
+        studentNoteWriter:
+            ({
+              required studentId,
+              required kind,
+              required occurredAt,
+              required text,
+            }) async {
+              writes++;
+            },
+        clock: () => DateTime.utc(2026, 8, 23, 12),
+      );
 
   test('status exposes capabilities without personal data', () async {
     final result = await buildService().status();
@@ -149,6 +154,63 @@ void main() {
     expect(encoded, isNot(contains('Escuela de prueba')));
     expect(encoded, isNot(contains('Ana Pérez')));
   });
+
+  test(
+    'status hides the teacher profile name unless personal data is requested',
+    () async {
+      final profiles = _TeacherProfileRepository('María Pérez López');
+
+      final minimized = await buildService(teacherProfiles: profiles).status();
+      expect(minimized.data.containsKey('teacher_name'), isFalse);
+      expect(jsonEncode(minimized.toJson()), isNot(contains('María Pérez')));
+
+      final optedIn = await buildService(teacherProfiles: profiles).status(
+        privacy: const AutomationPrivacy(includePersonalData: true),
+      );
+      expect(optedIn.data['teacher_name'], 'María Pérez López');
+    },
+  );
+
+  test(
+    'schools expose zone and sector always but authority names on opt-in only',
+    () async {
+      schoolSetupRepository.setup = (
+        school: School(
+          id: 'school-1',
+          name: 'Escuela de prueba',
+          schoolZone: 'Zona 045',
+          schoolSector: 'Sector 12',
+          supervisorName: 'Jorge Villalobos',
+          leadershipName: 'María Pérez López',
+          leadershipRole: SchoolLeadershipRole.teacherWithLeadership,
+        ),
+        schoolYear: SchoolYear(
+          id: 'year-1',
+          label: '2026-2027',
+          startsOn: DateTime(2026, 8, 24),
+          endsOn: DateTime(2027, 7, 15),
+        ),
+      );
+
+      final minimized = await buildService().listSchools();
+      final minimizedSchool =
+          (minimized.data['schools']! as List<Map<String, Object?>>).single;
+      final minimizedEncoded = jsonEncode(minimized.toJson());
+      expect(minimizedSchool['school_zone'], 'Zona 045');
+      expect(minimizedSchool['school_sector'], 'Sector 12');
+      expect(minimizedEncoded, isNot(contains('Jorge Villalobos')));
+      expect(minimizedEncoded, isNot(contains('María Pérez López')));
+
+      final optedIn = await buildService().listSchools(
+        privacy: const AutomationPrivacy(includePersonalData: true),
+      );
+      final optedInSchool =
+          (optedIn.data['schools']! as List<Map<String, Object?>>).single;
+      expect(optedInSchool['supervisor_name'], 'Jorge Villalobos');
+      expect(optedInSchool['leadership_name'], 'María Pérez López');
+      expect(optedInSchool['leadership_role'], 'teacherWithLeadership');
+    },
+  );
 
   test('group summary is minimized by default', () async {
     final result = await buildService().groupSummary(
@@ -404,6 +466,19 @@ final class _SchoolSetupRepository implements SchoolSetupRepository {
   }) async {
     setup = (school: school, schoolYear: schoolYear);
   }
+}
+
+final class _TeacherProfileRepository implements TeacherProfileRepository {
+  _TeacherProfileRepository(this.fullName);
+
+  final String fullName;
+
+  @override
+  Future<TeacherProfile?> load() async =>
+      TeacherProfile(id: TeacherProfile.localProfileId, fullName: fullName);
+
+  @override
+  Future<void> save(TeacherProfile profile) async {}
 }
 
 final class _TeachingGroupRepository implements TeachingGroupRepository {

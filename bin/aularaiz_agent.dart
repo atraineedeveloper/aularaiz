@@ -7,9 +7,11 @@ import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:aularaiz/infrastructure/automation/agent_invocation.dart';
 import 'package:aularaiz/infrastructure/automation/automation_runtime.dart';
 
@@ -70,8 +72,8 @@ Future<void> main(List<String> arguments) async {
         includePersonalData: invocation.includePersonalData,
       );
       final envelope = switch (invocation.command) {
-        'status' => await runtime.service.status(),
-        'schools' => await runtime.service.listSchools(),
+        'status' => await runtime.service.status(privacy: privacy),
+        'schools' => await runtime.service.listSchools(privacy: privacy),
         'groups' => await runtime.service.listGroups(),
         'projects' => await runtime.service.listProjects(
           groupId: invocation.requireOption('group'),
@@ -102,13 +104,25 @@ Future<void> main(List<String> arguments) async {
           state: invocation.options['state'],
           municipality: invocation.options['municipality'],
           locality: invocation.options['locality'],
+          schoolZone: invocation.options['school-zone'],
+          schoolSector: invocation.options['school-sector'],
+          supervisorName: invocation.options['supervisor-name'],
+          leadershipName: invocation.options['leadership-name'],
+          leadershipRole: _parseLeadershipRole(
+            invocation.options['leadership-role'],
+          ),
           schoolYearLabel: invocation.requireOption('school-year'),
           startsOn: _parseDate(invocation.requireOption('starts-on')),
           endsOn: _parseDate(invocation.requireOption('ends-on')),
           groupName: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
+          teachingRole: _parseTeachingRole(
+            invocation.options['teaching-role'],
+          ),
+          teacherName: invocation.options['teacher-name'],
           apply: invocation.apply,
+          privacy: privacy,
         ),
         'school-update' => await runtime.mutations.updateSchool(
           schoolId: invocation.requireOption('school'),
@@ -117,6 +131,13 @@ Future<void> main(List<String> arguments) async {
           state: invocation.options['state'],
           municipality: invocation.options['municipality'],
           locality: invocation.options['locality'],
+          schoolZone: invocation.options['school-zone'],
+          schoolSector: invocation.options['school-sector'],
+          supervisorName: invocation.options['supervisor-name'],
+          leadershipName: invocation.options['leadership-name'],
+          leadershipRole: _parseLeadershipRole(
+            invocation.options['leadership-role'],
+          ),
           apply: invocation.apply,
         ),
         'school-delete' => await runtime.mutations.deleteSchool(
@@ -129,6 +150,9 @@ Future<void> main(List<String> arguments) async {
           name: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
+          teachingRole: _parseTeachingRole(
+            invocation.options['teaching-role'],
+          ),
           apply: invocation.apply,
         ),
         'group-update' => await runtime.mutations.updateGroup(
@@ -136,6 +160,9 @@ Future<void> main(List<String> arguments) async {
           name: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
+          teachingRole: _parseTeachingRole(
+            invocation.options['teaching-role'],
+          ),
           apply: invocation.apply,
         ),
         'group-delete' => await runtime.mutations.deleteGroup(
@@ -421,6 +448,28 @@ SchoolOrganization _parseOrganization(String value) {
   );
 }
 
+TeachingRole? _parseTeachingRole(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  final role = TeachingRole.tryParse(value);
+  if (role == null) {
+    throw AgentUsageFailure(
+      '--teaching-role debe ser teacher, teacherWithLeadership, principal o actingPrincipal.',
+    );
+  }
+  return role;
+}
+
+SchoolLeadershipRole? _parseLeadershipRole(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  final role = SchoolLeadershipRole.tryParse(value);
+  if (role == null) {
+    throw AgentUsageFailure(
+      '--leadership-role debe ser principal, teacherWithLeadership o actingPrincipal.',
+    );
+  }
+  return role;
+}
+
 StudentSex? _parseSex(String? value) {
   if (value == null || value.trim().isEmpty) return null;
   return switch (value.trim()) {
@@ -501,11 +550,37 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
           '--group-name',
           '--grades 1,2,...',
         ],
+        'optional': <String>[
+          '--cct',
+          '--organization',
+          '--state',
+          '--municipality',
+          '--locality',
+          '--school-zone',
+          '--school-sector',
+          '--supervisor-name',
+          '--leadership-name',
+          '--leadership-role principal|teacherWithLeadership|actingPrincipal',
+          '--shift',
+          '--teaching-role teacher|teacherWithLeadership|principal|actingPrincipal',
+          '--teacher-name',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{
         'name': 'school-update',
         'required': <String>['--school', '--school-name'],
+        'optional': <String>[
+          '--cct',
+          '--state',
+          '--municipality',
+          '--locality',
+          '--school-zone',
+          '--school-sector',
+          '--supervisor-name',
+          '--leadership-name',
+          '--leadership-role principal|teacherWithLeadership|actingPrincipal',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{
@@ -521,11 +596,19 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
           '--group-name',
           '--grades 1,2,...',
         ],
+        'optional': <String>[
+          '--shift',
+          '--teaching-role teacher|teacherWithLeadership|principal|actingPrincipal',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{
         'name': 'group-update',
         'required': <String>['--group', '--group-name', '--grades 1,2,...'],
+        'optional': <String>[
+          '--shift',
+          '--teaching-role teacher|teacherWithLeadership|principal|actingPrincipal',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{

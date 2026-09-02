@@ -14,6 +14,7 @@ import 'package:aularaiz/application/school_setup/create_initial_workspace.dart'
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
@@ -22,11 +23,13 @@ import 'package:aularaiz/domain/project/project.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student/student_sex.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 
 typedef AutomationMutationClock = DateTime Function();
 
@@ -46,6 +49,7 @@ final class AutomationMutationService {
     required CreateActivity createActivity,
     required ProjectRepository projectRepository,
     required ActivityRepository activityRepository,
+    required SaveTeacherProfile saveTeacherProfile,
     AutomationMutationClock? clock,
   }) : _teachingGroupRepository = teachingGroupRepository,
        _studentRepository = studentRepository,
@@ -61,6 +65,7 @@ final class AutomationMutationService {
        _createActivity = createActivity,
        _projectRepository = projectRepository,
        _activityRepository = activityRepository,
+       _saveTeacherProfile = saveTeacherProfile,
        _clock = clock ?? DateTime.now;
 
   final TeachingGroupRepository _teachingGroupRepository;
@@ -77,6 +82,7 @@ final class AutomationMutationService {
   final CreateActivity _createActivity;
   final ProjectRepository _projectRepository;
   final ActivityRepository _activityRepository;
+  final SaveTeacherProfile _saveTeacherProfile;
   final AutomationMutationClock _clock;
 
   Future<AutomationEnvelope> createWorkspace({
@@ -86,14 +92,23 @@ final class AutomationMutationService {
     String? state,
     String? municipality,
     String? locality,
+    String? schoolZone,
+    String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    SchoolLeadershipRole? leadershipRole,
     required String schoolYearLabel,
     required DateTime startsOn,
     required DateTime endsOn,
     required String groupName,
     required Set<PrimaryGrade> grades,
     String? shift,
+    TeachingRole? teachingRole,
+    String? teacherName,
     bool apply = false,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
   }) async {
+    final normalizedTeacherName = _normalizedOptional(teacherName);
     if (apply) {
       await _createInitialWorkspace(
         schoolName: schoolName,
@@ -102,17 +117,26 @@ final class AutomationMutationService {
         state: state,
         municipality: municipality,
         locality: locality,
+        schoolZone: schoolZone,
+        schoolSector: schoolSector,
+        supervisorName: supervisorName,
+        leadershipName: leadershipName,
+        leadershipRole: leadershipRole,
         schoolYearLabel: schoolYearLabel,
         startsOn: startsOn,
         endsOn: endsOn,
         groupName: groupName,
         grades: grades,
         shift: shift,
+        teachingRole: teachingRole,
       );
+      if (normalizedTeacherName != null) {
+        await _saveTeacherProfile(fullName: normalizedTeacherName);
+      }
     }
     return _envelope(
       kind: 'workspace-create',
-      privacy: const AutomationPrivacy(),
+      privacy: privacy,
       data: {
         'dry_run': !apply,
         'applied': apply,
@@ -121,6 +145,15 @@ final class AutomationMutationService {
         'group_name': groupName.trim(),
         'grades': grades.map((grade) => grade.number).toList()..sort(),
         if (shift?.trim().isNotEmpty == true) 'shift': shift!.trim(),
+        'school_zone': ?_normalizedOptional(schoolZone),
+        'school_sector': ?_normalizedOptional(schoolSector),
+        if (leadershipRole != null) 'leadership_role': leadershipRole.name,
+        if (teachingRole != null) 'teaching_role': teachingRole.name,
+        if (privacy.includePersonalData) ...<String, Object?>{
+          'supervisor_name': ?_normalizedOptional(supervisorName),
+          'leadership_name': ?_normalizedOptional(leadershipName),
+          'teacher_name': ?normalizedTeacherName,
+        },
       },
     );
   }
@@ -132,6 +165,11 @@ final class AutomationMutationService {
     String? state,
     String? municipality,
     String? locality,
+    String? schoolZone,
+    String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    SchoolLeadershipRole? leadershipRole,
     bool apply = false,
   }) async {
     final setup = await _schoolSetupRepository.loadForSchool(schoolId);
@@ -144,6 +182,13 @@ final class AutomationMutationService {
       state: state,
       municipality: municipality,
       locality: locality,
+      // Administrative fields are optional overrides: omitting an option
+      // keeps the value already stored for the school.
+      schoolZone: _override(schoolZone, setup.school.schoolZone),
+      schoolSector: _override(schoolSector, setup.school.schoolSector),
+      supervisorName: _override(supervisorName, setup.school.supervisorName),
+      leadershipName: _override(leadershipName, setup.school.leadershipName),
+      leadershipRole: leadershipRole ?? setup.school.leadershipRole,
     );
     if (apply) await _schoolSetupRepository.updateSchool(updated);
     return _envelope(
@@ -173,6 +218,7 @@ final class AutomationMutationService {
     required String name,
     required Set<PrimaryGrade> grades,
     String? shift,
+    TeachingRole? teachingRole,
     bool apply = false,
   }) async {
     TeachingGroup? group;
@@ -183,6 +229,7 @@ final class AutomationMutationService {
         name: name,
         grades: grades,
         shift: shift,
+        teachingRole: teachingRole,
       );
     }
     return _envelope(
@@ -219,6 +266,7 @@ final class AutomationMutationService {
     required String name,
     required Set<PrimaryGrade> grades,
     String? shift,
+    TeachingRole? teachingRole,
     bool apply = false,
   }) async {
     final current = await _requireGroup(groupId);
@@ -231,6 +279,8 @@ final class AutomationMutationService {
       shift: shift,
       schedule: current.schedule,
       contract: current.contract,
+      // Omitting --teaching-role keeps the assignment role already stored.
+      teachingRole: teachingRole ?? current.teachingRole,
     );
     if (apply) await _teachingGroupRepository.save(updated);
     return _envelope(
@@ -666,7 +716,18 @@ Map<String, Object?> _groupProjection(TeachingGroup group) => <String, Object?>{
     ..sort(),
   'multigrade': group.isMultigrade,
   if (group.shift != null) 'shift': group.shift,
+  if (group.teachingRole != null) 'teaching_role': group.teachingRole!.name,
 };
+
+String? _normalizedOptional(String? value) {
+  final normalized = value?.trim();
+  return normalized == null || normalized.isEmpty ? null : normalized;
+}
+
+/// Optional-override semantics for school updates: an explicit value wins,
+/// an omitted option keeps the stored value.
+String? _override(String? provided, String? stored) =>
+    _normalizedOptional(provided) ?? stored;
 
 Map<String, Object?> _personalStudentIdentity(Student student) =>
     <String, Object?>{'student_id': student.id, 'name': student.displayName};

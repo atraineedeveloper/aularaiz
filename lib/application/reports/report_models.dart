@@ -1,6 +1,7 @@
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 
@@ -65,6 +66,10 @@ final class ReportHeader {
     this.locality,
     this.schoolZone,
     this.schoolSector,
+    this.supervisorName,
+    this.leadershipName,
+    this.leadershipRole,
+    this.teacherName,
   });
 
   final String schoolName;
@@ -77,6 +82,10 @@ final class ReportHeader {
   final String? locality;
   final String? schoolZone;
   final String? schoolSector;
+  final String? supervisorName;
+  final String? leadershipName;
+  final SchoolLeadershipRole? leadershipRole;
+  final String? teacherName;
 }
 
 final class StudentReportRow {

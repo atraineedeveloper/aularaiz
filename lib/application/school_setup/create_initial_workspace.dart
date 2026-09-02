@@ -3,8 +3,10 @@ import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_school_setup.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/class_schedule.dart';
+import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
+import 'package:aularaiz/domain/teacher/teaching_role.dart';
 
 final class CreateInitialWorkspace {
   CreateInitialWorkspace({
@@ -28,6 +30,9 @@ final class CreateInitialWorkspace {
     String? locality,
     String? schoolZone,
     String? schoolSector,
+    String? supervisorName,
+    String? leadershipName,
+    SchoolLeadershipRole? leadershipRole,
     required String schoolYearLabel,
     required DateTime startsOn,
     required DateTime endsOn,
@@ -36,6 +41,7 @@ final class CreateInitialWorkspace {
     String? shift,
     ClassSchedule? schedule,
     TeachingContract? contract,
+    TeachingRole? teachingRole,
   }) async {
     final setup = await _createSchoolSetup(
       schoolName: schoolName,
@@ -46,6 +52,9 @@ final class CreateInitialWorkspace {
       locality: locality,
       schoolZone: schoolZone,
       schoolSector: schoolSector,
+      supervisorName: supervisorName,
+      leadershipName: leadershipName,
+      leadershipRole: leadershipRole,
       schoolYearLabel: schoolYearLabel,
       startsOn: startsOn,
       endsOn: endsOn,
@@ -60,6 +69,7 @@ final class CreateInitialWorkspace {
         shift: shift,
         schedule: schedule,
         contract: contract,
+        teachingRole: teachingRole,
       );
     } catch (_) {
       await _schoolSetupRepository.deleteSchool(setup.school.id);

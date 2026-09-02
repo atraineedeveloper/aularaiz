@@ -103,6 +103,11 @@ final class GroupExportRenderer {
         context.municipality ?? '',
       ],
       [english ? 'Locality' : 'Localidad', context.locality ?? ''],
+      [english ? 'School zone' : 'Zona escolar', context.schoolZone ?? ''],
+      [
+        english ? 'School sector' : 'Sector escolar',
+        context.schoolSector ?? '',
+      ],
       [
         english ? 'School organization' : 'Organización escolar',
         _schoolOrganizationLabel(context.schoolOrganization),

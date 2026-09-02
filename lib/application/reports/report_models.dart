@@ -63,6 +63,8 @@ final class ReportHeader {
     this.state,
     this.municipality,
     this.locality,
+    this.schoolZone,
+    this.schoolSector,
   });
 
   final String schoolName;
@@ -73,6 +75,8 @@ final class ReportHeader {
   final String? state;
   final String? municipality;
   final String? locality;
+  final String? schoolZone;
+  final String? schoolSector;
 }
 
 final class StudentReportRow {

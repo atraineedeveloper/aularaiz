@@ -430,6 +430,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         state: setup.school.state,
         municipality: setup.school.municipality,
         locality: setup.school.locality,
+        schoolZone: setup.school.schoolZone,
+        schoolSector: setup.school.schoolSector,
       ),
     );
     if (draft == null || !mounted) return;
@@ -439,6 +441,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       state: draft.state,
       municipality: draft.municipality,
       locality: draft.locality,
+      schoolZone: draft.schoolZone,
+      schoolSector: draft.schoolSector,
     );
     if (mounted && saved) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1273,6 +1277,8 @@ class _EditSchoolDialog extends StatefulWidget {
     this.state,
     this.municipality,
     this.locality,
+    this.schoolZone,
+    this.schoolSector,
   });
 
   final String name;
@@ -1280,6 +1286,8 @@ class _EditSchoolDialog extends StatefulWidget {
   final String? state;
   final String? municipality;
   final String? locality;
+  final String? schoolZone;
+  final String? schoolSector;
 
   @override
   State<_EditSchoolDialog> createState() => _EditSchoolDialogState();
@@ -1290,6 +1298,8 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _cctController;
   late final TextEditingController _localityController;
+  late final TextEditingController _schoolZoneController;
+  late final TextEditingController _schoolSectorController;
   String? _state;
   String? _municipality;
 
@@ -1299,6 +1309,12 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
     _nameController = TextEditingController(text: widget.name);
     _cctController = TextEditingController(text: widget.cct ?? '');
     _localityController = TextEditingController(text: widget.locality ?? '');
+    _schoolZoneController = TextEditingController(
+      text: widget.schoolZone ?? '',
+    );
+    _schoolSectorController = TextEditingController(
+      text: widget.schoolSector ?? '',
+    );
     _state =
         MexicoGeographyCatalog.states.any((item) => item.name == widget.state)
         ? widget.state
@@ -1314,6 +1330,8 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
     _nameController.dispose();
     _cctController.dispose();
     _localityController.dispose();
+    _schoolZoneController.dispose();
+    _schoolSectorController.dispose();
     super.dispose();
   }
 
@@ -1396,6 +1414,24 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
                     labelText: _label(context, 'Localidad', 'Locality'),
                   ),
                 ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _schoolZoneController,
+                  decoration: InputDecoration(
+                    labelText: _label(context, 'Zona escolar', 'School zone'),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _schoolSectorController,
+                  decoration: InputDecoration(
+                    labelText: _label(
+                      context,
+                      'Sector escolar',
+                      'School sector',
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1420,6 +1456,8 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
         state: _state,
         municipality: _municipality,
         locality: _localityController.text.trim(),
+        schoolZone: _schoolZoneController.text.trim(),
+        schoolSector: _schoolSectorController.text.trim(),
       ),
     );
   }
@@ -1455,6 +1493,8 @@ final class _SchoolDraft {
     required this.state,
     required this.municipality,
     required this.locality,
+    required this.schoolZone,
+    required this.schoolSector,
   });
 
   final String name;
@@ -1462,6 +1502,8 @@ final class _SchoolDraft {
   final String? state;
   final String? municipality;
   final String locality;
+  final String schoolZone;
+  final String schoolSector;
 }
 
 String _gradeLabel(PrimaryGrade grade, AppLocalizations l10n) {

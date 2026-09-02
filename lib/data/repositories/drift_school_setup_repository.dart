@@ -69,6 +69,8 @@ final class DriftSchoolSetupRepository
               state: Value(school.state),
               municipality: Value(school.municipality),
               locality: Value(school.locality),
+              schoolZone: Value(school.schoolZone),
+              schoolSector: Value(school.schoolSector),
             ),
           );
 
@@ -135,6 +137,8 @@ final class DriftSchoolSetupRepository
             state: Value(school.state),
             municipality: Value(school.municipality),
             locality: Value(school.locality),
+            schoolZone: Value(school.schoolZone),
+            schoolSector: Value(school.schoolSector),
           ),
         );
     if (updated != 1) {
@@ -292,6 +296,8 @@ final class DriftSchoolSetupRepository
         state: schoolRow.state,
         municipality: schoolRow.municipality,
         locality: schoolRow.locality,
+        schoolZone: schoolRow.schoolZone,
+        schoolSector: schoolRow.schoolSector,
       ),
       schoolYear: SchoolYear(
         id: schoolYearRow.id,

@@ -108,6 +108,10 @@ final class PdfReportRenderer {
       if (header.municipality != null) header.municipality!,
       if (header.state != null) header.state!,
     ].join(', ');
+    final administration = <String>[
+      if (header.schoolZone != null) 'Zona escolar: ${header.schoolZone}',
+      if (header.schoolSector != null) 'Sector escolar: ${header.schoolSector}',
+    ].join(' · ');
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -162,6 +166,8 @@ final class PdfReportRenderer {
         ),
         if (place.isNotEmpty)
           pw.Text(place, style: const pw.TextStyle(fontSize: 8)),
+        if (administration.isNotEmpty)
+          pw.Text(administration, style: const pw.TextStyle(fontSize: 8)),
         pw.SizedBox(height: 6),
         pw.Divider(height: 1),
       ],

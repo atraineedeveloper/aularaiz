@@ -34,6 +34,8 @@ void main() {
       state: 'Entidad Demo',
       municipality: 'Municipio Demo',
       locality: 'Localidad Demo',
+      schoolZone: '12',
+      schoolSector: '03',
       schoolYearLabel: '2026-2027',
       startsOn: DateTime(2026, 8, 31),
       endsOn: DateTime(2027, 7, 15),
@@ -47,6 +49,8 @@ void main() {
     expect(school.id, 'id-1');
     expect(school.name, 'Escuela Demo');
     expect(school.organization, SchoolOrganization.complete);
+    expect(school.schoolZone, '12');
+    expect(school.schoolSector, '03');
     expect(schoolYear.id, 'id-2');
     expect(schoolYear.label, '2026-2027');
   });

@@ -21,6 +21,8 @@ final class CreateInitialSchoolSetup {
     String? state,
     String? municipality,
     String? locality,
+    String? schoolZone,
+    String? schoolSector,
     required String schoolYearLabel,
     required DateTime startsOn,
     required DateTime endsOn,
@@ -50,6 +52,8 @@ final class CreateInitialSchoolSetup {
       state: state,
       municipality: municipality,
       locality: locality,
+      schoolZone: schoolZone,
+      schoolSector: schoolSector,
     );
     final schoolYear = SchoolYear(
       id: _idGenerator.newId(),

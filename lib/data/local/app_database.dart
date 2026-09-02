@@ -59,7 +59,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 6;
+  static const int currentSchemaVersion = 7;
 
   final StorageProfile? storageProfile;
 
@@ -126,6 +126,17 @@ final class AppDatabase extends _$AppDatabase {
             teachingGroups,
             teachingGroups.contractEndsOn,
           );
+        }
+      }
+      if (from < 7 && to >= 7) {
+        final columns = await customSelect("PRAGMA table_info('schools')")
+            .get();
+        final names = columns.map((row) => row.read<String>('name')).toSet();
+        if (!names.contains('school_zone')) {
+          await migrator.addColumn(schools, schools.schoolZone);
+        }
+        if (!names.contains('school_sector')) {
+          await migrator.addColumn(schools, schools.schoolSector);
         }
       }
     },

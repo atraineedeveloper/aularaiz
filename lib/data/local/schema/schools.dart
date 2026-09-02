@@ -10,6 +10,8 @@ class Schools extends Table {
   late final state = text().nullable()();
   late final municipality = text().nullable()();
   late final locality = text().nullable()();
+  late final schoolZone = text().nullable()();
+  late final schoolSector = text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};

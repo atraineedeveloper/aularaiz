@@ -24,6 +24,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   final _schoolNameController = TextEditingController();
   final _cctController = TextEditingController();
   final _localityController = TextEditingController();
+  final _schoolZoneController = TextEditingController();
+  final _schoolSectorController = TextEditingController();
   final _groupNameController = TextEditingController();
 
   SchoolOrganization _organization = SchoolOrganization.unspecified;
@@ -52,6 +54,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     _schoolNameController.dispose();
     _cctController.dispose();
     _localityController.dispose();
+    _schoolZoneController.dispose();
+    _schoolSectorController.dispose();
     _groupNameController.dispose();
     super.dispose();
   }
@@ -251,6 +255,49 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                       enabled: !controller.isSaving,
                       decoration: InputDecoration(labelText: l10n.locality),
                       textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 620;
+                        final zoneField = TextFormField(
+                          controller: _schoolZoneController,
+                          enabled: !controller.isSaving,
+                          decoration: InputDecoration(
+                            labelText:
+                                Localizations.localeOf(context).languageCode ==
+                                    'en'
+                                ? 'School zone'
+                                : 'Zona escolar',
+                          ),
+                        );
+                        final sectorField = TextFormField(
+                          controller: _schoolSectorController,
+                          enabled: !controller.isSaving,
+                          decoration: InputDecoration(
+                            labelText:
+                                Localizations.localeOf(context).languageCode ==
+                                    'en'
+                                ? 'School sector'
+                                : 'Sector escolar',
+                          ),
+                        );
+                        return wide
+                            ? Row(
+                                children: [
+                                  Expanded(child: zoneField),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: sectorField),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  zoneField,
+                                  const SizedBox(height: 16),
+                                  sectorField,
+                                ],
+                              );
+                      },
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
@@ -559,6 +606,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       state: state.name,
       municipality: municipality,
       locality: _localityController.text,
+      schoolZone: _schoolZoneController.text,
+      schoolSector: _schoolSectorController.text,
       schoolYearLabel: schoolYear.label,
       startsOn: schoolYear.startsOn,
       endsOn: schoolYear.endsOn,

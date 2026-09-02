@@ -135,6 +135,8 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     String? state,
     String? municipality,
     String? locality,
+    String? schoolZone,
+    String? schoolSector,
   }) async {
     final setup = _setup;
     if (setup == null || _isSaving) return false;
@@ -150,6 +152,8 @@ final class SchoolWorkspaceController extends ChangeNotifier {
         state: state,
         municipality: municipality,
         locality: locality,
+        schoolZone: schoolZone,
+        schoolSector: schoolSector,
       );
       await _setupRepository.updateSchool(school);
       _setup = (school: school, schoolYear: setup.schoolYear);

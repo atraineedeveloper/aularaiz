@@ -42,7 +42,7 @@ Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs 
 ; adding {app}\automation\bin to the per-user PATH. preservestringtype keeps the
 ; existing value type, and NeedsAddPath prevents duplicates on reinstall/update.
 [Registry]
-Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\automation\bin"; Flags: preservestringtype; Check: NeedsAddPath("{app}\automation\bin")
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}\automation\bin"; Flags: preservestringtype; Check: NeedsAddPath('{app}\automation\bin')
 
 [Icons]
 Name: "{autoprograms}\AulaRaíz"; Filename: "{app}\aularaiz.exe"

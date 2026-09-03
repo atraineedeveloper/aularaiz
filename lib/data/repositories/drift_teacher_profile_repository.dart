@@ -3,8 +3,7 @@ import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/domain/teacher/teacher_profile.dart';
 import 'package:drift/drift.dart';
 
-final class DriftTeacherProfileRepository
-    implements TeacherProfileRepository {
+final class DriftTeacherProfileRepository implements TeacherProfileRepository {
   DriftTeacherProfileRepository(this.database);
 
   final AppDatabase database;

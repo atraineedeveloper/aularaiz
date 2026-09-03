@@ -21,20 +21,20 @@ enum TeachingRole {
 
   /// Whether this role also carries school leadership responsibilities.
   bool get hasLeadership => switch (this) {
-        TeachingRole.teacher => false,
-        TeachingRole.teacherWithLeadership ||
-        TeachingRole.principal ||
-        TeachingRole.actingPrincipal => true,
-      };
+    TeachingRole.teacher => false,
+    TeachingRole.teacherWithLeadership ||
+    TeachingRole.principal ||
+    TeachingRole.actingPrincipal => true,
+  };
 
   /// School leadership role that matches this teaching role, when any.
   SchoolLeadershipRole? get leadershipRole => switch (this) {
-        TeachingRole.teacher => null,
-        TeachingRole.teacherWithLeadership => SchoolLeadershipRole
-              .teacherWithLeadership,
-        TeachingRole.principal => SchoolLeadershipRole.principal,
-        TeachingRole.actingPrincipal => SchoolLeadershipRole.actingPrincipal,
-      };
+    TeachingRole.teacher => null,
+    TeachingRole.teacherWithLeadership =>
+      SchoolLeadershipRole.teacherWithLeadership,
+    TeachingRole.principal => SchoolLeadershipRole.principal,
+    TeachingRole.actingPrincipal => SchoolLeadershipRole.actingPrincipal,
+  };
 
   static TeachingRole? tryParse(String? value) {
     if (value == null) return null;

@@ -1461,7 +1461,11 @@ class _EditSchoolDialogState extends State<_EditSchoolDialog> {
                 Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: Text(
-                    _label(context, 'Autoridades escolares', 'School authorities'),
+                    _label(
+                      context,
+                      'Autoridades escolares',
+                      'School authorities',
+                    ),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),

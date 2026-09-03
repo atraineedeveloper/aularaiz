@@ -139,8 +139,7 @@ class AppDependencies extends StatelessWidget {
             activityRepository: context.read<ActivityRepository>(),
             evaluationRepository: context.read<EvaluationRepository>(),
             studentRecordRepository: context.read<StudentRecordRepository>(),
-            teacherProfileRepository:
-                context.read<TeacherProfileRepository>(),
+            teacherProfileRepository: context.read<TeacherProfileRepository>(),
           ),
         ),
         Provider<SaveTeacherProfile>(

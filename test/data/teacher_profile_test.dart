@@ -41,69 +41,69 @@ void main() {
     expect(loaded.fullName, 'María Pérez López');
   });
 
-  test('saving again updates the single local profile without duplicating', () async {
-    final save = SaveTeacherProfile(repository: repository);
-    await save(fullName: 'María Pérez López');
-    await save(fullName: 'María Pérez de Sánchez');
-
-    final rows = await database.select(database.teacherProfiles).get();
-    expect(rows, hasLength(1));
-
-    final loaded = await repository.load();
-    expect(loaded!.fullName, 'María Pérez de Sánchez');
-  });
-
   test(
-    'teacher profile survives creating a new school and survives school deletion',
+    'saving again updates the single local profile without duplicating',
     () async {
-      final schoolRepository = DriftSchoolSetupRepository(database);
-      final groupRepository = DriftTeachingGroupRepository(database);
-      final createWorkspace = CreateInitialWorkspace(
-        createSchoolSetup: CreateInitialSchoolSetup(
-          repository: schoolRepository,
-          idGenerator: ids,
-        ),
-        createTeachingGroup: CreateTeachingGroup(
-          repository: groupRepository,
-          idGenerator: ids,
-        ),
-        schoolSetupRepository: schoolRepository,
-      );
+      final save = SaveTeacherProfile(repository: repository);
+      await save(fullName: 'María Pérez López');
+      await save(fullName: 'María Pérez de Sánchez');
 
-      await SaveTeacherProfile(repository: repository)(
-        fullName: 'María Pérez López',
-      );
+      final rows = await database.select(database.teacherProfiles).get();
+      expect(rows, hasLength(1));
 
-      await createWorkspace(
-        schoolName: 'Primaria Primera',
-        organization: SchoolOrganization.unspecified,
-        schoolYearLabel: '2025-2026',
-        startsOn: DateTime(2025, 9, 1),
-        endsOn: DateTime(2026, 7, 15),
-        groupName: '1° A',
-        grades: {PrimaryGrade.first},
-      );
-
-      // Creating a second school keeps the same single local profile.
-      await createWorkspace(
-        schoolName: 'Primaria Segunda',
-        organization: SchoolOrganization.unspecified,
-        schoolYearLabel: '2026-2027',
-        startsOn: DateTime(2026, 8, 31),
-        endsOn: DateTime(2027, 7, 15),
-        groupName: '2° A',
-        grades: {PrimaryGrade.second},
-      );
-
-      expect((await schoolRepository.listSetups()), hasLength(2));
-      expect((await repository.load())!.fullName, 'María Pérez López');
-
-      // And deleting one of the schools never touches the profile row.
-      final setups = await schoolRepository.listSetups();
-      await schoolRepository.deleteSchool(setups.first.school.id);
-      expect((await repository.load())!.fullName, 'María Pérez López');
+      final loaded = await repository.load();
+      expect(loaded!.fullName, 'María Pérez de Sánchez');
     },
   );
+
+  test('teacher profile survives creating a new school and survives school deletion', () async {
+    final schoolRepository = DriftSchoolSetupRepository(database);
+    final groupRepository = DriftTeachingGroupRepository(database);
+    final createWorkspace = CreateInitialWorkspace(
+      createSchoolSetup: CreateInitialSchoolSetup(
+        repository: schoolRepository,
+        idGenerator: ids,
+      ),
+      createTeachingGroup: CreateTeachingGroup(
+        repository: groupRepository,
+        idGenerator: ids,
+      ),
+      schoolSetupRepository: schoolRepository,
+    );
+
+    await SaveTeacherProfile(repository: repository)(
+      fullName: 'María Pérez López',
+    );
+
+    await createWorkspace(
+      schoolName: 'Primaria Primera',
+      organization: SchoolOrganization.unspecified,
+      schoolYearLabel: '2025-2026',
+      startsOn: DateTime(2025, 9, 1),
+      endsOn: DateTime(2026, 7, 15),
+      groupName: '1° A',
+      grades: {PrimaryGrade.first},
+    );
+
+    // Creating a second school keeps the same single local profile.
+    await createWorkspace(
+      schoolName: 'Primaria Segunda',
+      organization: SchoolOrganization.unspecified,
+      schoolYearLabel: '2026-2027',
+      startsOn: DateTime(2026, 8, 31),
+      endsOn: DateTime(2027, 7, 15),
+      groupName: '2° A',
+      grades: {PrimaryGrade.second},
+    );
+
+    expect((await schoolRepository.listSetups()), hasLength(2));
+    expect((await repository.load())!.fullName, 'María Pérez López');
+
+    // And deleting one of the schools never touches the profile row.
+    final setups = await schoolRepository.listSetups();
+    await schoolRepository.deleteSchool(setups.first.school.id);
+    expect((await repository.load())!.fullName, 'María Pérez López');
+  });
 }
 
 final class _Ids implements IdGenerator {

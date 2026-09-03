@@ -505,24 +505,26 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                         );
                         final teachingRoleField =
                             DropdownButtonFormField<TeachingRole>(
-                          initialValue: _teachingRole,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: english
-                                ? 'Teacher role'
-                                : 'Función del docente',
-                          ),
-                          items: [
-                            for (final role in TeachingRole.values)
-                              DropdownMenuItem(
-                                value: role,
-                                child: Text(_teachingRoleLabel(role, english)),
+                              initialValue: _teachingRole,
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: english
+                                    ? 'Teacher role'
+                                    : 'Función del docente',
                               ),
-                          ],
-                          onChanged: controller.isSaving
-                              ? null
-                              : _onTeachingRoleChanged,
-                        );
+                              items: [
+                                for (final role in TeachingRole.values)
+                                  DropdownMenuItem(
+                                    value: role,
+                                    child: Text(
+                                      _teachingRoleLabel(role, english),
+                                    ),
+                                  ),
+                              ],
+                              onChanged: controller.isSaving
+                                  ? null
+                                  : _onTeachingRoleChanged,
+                            );
                         return wide
                             ? Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,29 +627,28 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.next,
         );
-        final leadershipRoleField = DropdownButtonFormField<
-          SchoolLeadershipRole?
-        >(
-          initialValue: _leadershipRole,
-          isExpanded: true,
-          decoration: InputDecoration(
-            labelText: english ? 'Leadership role' : 'Función de dirección',
-          ),
-          items: [
-            DropdownMenuItem(
-              value: null,
-              child: Text(english ? 'Unspecified' : 'Sin especificar'),
-            ),
-            for (final role in SchoolLeadershipRole.values)
-              DropdownMenuItem(
-                value: role,
-                child: Text(_leadershipRoleLabel(role, english)),
+        final leadershipRoleField =
+            DropdownButtonFormField<SchoolLeadershipRole?>(
+              initialValue: _leadershipRole,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: english ? 'Leadership role' : 'Función de dirección',
               ),
-          ],
-          onChanged: disabled
-              ? null
-              : (value) => setState(() => _leadershipRole = value),
-        );
+              items: [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text(english ? 'Unspecified' : 'Sin especificar'),
+                ),
+                for (final role in SchoolLeadershipRole.values)
+                  DropdownMenuItem(
+                    value: role,
+                    child: Text(_leadershipRoleLabel(role, english)),
+                  ),
+              ],
+              onChanged: disabled
+                  ? null
+                  : (value) => setState(() => _leadershipRole = value),
+            );
 
         if (wide) {
           return Column(
@@ -712,12 +713,12 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
 
   String _teachingRoleLabel(TeachingRole role, bool english) {
     return switch (role) {
-      TeachingRole.teacher => english
-          ? 'Group teacher'
-          : 'Docente frente a grupo',
-      TeachingRole.teacherWithLeadership => english
-          ? 'Teacher with leadership duties'
-          : 'Docente con funciones de dirección',
+      TeachingRole.teacher =>
+        english ? 'Group teacher' : 'Docente frente a grupo',
+      TeachingRole.teacherWithLeadership =>
+        english
+            ? 'Teacher with leadership duties'
+            : 'Docente con funciones de dirección',
       TeachingRole.principal => english ? 'Principal' : 'Director(a)',
       TeachingRole.actingPrincipal =>
         english ? 'Acting principal' : 'Encargado(a) de dirección',
@@ -727,9 +728,10 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
   String _leadershipRoleLabel(SchoolLeadershipRole role, bool english) {
     return switch (role) {
       SchoolLeadershipRole.principal => english ? 'Principal' : 'Director(a)',
-      SchoolLeadershipRole.teacherWithLeadership => english
-          ? 'Teacher with leadership duties'
-          : 'Docente con funciones de dirección',
+      SchoolLeadershipRole.teacherWithLeadership =>
+        english
+            ? 'Teacher with leadership duties'
+            : 'Docente con funciones de dirección',
       SchoolLeadershipRole.actingPrincipal =>
         english ? 'Acting principal' : 'Encargado(a) de dirección',
     };

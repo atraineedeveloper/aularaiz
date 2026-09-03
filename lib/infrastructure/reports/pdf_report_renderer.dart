@@ -118,7 +118,7 @@ final class PdfReportRenderer {
         '${labels.schoolSupervisor}: ${header.supervisorName}',
       if (header.leadershipName != null)
         '${labels.schoolLeadership}: ${header.leadershipName}'
-        '${header.leadershipRole == null ? '' : ' (${_leadershipRoleLabel(header.leadershipRole!, labels)})'}',
+            '${header.leadershipRole == null ? '' : ' (${_leadershipRoleLabel(header.leadershipRole!, labels)})'}',
       if (header.teacherName != null)
         '${labels.groupTeacher}: ${header.teacherName}',
     ].join(' · ');

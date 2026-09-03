@@ -16,15 +16,15 @@ final class School {
     String? leadershipName,
     this.leadershipRole,
   }) : id = id.trim(),
-        name = name.trim(),
-        cct = _normalizeOptionalText(cct),
-        state = _normalizeOptionalText(state),
-        municipality = _normalizeOptionalText(municipality),
-        locality = _normalizeOptionalText(locality),
-        schoolZone = _normalizeOptionalText(schoolZone),
-        schoolSector = _normalizeOptionalText(schoolSector),
-        supervisorName = _normalizeOptionalText(supervisorName),
-        leadershipName = _normalizeOptionalText(leadershipName) {
+       name = name.trim(),
+       cct = _normalizeOptionalText(cct),
+       state = _normalizeOptionalText(state),
+       municipality = _normalizeOptionalText(municipality),
+       locality = _normalizeOptionalText(locality),
+       schoolZone = _normalizeOptionalText(schoolZone),
+       schoolSector = _normalizeOptionalText(schoolSector),
+       supervisorName = _normalizeOptionalText(supervisorName),
+       leadershipName = _normalizeOptionalText(leadershipName) {
     if (this.id.isEmpty) {
       throw ArgumentError.value(id, 'id', 'School id cannot be empty.');
     }

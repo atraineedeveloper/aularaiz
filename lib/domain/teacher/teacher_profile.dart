@@ -9,7 +9,11 @@ final class TeacherProfile {
     : id = id.trim(),
       fullName = fullName.trim() {
     if (this.id.isEmpty) {
-      throw ArgumentError.value(id, 'id', 'Teacher profile id cannot be empty.');
+      throw ArgumentError.value(
+        id,
+        'id',
+        'Teacher profile id cannot be empty.',
+      );
     }
     if (this.fullName.isEmpty) {
       throw ArgumentError.value(

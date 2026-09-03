@@ -469,9 +469,10 @@ final class GroupExportRenderer {
   String _leadershipRoleLabel(String? value) {
     return switch (value) {
       'principal' => english ? 'Principal' : 'Director(a)',
-      'teacherWithLeadership' => english
-          ? 'Teacher with leadership duties'
-          : 'Docente con funciones de dirección',
+      'teacherWithLeadership' =>
+        english
+            ? 'Teacher with leadership duties'
+            : 'Docente con funciones de dirección',
       'actingPrincipal' =>
         english ? 'Acting principal' : 'Encargado(a) de dirección',
       _ => '',

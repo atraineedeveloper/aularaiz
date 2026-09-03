@@ -60,9 +60,9 @@ class _TeacherProfileSectionState extends State<TeacherProfileSection> {
       _error = null;
     });
     try {
-      await context
-          .read<SaveTeacherProfile>()
-          .call(fullName: _nameController.text);
+      await context.read<SaveTeacherProfile>().call(
+        fullName: _nameController.text,
+      );
       if (!mounted) return;
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -152,8 +152,7 @@ class _TeacherProfileSectionState extends State<TeacherProfileSection> {
                       : 'Solo se guarda el nombre. Sin CURP, RFC ni teléfono.',
                 ),
                 textCapitalization: TextCapitalization.words,
-                validator: (value) =>
-                    value == null || value.trim().isEmpty
+                validator: (value) => value == null || value.trim().isEmpty
                     ? l10n.requiredField
                     : null,
               ),

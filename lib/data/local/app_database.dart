@@ -167,9 +167,8 @@ final class AppDatabase extends _$AppDatabase {
         }
 
         // Optional school authority fields.
-        final schoolColumns = await customSelect(
-          "PRAGMA table_info('schools')",
-        ).get();
+        final schoolColumns = await customSelect("PRAGMA table_info('schools')")
+            .get();
         final schoolNames = schoolColumns
             .map((row) => row.read<String>('name'))
             .toSet();

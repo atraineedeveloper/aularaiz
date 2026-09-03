@@ -117,9 +117,7 @@ Future<void> main(List<String> arguments) async {
           groupName: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
-          teachingRole: _parseTeachingRole(
-            invocation.options['teaching-role'],
-          ),
+          teachingRole: _parseTeachingRole(invocation.options['teaching-role']),
           teacherName: invocation.options['teacher-name'],
           apply: invocation.apply,
           privacy: privacy,
@@ -150,9 +148,7 @@ Future<void> main(List<String> arguments) async {
           name: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
-          teachingRole: _parseTeachingRole(
-            invocation.options['teaching-role'],
-          ),
+          teachingRole: _parseTeachingRole(invocation.options['teaching-role']),
           apply: invocation.apply,
         ),
         'group-update' => await runtime.mutations.updateGroup(
@@ -160,9 +156,7 @@ Future<void> main(List<String> arguments) async {
           name: invocation.requireOption('group-name'),
           grades: _parseGrades(invocation.requireOption('grades')),
           shift: invocation.options['shift'],
-          teachingRole: _parseTeachingRole(
-            invocation.options['teaching-role'],
-          ),
+          teachingRole: _parseTeachingRole(invocation.options['teaching-role']),
           apply: invocation.apply,
         ),
         'group-delete' => await runtime.mutations.deleteGroup(

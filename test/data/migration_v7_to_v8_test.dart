@@ -104,45 +104,42 @@ void main() {
     },
   );
 
-  test(
-    'migration tolerates partially applied v8 tables and columns',
-    () async {
-      final initial = AppDatabase.forTesting(NativeDatabase(file));
-      await initial.customSelect('SELECT 1').getSingle();
-      await _seedWorkspaceData(initial);
-      await initial.close();
+  test('migration tolerates partially applied v8 tables and columns', () async {
+    final initial = AppDatabase.forTesting(NativeDatabase(file));
+    await initial.customSelect('SELECT 1').getSingle();
+    await _seedWorkspaceData(initial);
+    await initial.close();
 
-      _downgradeToV7Shape(file.path);
+    _downgradeToV7Shape(file.path);
 
-      // Simulate an interrupted v8 migration: the teacher profile table and
-      // some (but not all) of the new columns already exist.
-      final raw = sqlite3.open(file.path);
-      raw.execute(
-        'CREATE TABLE teacher_profiles ('
-        'id TEXT NOT NULL PRIMARY KEY, '
-        'full_name TEXT NOT NULL)',
-      );
-      raw.execute('ALTER TABLE schools ADD COLUMN supervisor_name TEXT');
-      raw.execute('ALTER TABLE teaching_groups ADD COLUMN teaching_role TEXT');
-      raw.close();
+    // Simulate an interrupted v8 migration: the teacher profile table and
+    // some (but not all) of the new columns already exist.
+    final raw = sqlite3.open(file.path);
+    raw.execute(
+      'CREATE TABLE teacher_profiles ('
+      'id TEXT NOT NULL PRIMARY KEY, '
+      'full_name TEXT NOT NULL)',
+    );
+    raw.execute('ALTER TABLE schools ADD COLUMN supervisor_name TEXT');
+    raw.execute('ALTER TABLE teaching_groups ADD COLUMN teaching_role TEXT');
+    raw.close();
 
-      final upgraded = AppDatabase.forTesting(NativeDatabase(file));
-      addTearDown(upgraded.close);
-      await upgraded.customSelect('SELECT 1').getSingle();
+    final upgraded = AppDatabase.forTesting(NativeDatabase(file));
+    addTearDown(upgraded.close);
+    await upgraded.customSelect('SELECT 1').getSingle();
 
-      final version = await upgraded
-          .customSelect('PRAGMA user_version')
-          .getSingle();
-      expect(version.read<int>('user_version'), 8);
+    final version = await upgraded
+        .customSelect('PRAGMA user_version')
+        .getSingle();
+    expect(version.read<int>('user_version'), 8);
 
-      expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM schools'), 1);
-      expect(
-        await _count(upgraded, 'SELECT COUNT(*) AS n FROM teaching_groups'),
-        1,
-      );
-      expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM students'), 1);
-    },
-  );
+    expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM schools'), 1);
+    expect(
+      await _count(upgraded, 'SELECT COUNT(*) AS n FROM teaching_groups'),
+      1,
+    );
+    expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM students'), 1);
+  });
 
   test('migration tolerates a fully pre-applied v8 shape', () async {
     final initial = AppDatabase.forTesting(NativeDatabase(file));
@@ -367,4 +364,3 @@ Future<int> _count(AppDatabase database, String sql) async {
   final row = await database.customSelect(sql).getSingle();
   return row.read<int>('n');
 }
-

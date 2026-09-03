@@ -120,29 +120,30 @@ void main() {
     writes = 0;
   });
 
-  AutomationService buildService({_TeacherProfileRepository? teacherProfiles}) =>
-      AutomationService(
-        schoolSetupRepository: schoolSetupRepository,
-        teachingGroupRepository: groupRepository,
-        studentRepository: studentRepository,
-        projectRepository: projectRepository,
-        activityRepository: activityRepository,
-        enrollmentRepository: enrollmentRepository,
-        teacherProfileRepository: teacherProfiles,
-        groupReportLoader: ({required group, required referenceMonth}) async {
-          return report;
+  AutomationService buildService({
+    _TeacherProfileRepository? teacherProfiles,
+  }) => AutomationService(
+    schoolSetupRepository: schoolSetupRepository,
+    teachingGroupRepository: groupRepository,
+    studentRepository: studentRepository,
+    projectRepository: projectRepository,
+    activityRepository: activityRepository,
+    enrollmentRepository: enrollmentRepository,
+    teacherProfileRepository: teacherProfiles,
+    groupReportLoader: ({required group, required referenceMonth}) async {
+      return report;
+    },
+    studentNoteWriter:
+        ({
+          required studentId,
+          required kind,
+          required occurredAt,
+          required text,
+        }) async {
+          writes++;
         },
-        studentNoteWriter:
-            ({
-              required studentId,
-              required kind,
-              required occurredAt,
-              required text,
-            }) async {
-              writes++;
-            },
-        clock: () => DateTime.utc(2026, 8, 23, 12),
-      );
+    clock: () => DateTime.utc(2026, 8, 23, 12),
+  );
 
   test('status exposes capabilities without personal data', () async {
     final result = await buildService().status();
@@ -164,9 +165,8 @@ void main() {
       expect(minimized.data.containsKey('teacher_name'), isFalse);
       expect(jsonEncode(minimized.toJson()), isNot(contains('María Pérez')));
 
-      final optedIn = await buildService(teacherProfiles: profiles).status(
-        privacy: const AutomationPrivacy(includePersonalData: true),
-      );
+      final optedIn = await buildService(teacherProfiles: profiles)
+          .status(privacy: const AutomationPrivacy(includePersonalData: true));
       expect(optedIn.data['teacher_name'], 'María Pérez López');
     },
   );

@@ -131,8 +131,29 @@ void main() {
       ),
     );
     addTearDown(controller.dispose);
+    for (final number in [1, 2]) {
+      await enrollmentRepository.save(
+        Enrollment(
+          id: 'filter-$number',
+          studentId: 'student-$number',
+          groupId: 'group-1',
+          grade: number == 1 ? PrimaryGrade.first : PrimaryGrade.second,
+          listNumber: number,
+          startsOn: DateTime(2026, 9, 1),
+        ),
+      );
+    }
     await controller.load((await teachingGroupRepository.findById('group-1'))!);
     await controller.selectMonth(DateTime(2026, 9));
+    expect(controller.visibleStudents.map((s) => s.gradeLabel), ['1.º', '2.º']);
+    controller.setGrade(PrimaryGrade.second);
+    expect(controller.visibleStudents.single.studentId, 'student-2');
+    controller.setGrade(null);
+    controller.setGroupByGrade(true);
+    expect(controller.visibleStudents.map((s) => s.studentId), [
+      'student-1',
+      'student-2',
+    ]);
     final first = DateTime(2026, 9, 1);
     final second = DateTime(2026, 9, 2);
     expect(controller.daySummary(first)!.attended, 2);

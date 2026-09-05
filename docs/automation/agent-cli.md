@@ -24,7 +24,7 @@ En los ejemplos de abajo se usa `aula`; los tres nombres aceptan las mismas opci
 
 ## Contrato de salida
 
-Todos los comandos (incluidos los errores) imprimen un único JSON en `stdout`:
+Por defecto, todos los comandos muestran tablas o mensajes legibles, incluso al redirigir stdout. Con `--format json`, todos los comandos (incluidos los errores) imprimen un único JSON en `stdout`:
 
 ```json
 {
@@ -61,8 +61,9 @@ Todos los comandos (incluidos los errores) imprimen un único JSON en `stdout`:
 | `--confirm-delete` | Confirmación adicional requerida por eliminaciones ejecutadas con `--apply`. |
 | `--include-personal-data` | Expande identidades en la salida. Requiere autorización explícita del docente. |
 | `--text-stdin` | Lee el texto de `student-note` desde stdin (evita historial del shell). |
-| `--pretty` | JSON con indentación. |
-| `--help` | Contrato de ayuda en JSON (lo valida CI). |
+| `--format table\|json` | Formato de salida; `table` por defecto. |
+| `--pretty` | Sangría del JSON; úsalo con `--format json`. |
+| `--help` | Ayuda legible; con `--format json`, contrato de ayuda estructurado. |
 
 ## Comandos de lectura
 
@@ -71,7 +72,7 @@ Ningún comando de lectura expone identidad de alumnos por defecto.
 ### `status`
 
 ```powershell
-aularaiz-agent.exe status --pretty
+aularaiz-agent.exe status --format json --pretty
 ```
 
 Configuración activa, ciclo escolar, conteo de grupos y capacidades. Si no hay base, responde con `database.exists = false`.
@@ -79,7 +80,7 @@ Configuración activa, ciclo escolar, conteo de grupos y capacidades. Si no hay 
 ### `schools`
 
 ```powershell
-aularaiz-agent.exe schools --pretty
+aularaiz-agent.exe schools --format json --pretty
 ```
 
 Escuelas registradas con id, nombre, ciclo activo y organización. Útil para descubrir `--school <id>` antes de mutar.
@@ -87,7 +88,7 @@ Escuelas registradas con id, nombre, ciclo activo y organización. Útil para de
 ### `groups`
 
 ```powershell
-aularaiz-agent.exe groups --pretty
+aularaiz-agent.exe groups --format json --pretty
 ```
 
 Grupos del ciclo activo: id, nombre, grados, multigrado y turno. Útil para descubrir `--group <id>`.
@@ -95,7 +96,7 @@ Grupos del ciclo activo: id, nombre, grados, multigrado y turno. Útil para desc
 ### `projects --group <id>`
 
 ```powershell
-aularaiz-agent.exe projects --group demo-group --pretty
+aularaiz-agent.exe projects --group demo-group --format json --pretty
 ```
 
 Proyectos del grupo: id, título, ciclo de vida, metodología y grados objetivo. Sin datos personales.
@@ -103,7 +104,7 @@ Proyectos del grupo: id, título, ciclo de vida, metodología y grados objetivo.
 ### `activities --project <id>`
 
 ```powershell
-aularaiz-agent.exe activities --project demo-project-community --pretty
+aularaiz-agent.exe activities --project demo-project-community --format json --pretty
 ```
 
 Actividades del proyecto: id, título, campo formativo, grados y `occurs_on` opcional. Sin datos personales.
@@ -112,10 +113,10 @@ Actividades del proyecto: id, título, campo formativo, grados y `occurs_on` opc
 
 ```powershell
 # Minimizado por defecto: sólo conteos.
-aularaiz-agent.exe students --group demo-group --pretty
+aularaiz-agent.exe students --group demo-group --format json --pretty
 
 # Con autorización explícita: identidades.
-aularaiz-agent.exe students --group demo-group --include-personal-data --pretty
+aularaiz-agent.exe students --group demo-group --include-personal-data --format json --pretty
 ```
 
 Por defecto devuelve `student_count`, `active_count`, `inactive_count` y `enrollment_by_grade`, sin identidades. Con `--include-personal-data` agrega `students` con `student_id`, nombre, número de lista, grado, estado activo y fechas de matrícula (la última inscripción por alumno).
@@ -131,7 +132,7 @@ Señales con evidencia (inasistencias, retardos, apoyo requerido, no entregados,
 ### `database-diagnose`
 
 ```powershell
-aularaiz-agent.exe database-diagnose --pretty
+aularaiz-agent.exe database-diagnose --format json --pretty
 ```
 
 Diagnóstico **de sólo lectura**: `integrity` (resultado de `PRAGMA integrity_check`), `foreign_key_violation_count`, `user_version` y `expected_version`. No repara nada; la reparación sigue siendo manual y respaldada.

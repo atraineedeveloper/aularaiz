@@ -64,7 +64,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dart run bin/aularaiz_agent.dart --help > /tmp/aularaiz-agent-help.json
+          dart run bin/aularaiz_agent.dart --help --format json > /tmp/aularaiz-agent-help.json
           python3 - <<'PY'
           import json
           with open('/tmp/aularaiz-agent-help.json', encoding='utf-8') as handle:
@@ -82,7 +82,7 @@ jobs:
           dart build cli --target=bin/aularaiz_agent.dart --output=/tmp/aularaiz-agent-build
           agent=/tmp/aularaiz-agent-build/bundle/bin/aularaiz_agent
           test -x "$agent"
-          "$agent" --help > /tmp/aularaiz-agent-bundle-help.json
+          "$agent" --help --format json > /tmp/aularaiz-agent-bundle-help.json
           python3 - <<'PY'
           import json
           with open('/tmp/aularaiz-agent-bundle-help.json', encoding='utf-8') as handle:
@@ -179,7 +179,7 @@ jobs:
           Copy-Item 'windows\terminal\aula.cmd' (Join-Path $destination 'bin\aula.cmd') -Force
           Copy-Item 'windows\terminal\aularaiz.cmd' (Join-Path $destination 'bin\aularaiz.cmd') -Force
           if (-not (Test-Path (Join-Path $destination 'bin\aula.cmd'))) { throw 'Terminal command shim not found.' }
-          & $agentExe --help | Out-File (Join-Path $env:RUNNER_TEMP 'aularaiz-agent-help.json') -Encoding utf8
+          & $agentExe --help --format json | Out-File (Join-Path $env:RUNNER_TEMP 'aularaiz-agent-help.json') -Encoding utf8
           if ($LASTEXITCODE -ne 0) { throw 'Bundled automation agent failed to start.' }
       - name: Build update coordinator
         shell: pwsh

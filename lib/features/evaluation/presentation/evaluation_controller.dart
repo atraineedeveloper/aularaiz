@@ -8,6 +8,7 @@ import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -58,9 +59,18 @@ final class EvaluationStudentRow {
 }
 
 final class EvaluationMatrixRow {
-  const EvaluationMatrixRow({required this.studentId, required this.student});
+  const EvaluationMatrixRow({
+    required this.studentId,
+    required this.student,
+    required this.grades,
+  });
   final String studentId;
   final Student? student;
+  final Set<PrimaryGrade> grades;
+  String get gradeLabel =>
+      (grades.toList()..sort((a, b) => a.number.compareTo(b.number)))
+          .map((g) => '${g.number}.º')
+          .join(' / ');
 }
 
 final class EvaluationMetrics {
@@ -105,6 +115,23 @@ final class EvaluationController extends ChangeNotifier {
   final Map<String, DailyAttendance?> _attendanceByActivity = {};
   bool _attendeesOnly = true;
   bool get attendeesOnly => _attendeesOnly;
+  PrimaryGrade? selectedGrade;
+  bool groupByGrade = false;
+  List<PrimaryGrade> get availableGrades => ({
+    ...?_group?.grades,
+    for (final option in projectActivities)
+      for (final participant in option.activity.roster.values)
+        participant.grade,
+  }.toList()..sort((a, b) => a.number.compareTo(b.number)));
+  void setGrade(PrimaryGrade? grade) {
+    selectedGrade = grade;
+    notifyListeners();
+  }
+
+  void setGroupByGrade(bool value) {
+    groupByGrade = value;
+    notifyListeners();
+  }
 
   void setAttendeesOnly(bool value) {
     _attendeesOnly = value;
@@ -113,6 +140,10 @@ final class EvaluationController extends ChangeNotifier {
 
   bool isVisibleForActivity(String activityId, String studentId) {
     if (cell(activityId, studentId) == null) return false;
+    if (selectedGrade != null &&
+        cell(activityId, studentId)!.participant.grade != selectedGrade) {
+      return false;
+    }
     if (!_attendeesOnly) return true;
     final status = _attendanceByActivity[activityId]?.statusFor(studentId);
     return status == AttendanceStatus.present ||
@@ -190,13 +221,27 @@ final class EvaluationController extends ChangeNotifier {
         student = _rowsByActivity[option.activity.id]?[id]?.student;
         if (student != null) break;
       }
-      result.add(EvaluationMatrixRow(studentId: id, student: student));
+      result.add(
+        EvaluationMatrixRow(
+          studentId: id,
+          student: student,
+          grades: {
+            for (final option in projectActivities)
+              if (isVisibleForActivity(option.activity.id, id))
+                cell(option.activity.id, id)!.participant.grade,
+          },
+        ),
+      );
     }
-    result.sort(
-      (a, b) => (a.student?.displayName ?? a.studentId).compareTo(
+    result.sort((a, b) {
+      if (groupByGrade) {
+        final grade = a.gradeLabel.compareTo(b.gradeLabel);
+        if (grade != 0) return grade;
+      }
+      return (a.student?.displayName ?? a.studentId).compareTo(
         b.student?.displayName ?? b.studentId,
-      ),
-    );
+      );
+    });
     return List.unmodifiable(result);
   }
 

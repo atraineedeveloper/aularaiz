@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/grade_filter.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -52,14 +53,6 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                 l10n.evaluationTitle,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 6),
-              Text(
-                _label(
-                  context,
-                  'Cada columna es una actividad. P = pendiente, T = entregó y falta evaluar, N = no entregó, D/S/E/R = nivel de logro.',
-                  'Each column is an activity. P = pending, T = delivered awaiting evaluation, N = not delivered, D/S/E/R = achievement level.',
-                ),
-              ),
               if (controller.error != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -74,6 +67,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               const SizedBox(height: 16),
               if (controller.projects.isNotEmpty)
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: controller.selectedProjectId,
                   decoration: InputDecoration(
                     labelText: _label(context, 'Proyecto', 'Project'),
@@ -82,7 +76,11 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                     for (final project in controller.projects)
                       DropdownMenuItem(
                         value: project.id,
-                        child: Text(project.title),
+                        child: Text(
+                          project.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
                   onChanged: controller.isLoading
@@ -92,85 +90,8 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                         },
                 ),
               const SizedBox(height: 14),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    for (final item in [
-                      ('P', _label(context, 'Pendiente', 'Pending')),
-                      (
-                        'T',
-                        _label(
-                          context,
-                          'Entregó, falta evaluar',
-                          'Delivered, awaiting evaluation',
-                        ),
-                      ),
-                      ('N', _label(context, 'No entregó', 'Not delivered')),
-                      ('D', _label(context, 'Dominado', 'Mastered')),
-                      ('S', _label(context, 'Suficiente', 'Sufficient')),
-                      ('E', _label(context, 'En proceso', 'In progress')),
-                      (
-                        'R',
-                        _label(context, 'Requiere apoyo', 'Requires support'),
-                      ),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12, bottom: 6),
-                        child: Row(
-                          children: [
-                            _EvaluationBadge(code: item.$1, compact: true),
-                            const SizedBox(width: 4),
-                            Text(item.$2),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
               if (controller.projects.isNotEmpty) ...[
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ChoiceChip(
-                      label: Text(
-                        _label(
-                          context,
-                          'Asistieron ese día',
-                          'Attended that day',
-                        ),
-                      ),
-                      selected: controller.attendeesOnly,
-                      onSelected: (_) => controller.setAttendeesOnly(true),
-                    ),
-                    ChoiceChip(
-                      label: Text(_label(context, 'Todos', 'Everyone')),
-                      selected: !controller.attendeesOnly,
-                      onSelected: (_) => controller.setAttendeesOnly(false),
-                    ),
-                    IconButton(
-                      tooltip: _label(
-                        context,
-                        'Actualizar asistencia',
-                        'Refresh attendance',
-                      ),
-                      onPressed: controller.isLoading || controller.isSaving
-                          ? null
-                          : () => controller.load(widget.group),
-                      icon: const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
-                if (controller.attendeesOnly)
-                  Text(
-                    _label(
-                      context,
-                      'Incluye presentes y retardos según la fecha de cada actividad. Para recuperaciones, elige Todos.',
-                      'Includes present and late students on each activity date. Choose Everyone for make-up work.',
-                    ),
-                  ),
+                _EvaluationToolbar(controller: controller, group: widget.group),
                 if (!controller.isLoading &&
                     controller.projectActivities.any(
                       (option) =>
@@ -223,6 +144,177 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
   }
 }
 
+class _EvaluationToolbar extends StatelessWidget {
+  const _EvaluationToolbar({required this.controller, required this.group});
+  final EvaluationController controller;
+  final TeachingGroup group;
+
+  Widget _filters(BuildContext context) => Wrap(
+    spacing: 12,
+    runSpacing: 8,
+    crossAxisAlignment: WrapCrossAlignment.center,
+    children: [
+      if (group.isMultigrade)
+        GradeFilter(
+          grades: controller.availableGrades,
+          selected: controller.selectedGrade,
+          grouped: controller.groupByGrade,
+          onGrade: controller.setGrade,
+          onGrouped: controller.setGroupByGrade,
+          showGrouping: false,
+        ),
+      Tooltip(
+        message: _label(
+          context,
+          'Incluye presentes y retardos. Elige Todos para recuperaciones.',
+          'Includes present and late students. Choose Everyone for make-up work.',
+        ),
+        child: SizedBox(
+          width: 220,
+          child: DropdownButton<bool>(
+            isExpanded: true,
+            value: controller.attendeesOnly,
+            items: [
+              DropdownMenuItem(
+                value: true,
+                child: Text(
+                  _label(context, 'Asistieron ese día', 'Attended that day'),
+                ),
+              ),
+              DropdownMenuItem(
+                value: false,
+                child: Text(_label(context, 'Todos', 'Everyone')),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) controller.setAttendeesOnly(value);
+            },
+          ),
+        ),
+      ),
+      if (group.isMultigrade)
+        PopupMenuButton<bool>(
+          tooltip: _label(context, 'Vista', 'View'),
+          onSelected: controller.setGroupByGrade,
+          itemBuilder: (_) => [
+            CheckedPopupMenuItem(
+              value: !controller.groupByGrade,
+              checked: controller.groupByGrade,
+              child: Text(
+                _label(context, 'Agrupar por grado', 'Group by grade'),
+              ),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(_label(context, 'Vista ▾', 'View ▾')),
+          ),
+        ),
+    ],
+  );
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) => Wrap(
+      spacing: 12,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (constraints.maxWidth >= 720 &&
+            MediaQuery.textScalerOf(context).scale(14) <= 21)
+          _filters(context)
+        else
+          TextButton.icon(
+            icon: const Icon(Icons.filter_list),
+            label: Text(_label(context, 'Filtros', 'Filters')),
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: Text(_label(context, 'Filtros', 'Filters')),
+                content: SingleChildScrollView(
+                  child: SizedBox(
+                    width: 480,
+                    child: AnimatedBuilder(
+                      animation: controller,
+                      builder: (_, _) => _filters(dialogContext),
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: Text(_label(context, 'Listo', 'Done')),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        IconButton(
+          tooltip: _label(
+            context,
+            'Actualizar asistencia',
+            'Refresh attendance',
+          ),
+          onPressed: controller.isLoading || controller.isSaving
+              ? null
+              : () => controller.load(group),
+          icon: const Icon(Icons.refresh),
+        ),
+        TextButton.icon(
+          icon: const Icon(Icons.help_outline),
+          label: Text(
+            _label(context, 'Significado de colores', 'Color legend'),
+          ),
+          onPressed: () => showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: Text(
+                _label(context, 'Significado de colores', 'Color legend'),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final item in [
+                      ('P', _label(context, 'Pendiente', 'Pending')),
+                      (
+                        'T',
+                        _label(
+                          context,
+                          'Entregó, falta evaluar',
+                          'Delivered, awaiting evaluation',
+                        ),
+                      ),
+                      ('N', _label(context, 'No entregó', 'Not delivered')),
+                      ('D', _label(context, 'Dominado', 'Mastered')),
+                      ('S', _label(context, 'Suficiente', 'Sufficient')),
+                      ('E', _label(context, 'En proceso', 'In progress')),
+                      (
+                        'R',
+                        _label(context, 'Requiere apoyo', 'Requires support'),
+                      ),
+                    ])
+                      ListTile(
+                        leading: _EvaluationBadge(code: item.$1, compact: true),
+                        title: Text(item.$2),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(_label(context, 'Cerrar', 'Close')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _EvaluationMatrix extends StatelessWidget {
   const _EvaluationMatrix({required this.controller});
   final EvaluationController controller;
@@ -232,11 +324,11 @@ class _EvaluationMatrix extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) => constraints.maxWidth < 720
           ? _mobileList(context)
-          : _desktopMatrix(context),
+          : _desktopMatrix(context, constraints.maxWidth),
     );
   }
 
-  Widget _desktopMatrix(BuildContext context) {
+  Widget _desktopMatrix(BuildContext context, double width) {
     if (controller.matrixRows.isEmpty) {
       return Center(
         child: Text(
@@ -267,66 +359,76 @@ class _EvaluationMatrix extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SingleChildScrollView(
-              child: DataTable(
-                headingRowHeight: 78,
-                horizontalMargin: 14,
-                columnSpacing: 12,
-                columns: [
-                  DataColumn(
-                    label: SizedBox(
-                      width: 220,
-                      child: Text(_label(context, 'Alumno', 'Student')),
-                    ),
-                  ),
-                  for (final option in controller.projectActivities)
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minWidth: width - 8),
+                child: DataTable(
+                  headingRowHeight: 78,
+                  horizontalMargin: 14,
+                  columnSpacing: 12,
+                  columns: [
                     DataColumn(
-                      label: _ActivityHeader(activity: option.activity),
+                      label: SizedBox(
+                        width: 320,
+                        child: Text(_label(context, 'Alumno', 'Student')),
+                      ),
                     ),
-                ],
-                rows: [
-                  for (final student in controller.matrixRows)
-                    DataRow(
-                      cells: [
-                        DataCell(
-                          SizedBox(
-                            width: 220,
-                            child: Text(
-                              student.student?.displayName ?? student.studentId,
-                              overflow: TextOverflow.ellipsis,
+                    if (controller.group?.isMultigrade == true)
+                      DataColumn(
+                        label: Text(_label(context, 'Grado', 'Grade')),
+                      ),
+                    for (final option in controller.projectActivities)
+                      DataColumn(
+                        label: _ActivityHeader(activity: option.activity),
+                      ),
+                  ],
+                  rows: [
+                    for (final student in controller.matrixRows)
+                      DataRow(
+                        cells: [
+                          DataCell(
+                            SizedBox(
+                              width: 320,
+                              child: Text(
+                                student.student?.displayName ??
+                                    student.studentId,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ),
-                        ),
-                        for (final option in controller.projectActivities)
-                          DataCell(
-                            _EvaluationCell(
-                              row:
-                                  !controller.isVisibleForActivity(
-                                    option.activity.id,
-                                    student.studentId,
-                                  )
-                                  ? null
-                                  : controller.cell(
+                          if (controller.group?.isMultigrade == true)
+                            DataCell(Text(student.gradeLabel)),
+                          for (final option in controller.projectActivities)
+                            DataCell(
+                              _EvaluationCell(
+                                row:
+                                    !controller.isVisibleForActivity(
                                       option.activity.id,
                                       student.studentId,
-                                    ),
-                              disabled: controller.isSaving,
-                              onQuickSave: (draft) => controller.saveCell(
-                                activityId: option.activity.id,
-                                studentId: student.studentId,
-                                deliveryStatus: draft.delivery,
-                                achievement: draft.achievement,
-                              ),
-                              onDetails: () => _editDetails(
-                                context,
-                                controller,
-                                option.activity.id,
-                                student.studentId,
+                                    )
+                                    ? null
+                                    : controller.cell(
+                                        option.activity.id,
+                                        student.studentId,
+                                      ),
+                                disabled: controller.isSaving,
+                                onQuickSave: (draft) => controller.saveCell(
+                                  activityId: option.activity.id,
+                                  studentId: student.studentId,
+                                  deliveryStatus: draft.delivery,
+                                  achievement: draft.achievement,
+                                ),
+                                onDetails: () => _editDetails(
+                                  context,
+                                  controller,
+                                  option.activity.id,
+                                  student.studentId,
+                                ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                ],
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -375,6 +477,11 @@ class _EvaluationMatrix extends StatelessWidget {
                     title: Text(
                       student.student?.displayName ?? student.studentId,
                     ),
+                    subtitle: controller.group?.isMultigrade == true
+                        ? Text(
+                            '${controller.cell(option.activity.id, student.studentId)!.participant.grade.number}.º',
+                          )
+                        : null,
                     trailing: _EvaluationCell(
                       row: controller.cell(
                         option.activity.id,
@@ -439,7 +546,7 @@ class _ActivityHeader extends StatelessWidget {
     return Tooltip(
       message: '${activity.title}\n$date',
       child: SizedBox(
-        width: 64,
+        width: 100,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

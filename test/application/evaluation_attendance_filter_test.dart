@@ -56,6 +56,21 @@ void main() {
   tearDown(() => controller.dispose());
 
   test(
+    'grade filtering combines with attendance and keeps historical grades',
+    () {
+      controller.setGrade(PrimaryGrade.second);
+      expect(controller.matrixRows, isEmpty);
+      controller.setAttendeesOnly(false);
+      expect(controller.matrixRows.map((r) => r.studentId), ['justified']);
+      expect(controller.matrixRows.single.gradeLabel, '2.º');
+      controller.setGrade(null);
+      controller.setGroupByGrade(true);
+      expect(controller.matrixRows.last.studentId, 'justified');
+      expect(evaluations.writes, 0);
+    },
+  );
+
+  test(
     'deleted attendance becomes unrecorded without removing evaluation',
     () async {
       await controller.saveCell(
@@ -76,41 +91,77 @@ void main() {
     },
   );
 
-  for (final width in [400.0, 1200.0]) {
-    testWidgets(
-      'attendance selector and missing records notice at width $width',
-      (tester) async {
-        tester.view.physicalSize = Size(width, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        await tester.pumpWidget(
-          ChangeNotifierProvider.value(
-            value: controller,
-            child: MaterialApp(
-              theme: ThemeData(
-                brightness: width == 400 ? Brightness.dark : Brightness.light,
+  for (final config in [
+    (400.0, false),
+    (1200.0, false),
+    (400.0, true),
+    (1200.0, true),
+  ]) {
+    final (width, multigrade) = config;
+    testWidgets('compact evaluation at width $width multigrade $multigrade', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: controller,
+          child: MaterialApp(
+            theme: ThemeData(
+              brightness: width == 400 ? Brightness.dark : Brightness.light,
+            ),
+            locale: const Locale('es'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: EvaluationScreen(
+              group: TeachingGroup(
+                id: group.id,
+                schoolId: group.schoolId,
+                schoolYearId: group.schoolYearId,
+                name: group.name,
+                grades: {
+                  PrimaryGrade.first,
+                  if (multigrade) PrimaryGrade.second,
+                },
               ),
-              locale: const Locale('es'),
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: EvaluationScreen(group: group),
             ),
           ),
-        );
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Dominado'), findsNothing);
+      await tester.tap(find.text('Significado de colores'));
+      await tester.pumpAndSettle();
+      expect(find.text('Dominado'), findsOneWidget);
+      await tester.tap(find.text('Cerrar'));
+      await tester.pumpAndSettle();
+      if (width < 720) {
+        await tester.tap(find.text('Filtros'));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        expect(find.text('Asistieron ese día'), findsOneWidget);
-        expect(find.textContaining('Falta fecha o asistencia'), findsOneWidget);
-        expect(find.text('justified'), findsNothing);
-        await tester.tap(find.text('Todos'));
+      }
+      expect(
+        find.text('Todos los grados'),
+        multigrade ? findsOneWidget : findsNothing,
+      );
+      expect(find.text('Asistieron ese día'), findsOneWidget);
+      await tester.tap(find.text('Asistieron ese día'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Todos'));
+      await tester.pumpAndSettle();
+      if (width < 720) {
+        await tester.tap(find.text('Listo'));
         await tester.pumpAndSettle();
-        expect(controller.attendeesOnly, isFalse);
-        expect(find.text('justified'), findsWidgets);
-        expect(evaluations.writes, 0);
-        expect(tester.takeException(), isNull);
-      },
-    );
+      }
+      expect(find.textContaining('Falta fecha o asistencia'), findsOneWidget);
+      expect(controller.attendeesOnly, isFalse);
+      expect(find.text('justified'), findsWidgets);
+      expect(find.text('2.º'), multigrade ? findsWidgets : findsNothing);
+      expect(evaluations.writes, 0);
+      expect(tester.takeException(), isNull);
+    });
   }
 
   test('filters each date independently and includes late students', () {
@@ -233,7 +284,7 @@ class _Activities implements ActivityRepository {
         title: 'Activity $day',
         occursOn: day == 4 ? null : DateTime(2026, 9, day),
         formativeField: FormativeField.languages,
-        targetGrades: {PrimaryGrade.first},
+        targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
         roster: [
           for (final id in [
             'present',
@@ -242,7 +293,12 @@ class _Activities implements ActivityRepository {
             'justified',
             'unknown',
           ])
-            ActivityParticipant(studentId: id, grade: PrimaryGrade.first),
+            ActivityParticipant(
+              studentId: id,
+              grade: id == 'justified'
+                  ? PrimaryGrade.second
+                  : PrimaryGrade.first,
+            ),
         ],
       ),
   ];
@@ -264,7 +320,7 @@ class _Projects implements ProjectRepository {
       title: 'Project',
       lifecycle: ProjectLifecycle.values.first,
       methodology: ProjectMethodology.unspecified,
-      targetGrades: {PrimaryGrade.first},
+      targetGrades: {PrimaryGrade.first, PrimaryGrade.second},
     ),
   ];
   @override

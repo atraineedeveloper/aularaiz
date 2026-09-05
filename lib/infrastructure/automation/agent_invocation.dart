@@ -25,6 +25,7 @@ final class AgentInvocation {
   factory AgentInvocation.parse(List<String> arguments) {
     const valueOptions = <String>{
       'database',
+      'format',
       'profile',
       'group',
       'month',
@@ -109,6 +110,10 @@ final class AgentInvocation {
       index += 2;
     }
 
+    if (options.containsKey('format') &&
+        !{'table', 'json'}.contains(options['format'])) {
+      throw AgentUsageFailure('--format debe ser table o json.');
+    }
     const destructive = {'school-delete', 'group-delete', 'activity-delete'};
     if (flags.contains('apply') &&
         destructive.contains(command) &&
@@ -127,6 +132,7 @@ final class AgentInvocation {
   bool get apply => flags.contains('apply');
   bool get includePersonalData => flags.contains('include-personal-data');
   bool get pretty => flags.contains('pretty');
+  bool get jsonOutput => options['format'] == 'json';
   bool get help => flags.contains('help');
   bool get textFromStdin => flags.contains('text-stdin');
   String? get databasePath => options['database'];

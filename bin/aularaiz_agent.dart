@@ -13,16 +13,31 @@ import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:aularaiz/infrastructure/automation/agent_invocation.dart';
+import 'package:aularaiz/infrastructure/automation/agent_output_renderer.dart';
 import 'package:aularaiz/infrastructure/automation/automation_runtime.dart';
 
 Future<void> main(List<String> arguments) async {
   var pretty = arguments.contains('--pretty');
+  final formatIndex = arguments.lastIndexOf('--format');
+  var jsonOutput =
+      formatIndex >= 0 &&
+      formatIndex + 1 < arguments.length &&
+      arguments[formatIndex + 1] == 'json';
+  void writeOutput(Map<String, Object?> value, {required bool pretty}) {
+    if (jsonOutput) {
+      _writeJson(value, pretty: pretty);
+    } else {
+      stdout.writeln(renderAgentOutput(value));
+    }
+  }
+
   try {
     final invocation = AgentInvocation.parse(arguments);
     pretty = invocation.pretty;
+    jsonOutput = invocation.jsonOutput;
 
     if (invocation.help || invocation.command == null) {
-      _writeJson(_helpEnvelope(), pretty: pretty);
+      writeOutput(_helpEnvelope(), pretty: pretty);
       exitCode = 0;
       return;
     }
@@ -33,7 +48,7 @@ Future<void> main(List<String> arguments) async {
     );
 
     if (invocation.command == 'status' && databaseFile == null) {
-      _writeJson(
+      writeOutput(
         AutomationEnvelope(
           kind: 'status',
           privacy: const AutomationPrivacy(),
@@ -283,19 +298,19 @@ Future<void> main(List<String> arguments) async {
         };
         json['data'] = data;
       }
-      _writeJson(json, pretty: pretty);
+      writeOutput(json, pretty: pretty);
       exitCode = 0;
     } finally {
       await runtime.close();
     }
   } on AgentCliFailure catch (error) {
-    _writeJson(_errorEnvelope(error.code, error.message), pretty: pretty);
+    writeOutput(_errorEnvelope(error.code, error.message), pretty: pretty);
     exitCode = error.exitCode;
   } on FormatException catch (error) {
-    _writeJson(_errorEnvelope('invalid-input', error.message), pretty: pretty);
+    writeOutput(_errorEnvelope('invalid-input', error.message), pretty: pretty);
     exitCode = 2;
   } on ArgumentError catch (error) {
-    _writeJson(
+    writeOutput(
       _errorEnvelope(
         'invalid-input',
         '${error.message ?? 'Entrada inválida.'}',
@@ -304,10 +319,10 @@ Future<void> main(List<String> arguments) async {
     );
     exitCode = 2;
   } on StateError catch (error) {
-    _writeJson(_errorEnvelope('data-state', error.message), pretty: pretty);
+    writeOutput(_errorEnvelope('data-state', error.message), pretty: pretty);
     exitCode = 4;
   } on FileSystemException {
-    _writeJson(
+    writeOutput(
       _errorEnvelope(
         'database-open-failed',
         'No se pudo abrir la base local de AulaRaíz.',
@@ -316,7 +331,7 @@ Future<void> main(List<String> arguments) async {
     );
     exitCode = 3;
   } catch (_) {
-    _writeJson(
+    writeOutput(
       _errorEnvelope(
         'automation-failed',
         'La operación de automatización no pudo completarse.',
@@ -705,6 +720,7 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
       '--include-personal-data',
       '--confirm-delete',
       '--pretty',
+      '--format table|json (default: table)',
       '--help',
     ],
   },

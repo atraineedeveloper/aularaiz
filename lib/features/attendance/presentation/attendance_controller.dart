@@ -5,6 +5,7 @@ import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
+import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:flutter/foundation.dart';
@@ -14,11 +15,17 @@ final class MonthlyAttendanceStudent {
     required this.studentId,
     required this.displayName,
     required this.listNumber,
+    required this.grades,
   });
 
   final String studentId;
   final String displayName;
   final int listNumber;
+  final Set<PrimaryGrade> grades;
+  String get gradeLabel =>
+      (grades.toList()..sort((a, b) => a.number.compareTo(b.number)))
+          .map((g) => '${g.number}.º')
+          .join(' / ');
 }
 
 final class MonthlyAttendanceSummary {
@@ -70,6 +77,35 @@ final class AttendanceController extends ChangeNotifier {
   TeachingGroup? get group => _group;
   DateTime get selectedMonth => _selectedMonth;
   List<MonthlyAttendanceStudent> get monthStudents => _monthStudents;
+  PrimaryGrade? selectedGrade;
+  bool groupByGrade = false;
+  List<PrimaryGrade> get availableGrades => ({
+    ...?_group?.grades,
+    for (final student in _monthStudents) ...student.grades,
+  }.toList()..sort((a, b) => a.number.compareTo(b.number)));
+  List<MonthlyAttendanceStudent> get visibleStudents {
+    final result = _monthStudents
+        .where((s) => selectedGrade == null || s.grades.contains(selectedGrade))
+        .toList();
+    if (groupByGrade) {
+      result.sort((a, b) {
+        final grade = a.gradeLabel.compareTo(b.gradeLabel);
+        return grade != 0 ? grade : a.listNumber.compareTo(b.listNumber);
+      });
+    }
+    return result;
+  }
+
+  void setGrade(PrimaryGrade? grade) {
+    selectedGrade = grade;
+    notifyListeners();
+  }
+
+  void setGroupByGrade(bool value) {
+    groupByGrade = value;
+    notifyListeners();
+  }
+
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
   bool get isDirty => _dirtyDates.isNotEmpty;
@@ -363,6 +399,7 @@ final class AttendanceController extends ChangeNotifier {
           studentId: entry.key,
           displayName: student.displayName,
           listNumber: entry.value.first.listNumber,
+          grades: entry.value.map((e) => e.grade).toSet(),
         ),
       );
     }

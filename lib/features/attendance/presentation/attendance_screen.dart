@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/grade_filter.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
@@ -244,6 +245,14 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                 ),
               ),
               const SizedBox(height: 16),
+              if (controller.group?.isMultigrade == true)
+                GradeFilter(
+                  grades: controller.availableGrades,
+                  selected: controller.selectedGrade,
+                  grouped: controller.groupByGrade,
+                  onGrade: controller.setGrade,
+                  onGrouped: controller.setGroupByGrade,
+                ),
               if (controller.monthStudents.isEmpty)
                 Expanded(
                   child: _EmptyState(
@@ -283,6 +292,12 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                                   child: Text(l10n.student),
                                 ),
                               ),
+                              if (controller.group?.isMultigrade == true)
+                                DataColumn(
+                                  label: Text(
+                                    _label(context, 'Grado', 'Grade'),
+                                  ),
+                                ),
                               for (final date in controller.monthDates)
                                 DataColumn(
                                   label: _DayHeader(
@@ -307,7 +322,7 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                               ),
                             ],
                             rows: [
-                              for (final student in controller.monthStudents)
+                              for (final student in controller.visibleStudents)
                                 DataRow(
                                   cells: [
                                     DataCell(
@@ -319,6 +334,8 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                                         ),
                                       ),
                                     ),
+                                    if (controller.group?.isMultigrade == true)
+                                      DataCell(Text(student.gradeLabel)),
                                     for (final date in controller.monthDates)
                                       DataCell(
                                         _AttendanceCell(

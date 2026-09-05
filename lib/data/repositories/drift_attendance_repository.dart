@@ -4,10 +4,31 @@ import 'package:aularaiz/domain/attendance/attendance_entry.dart' as domain;
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:drift/drift.dart';
 
-final class DriftAttendanceRepository implements AttendanceRepository {
+final class DriftAttendanceRepository
+    implements AttendanceRepository, DeletableAttendanceRepository {
   DriftAttendanceRepository(this.database);
 
   final AppDatabase database;
+
+  @override
+  Future<void> deleteByGroupAndDate(String groupId, DateTime date) async {
+    final normalized = DateTime(date.year, date.month, date.day);
+    await database.transaction(() async {
+      final days =
+          await (database.select(database.attendanceDays)..where(
+                (t) => t.groupId.equals(groupId) & t.date.equals(normalized),
+              ))
+              .get();
+      for (final day in days) {
+        await (database.delete(
+          database.attendanceEntries,
+        )..where((t) => t.attendanceDayId.equals(day.id))).go();
+        await (database.delete(
+          database.attendanceDays,
+        )..where((t) => t.id.equals(day.id))).go();
+      }
+    });
+  }
 
   @override
   Future<DailyAttendance?> findByGroupAndDate(

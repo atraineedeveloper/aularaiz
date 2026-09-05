@@ -42,8 +42,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         top: !widget.embedded,
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
             children: [
               Text(
                 l10n.reportsTitle,
@@ -79,77 +78,47 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
               ],
               const SizedBox(height: 18),
-              Expanded(
-                child: controller.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : report == null
-                    ? Center(child: Text(l10n.reportsError))
-                    : report.students.isEmpty
-                    ? Center(
-                        child: Text(
-                          l10n.reportsNoStudents,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      )
-                    : LayoutBuilder(
-                        builder: (context, constraints) {
-                          final publishEnabled = !controller.isPublishing;
-                          if (constraints.maxWidth >= 980) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                SizedBox(
-                                  width: 360,
-                                  child: _GroupReportCard(
-                                    studentCount: report.students.length,
-                                    onGenerate: publishEnabled
-                                        ? _publishGroup
-                                        : null,
-                                    onExportCsv: publishEnabled
-                                        ? () => _publishGroupExport(
-                                            GroupExportFormat.csv,
-                                          )
-                                        : null,
-                                    onExportXlsx: publishEnabled
-                                        ? () => _publishGroupExport(
-                                            GroupExportFormat.xlsx,
-                                          )
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: _StudentReportsList(
-                                    students: report.students,
-                                    enabled: publishEnabled,
-                                    onGenerate: _publishIndividual,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                          return ListView(
+              controller.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : report == null
+                  ? Center(child: Text(l10n.reportsError))
+                  : report.students.isEmpty
+                  ? Center(
+                      child: Text(
+                        l10n.reportsNoStudents,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final publishEnabled = !controller.isPublishing;
+                        if (constraints.maxWidth >= 980 &&
+                            MediaQuery.textScalerOf(context).scale(14) <= 21) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _GroupReportCard(
-                                studentCount: report.students.length,
-                                onGenerate: publishEnabled
-                                    ? _publishGroup
-                                    : null,
-                                onExportCsv: publishEnabled
-                                    ? () => _publishGroupExport(
-                                        GroupExportFormat.csv,
-                                      )
-                                    : null,
-                                onExportXlsx: publishEnabled
-                                    ? () => _publishGroupExport(
-                                        GroupExportFormat.xlsx,
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(height: 18),
                               SizedBox(
-                                height: 520,
+                                width: 360,
+                                child: _GroupReportCard(
+                                  studentCount: report.students.length,
+                                  onGenerate: publishEnabled
+                                      ? _publishGroup
+                                      : null,
+                                  onExportCsv: publishEnabled
+                                      ? () => _publishGroupExport(
+                                          GroupExportFormat.csv,
+                                        )
+                                      : null,
+                                  onExportXlsx: publishEnabled
+                                      ? () => _publishGroupExport(
+                                          GroupExportFormat.xlsx,
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
                                 child: _StudentReportsList(
                                   students: report.students,
                                   enabled: publishEnabled,
@@ -158,9 +127,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               ),
                             ],
                           );
-                        },
-                      ),
-              ),
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _GroupReportCard(
+                              studentCount: report.students.length,
+                              onGenerate: publishEnabled ? _publishGroup : null,
+                              onExportCsv: publishEnabled
+                                  ? () => _publishGroupExport(
+                                      GroupExportFormat.csv,
+                                    )
+                                  : null,
+                              onExportXlsx: publishEnabled
+                                  ? () => _publishGroupExport(
+                                      GroupExportFormat.xlsx,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(height: 18),
+                            _StudentReportsList(
+                              students: report.students,
+                              enabled: publishEnabled,
+                              onGenerate: _publishIndividual,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
             ],
           ),
         ),
@@ -520,32 +514,32 @@ class _StudentReportsList extends StatelessWidget {
         const SizedBox(height: 4),
         Text(l10n.reportsIndividualDescription),
         const SizedBox(height: 12),
-        Expanded(
-          child: ListView.separated(
-            itemCount: students.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final student = students[index];
-              return Card(
-                child: ListTile(
-                  leading: CircleAvatar(child: Text('${student.listNumber}')),
-                  title: Text(student.displayName),
-                  subtitle: Text(
-                    '${student.grade.number}° · '
-                    '${l10n.reportsAttendance}: ${student.attendance.totalMarked} · '
-                    '${l10n.reportsEvaluated}: ${student.evaluation.evaluated}',
-                  ),
-                  trailing: IconButton(
-                    tooltip: l10n.reportsGeneratePdf,
-                    onPressed: enabled
-                        ? () => onGenerate(student.studentId)
-                        : null,
-                    icon: const Icon(Icons.picture_as_pdf_outlined),
-                  ),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: students.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final student = students[index];
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(child: Text('${student.listNumber}')),
+                title: Text(student.displayName),
+                subtitle: Text(
+                  '${student.grade.number}° · '
+                  '${l10n.reportsAttendance}: ${student.attendance.totalMarked} · '
+                  '${l10n.reportsEvaluated}: ${student.evaluation.evaluated}',
                 ),
-              );
-            },
-          ),
+                trailing: IconButton(
+                  tooltip: l10n.reportsGeneratePdf,
+                  onPressed: enabled
+                      ? () => onGenerate(student.studentId)
+                      : null,
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

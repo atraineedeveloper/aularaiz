@@ -1,14 +1,21 @@
+import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
-import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/core/id/uuid_id_generator.dart';
+import 'package:aularaiz/data/local/app_database.dart' hide AttendanceEntry;
+import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
+import 'package:aularaiz/domain/attendance/attendance_entry.dart';
+import 'package:aularaiz/domain/attendance/attendance_status.dart';
+import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
-import 'package:drift/drift.dart' hide isNotNull;
+import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -31,6 +38,130 @@ void main() {
 
   tearDown(() async {
     await database.close();
+  });
+
+  Future<DriftAttendanceRepository> seedAttendance() async {
+    final repository = DriftAttendanceRepository(database);
+    for (final day in [1, 2]) {
+      await repository.save(
+        DailyAttendance(
+          id: 'day-$day',
+          groupId: 'group-1',
+          date: DateTime(2026, 9, day),
+          entries: [
+            AttendanceEntry(
+              studentId: 'student-1',
+              status: AttendanceStatus.present,
+            ),
+            AttendanceEntry(
+              studentId: 'student-2',
+              status: AttendanceStatus.late,
+            ),
+          ],
+        ),
+      );
+    }
+    return repository;
+  }
+
+  test(
+    'delete attendance removes only selected group and day and its entries',
+    () async {
+      final repository = await seedAttendance();
+      await repository.deleteByGroupAndDate(
+        'other-group',
+        DateTime(2026, 9, 1),
+      );
+      expect(
+        await repository.findByGroupAndDate('group-1', DateTime(2026, 9, 1)),
+        isNotNull,
+      );
+      await repository.deleteByGroupAndDate(
+        'group-1',
+        DateTime(2026, 9, 1, 15),
+      );
+      expect(
+        await repository.findByGroupAndDate('group-1', DateTime(2026, 9, 1)),
+        isNull,
+      );
+      expect(
+        (await repository.findByGroupAndDate(
+          'group-1',
+          DateTime(2026, 9, 2),
+        ))!.entries,
+        hasLength(2),
+      );
+      expect(
+        await database.select(database.attendanceEntries).get(),
+        hasLength(2),
+      );
+      expect(await studentRepository.findById('student-1'), isNotNull);
+      await repository.deleteByGroupAndDate('group-1', DateTime(2026, 9, 1));
+    },
+  );
+
+  test('failed delete rolls back attendance entries', () async {
+    final repository = await seedAttendance();
+    await database.customStatement(
+      "CREATE TRIGGER reject_day_delete BEFORE DELETE ON attendance_days BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+    );
+    await expectLater(
+      repository.deleteByGroupAndDate('group-1', DateTime(2026, 9, 1)),
+      throwsA(isA<Exception>()),
+    );
+    expect(
+      (await repository.findByGroupAndDate(
+        'group-1',
+        DateTime(2026, 9, 1),
+      ))!.entries,
+      hasLength(2),
+    );
+  });
+
+  test('controller counts late attendees and preserves other day drafts after deletion', () async {
+    final repository = await seedAttendance();
+    final controller = AttendanceController(
+      attendanceRepository: repository,
+      enrollmentRepository: enrollmentRepository,
+      studentRepository: studentRepository,
+      buildDailyAttendance: BuildDailyAttendance(
+        attendanceRepository: repository,
+        enrollmentRepository: enrollmentRepository,
+        idGenerator: UuidIdGenerator(),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.load((await teachingGroupRepository.findById('group-1'))!);
+    await controller.selectMonth(DateTime(2026, 9));
+    final first = DateTime(2026, 9, 1);
+    final second = DateTime(2026, 9, 2);
+    expect(controller.daySummary(first)!.attended, 2);
+    expect(controller.daySummary(first)!.late, 1);
+    await controller.setMonthStatus(
+      'student-1',
+      first,
+      AttendanceStatus.absent,
+    );
+    await controller.setMonthStatus(
+      'student-2',
+      second,
+      AttendanceStatus.absent,
+    );
+    expect(controller.daySummary(first)!.attended, 1);
+    expect(await controller.deleteDay(first), isTrue);
+    expect(controller.daySummary(first), isNull);
+    expect(controller.isDateDirty(first), isFalse);
+    expect(controller.isDateDirty(second), isTrue);
+    expect(controller.statusFor('student-2', second), AttendanceStatus.absent);
+    expect(await controller.saveMonth(), isTrue);
+    expect(await repository.findByGroupAndDate('group-1', first), isNull);
+    expect(
+      (await repository.findByGroupAndDate(
+        'group-1',
+        second,
+      ))!.statusFor('student-2'),
+      AttendanceStatus.absent,
+    );
   });
 
   test('repositories reconstruct persisted domain objects', () async {

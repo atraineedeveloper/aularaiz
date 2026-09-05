@@ -7,3 +7,7 @@ abstract interface class AttendanceRepository {
 
   Future<void> save(DailyAttendance attendance);
 }
+
+abstract interface class DeletableAttendanceRepository {
+  Future<void> deleteByGroupAndDate(String groupId, DateTime date);
+}

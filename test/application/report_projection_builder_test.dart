@@ -29,7 +29,13 @@ import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
+import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
+import 'package:aularaiz/features/reports/presentation/reports_screen.dart';
+import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/l10n/generated/app_localizations.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
 void main() {
   late School school;
@@ -152,6 +158,70 @@ void main() {
       ),
     );
   });
+
+  for (final size in [const Size(1200, 600), const Size(390, 700)]) {
+    for (final scale in [1.0, 2.0]) {
+      testWidgets(
+        'report actions remain reachable at $size and text scale $scale',
+        (tester) async {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final controller = ReportsController(
+            projectionBuilder: builder,
+            publicationService: const ReportPublicationService(),
+          );
+          addTearDown(controller.dispose);
+          await controller.load(group);
+          final target = DateTime(2026, 8);
+          while (controller.referenceMonth.isAfter(target)) {
+            await controller.previousMonth();
+          }
+          while (controller.referenceMonth.isBefore(target)) {
+            await controller.nextMonth();
+          }
+          await tester.pumpWidget(
+            ChangeNotifierProvider.value(
+              value: controller,
+              child: MaterialApp(
+                locale: const Locale('es'),
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                builder: (context, child) => MediaQuery(
+                  data: MediaQuery.of(context)
+                      .copyWith(textScaler: TextScaler.linear(scale)),
+                  child: child!,
+                ),
+                home: ReportsScreen(group: group),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          final l10n = AppLocalizations.of(
+            tester.element(find.byType(ReportsScreen)),
+          );
+          for (final label in [
+            l10n.reportsGeneratePdf,
+            l10n.reportsExportCsv,
+            l10n.reportsExportXlsx,
+          ]) {
+            final button = find.text(label);
+            await tester.scrollUntilVisible(
+              button,
+              150,
+              scrollable: find.byType(Scrollable).first,
+              maxScrolls: 50,
+            );
+            await tester.pumpAndSettle();
+            expect(button.hitTestable(), findsOneWidget);
+            expect(tester.takeException(), isNull);
+          }
+        },
+      );
+    }
+  }
 
   test(
     'excludes sensitive follow-up from individual report by default',

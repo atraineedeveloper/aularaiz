@@ -1,10 +1,13 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
+import 'package:aularaiz/domain/attendance/attendance_status.dart';
+import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -85,9 +88,11 @@ final class EvaluationController extends ChangeNotifier {
     required StudentRepository studentRepository,
     required EvaluationRepository evaluationRepository,
     required SaveActivityEvaluation saveActivityEvaluation,
+    required AttendanceRepository attendanceRepository,
     EnrollmentRepository? enrollmentRepository,
     String? initialActivityId,
-  }) : _projectRepository = projectRepository,
+  }) : _attendanceRepository = attendanceRepository,
+       _projectRepository = projectRepository,
        _activityRepository = activityRepository,
        _studentRepository = studentRepository,
        _evaluationRepository = evaluationRepository,
@@ -96,6 +101,33 @@ final class EvaluationController extends ChangeNotifier {
        _initialActivityId = initialActivityId;
 
   final ProjectRepository _projectRepository;
+  final AttendanceRepository _attendanceRepository;
+  final Map<String, DailyAttendance?> _attendanceByActivity = {};
+  bool _attendeesOnly = true;
+  bool get attendeesOnly => _attendeesOnly;
+
+  void setAttendeesOnly(bool value) {
+    _attendeesOnly = value;
+    notifyListeners();
+  }
+
+  bool isVisibleForActivity(String activityId, String studentId) {
+    if (cell(activityId, studentId) == null) return false;
+    if (!_attendeesOnly) return true;
+    final status = _attendanceByActivity[activityId]?.statusFor(studentId);
+    return status == AttendanceStatus.present ||
+        status == AttendanceStatus.late;
+  }
+
+  bool hasMissingAttendance(String activityId) =>
+      (_rowsByActivity[activityId]?.keys ?? const <String>[]).any(
+        (id) => _attendanceByActivity[activityId]?.statusFor(id) == null,
+      );
+
+  List<EvaluationMatrixRow> visibleMatrixRowsFor(String activityId) =>
+      matrixRows
+          .where((row) => isVisibleForActivity(activityId, row.studentId))
+          .toList();
   final ActivityRepository _activityRepository;
   final StudentRepository _studentRepository;
   final EvaluationRepository _evaluationRepository;
@@ -145,7 +177,11 @@ final class EvaluationController extends ChangeNotifier {
   List<EvaluationMatrixRow> get matrixRows {
     final ids = <String>{};
     for (final option in projectActivities) {
-      ids.addAll(_rowsByActivity[option.activity.id]?.keys ?? const <String>[]);
+      ids.addAll(
+        (_rowsByActivity[option.activity.id]?.keys ?? const <String>[]).where(
+          (id) => isVisibleForActivity(option.activity.id, id),
+        ),
+      );
     }
     final result = <EvaluationMatrixRow>[];
     for (final id in ids) {
@@ -168,19 +204,24 @@ final class EvaluationController extends ChangeNotifier {
       _rowsByActivity[activityId]?[studentId];
 
   List<EvaluationStudentRow> get visibleRows => List.unmodifiable(
-    rows.where(
-      (row) => switch (_filter) {
-        EvaluationFilter.all => true,
-        EvaluationFilter.pending =>
-          row.evaluation.state == EvaluationState.pendingDeliveryDecision,
-        EvaluationFilter.awaitingEvaluation =>
-          row.evaluation.state == EvaluationState.deliveredAwaitingEvaluation,
-        EvaluationFilter.notDelivered =>
-          row.evaluation.state == EvaluationState.notDelivered,
-        EvaluationFilter.evaluated =>
-          row.evaluation.state == EvaluationState.deliveredAndEvaluated,
-      },
-    ),
+    rows
+        .where(
+          (row) => isVisibleForActivity(_selected!.activity.id, row.studentId),
+        )
+        .where(
+          (row) => switch (_filter) {
+            EvaluationFilter.all => true,
+            EvaluationFilter.pending =>
+              row.evaluation.state == EvaluationState.pendingDeliveryDecision,
+            EvaluationFilter.awaitingEvaluation =>
+              row.evaluation.state ==
+                  EvaluationState.deliveredAwaitingEvaluation,
+            EvaluationFilter.notDelivered =>
+              row.evaluation.state == EvaluationState.notDelivered,
+            EvaluationFilter.evaluated =>
+              row.evaluation.state == EvaluationState.deliveredAndEvaluated,
+          },
+        ),
   );
 
   EvaluationMetrics get metrics {
@@ -208,6 +249,9 @@ final class EvaluationController extends ChangeNotifier {
   }
 
   Future<void> load(TeachingGroup group) async {
+    final previousActivityId = _group?.id == group.id
+        ? _selected?.activity.id
+        : null;
     _group = group;
     _isLoading = true;
     _error = null;
@@ -233,7 +277,11 @@ final class EvaluationController extends ChangeNotifier {
       _selected = options.isEmpty
           ? null
           : options
-                    .where((o) => o.activity.id == _initialActivityId)
+                    .where(
+                      (o) =>
+                          o.activity.id ==
+                          (previousActivityId ?? _initialActivityId),
+                    )
                     .firstOrNull ??
                 options.first;
       await _loadMatrix();
@@ -317,7 +365,18 @@ final class EvaluationController extends ChangeNotifier {
 
   Future<void> _loadMatrix() async {
     _rowsByActivity.clear();
+    _attendanceByActivity.clear();
+    final attendanceByDate = <DateTime, DailyAttendance?>{};
     for (final option in _options) {
+      final date = option.activity.occursOn;
+      if (date != null && _group != null) {
+        final day = DateTime(date.year, date.month, date.day);
+        if (!attendanceByDate.containsKey(day)) {
+          attendanceByDate[day] = await _attendanceRepository
+              .findByGroupAndDate(_group!.id, day);
+        }
+        _attendanceByActivity[option.activity.id] = attendanceByDate[day];
+      }
       final evaluations = await _evaluationRepository.listForActivity(
         option.activity.id,
       );

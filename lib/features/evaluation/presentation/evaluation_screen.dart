@@ -92,6 +92,115 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                         },
                 ),
               const SizedBox(height: 14),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final item in [
+                      ('P', _label(context, 'Pendiente', 'Pending')),
+                      (
+                        'T',
+                        _label(
+                          context,
+                          'Entregó, falta evaluar',
+                          'Delivered, awaiting evaluation',
+                        ),
+                      ),
+                      ('N', _label(context, 'No entregó', 'Not delivered')),
+                      ('D', _label(context, 'Dominado', 'Mastered')),
+                      ('S', _label(context, 'Suficiente', 'Sufficient')),
+                      ('E', _label(context, 'En proceso', 'In progress')),
+                      (
+                        'R',
+                        _label(context, 'Requiere apoyo', 'Requires support'),
+                      ),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12, bottom: 6),
+                        child: Row(
+                          children: [
+                            _EvaluationBadge(code: item.$1, compact: true),
+                            const SizedBox(width: 4),
+                            Text(item.$2),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (controller.projects.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ChoiceChip(
+                      label: Text(
+                        _label(
+                          context,
+                          'Asistieron ese día',
+                          'Attended that day',
+                        ),
+                      ),
+                      selected: controller.attendeesOnly,
+                      onSelected: (_) => controller.setAttendeesOnly(true),
+                    ),
+                    ChoiceChip(
+                      label: Text(_label(context, 'Todos', 'Everyone')),
+                      selected: !controller.attendeesOnly,
+                      onSelected: (_) => controller.setAttendeesOnly(false),
+                    ),
+                    IconButton(
+                      tooltip: _label(
+                        context,
+                        'Actualizar asistencia',
+                        'Refresh attendance',
+                      ),
+                      onPressed: controller.isLoading || controller.isSaving
+                          ? null
+                          : () => controller.load(widget.group),
+                      icon: const Icon(Icons.refresh),
+                    ),
+                  ],
+                ),
+                if (controller.attendeesOnly)
+                  Text(
+                    _label(
+                      context,
+                      'Incluye presentes y retardos según la fecha de cada actividad. Para recuperaciones, elige Todos.',
+                      'Includes present and late students on each activity date. Choose Everyone for make-up work.',
+                    ),
+                  ),
+                if (!controller.isLoading &&
+                    controller.projectActivities.any(
+                      (option) =>
+                          option.activity.occursOn == null ||
+                          controller.hasMissingAttendance(option.activity.id),
+                    ))
+                  Text(
+                    _label(
+                          context,
+                          'Falta fecha o asistencia por registrar en: ',
+                          'Missing date or attendance for: ',
+                        ) +
+                        controller.projectActivities
+                            .where(
+                              (option) =>
+                                  option.activity.occursOn == null ||
+                                  controller.hasMissingAttendance(
+                                    option.activity.id,
+                                  ),
+                            )
+                            .map((option) => option.activity.displayIdentifier)
+                            .join(', ') +
+                        _label(
+                          context,
+                          '. Completa la fecha y la asistencia y pulsa Actualizar asistencia. Sin registro no se considera ausencia.',
+                          '. Complete the date and attendance, then refresh attendance. Missing records are not absences.',
+                        ),
+                  ),
+                const SizedBox(height: 8),
+              ],
               if (controller.isLoading)
                 const Expanded(
                   child: Center(child: CircularProgressIndicator()),
@@ -128,6 +237,17 @@ class _EvaluationMatrix extends StatelessWidget {
   }
 
   Widget _desktopMatrix(BuildContext context) {
+    if (controller.matrixRows.isEmpty) {
+      return Center(
+        child: Text(
+          _label(
+            context,
+            'No hay alumnos para este filtro. Revisa la asistencia o selecciona Todos.',
+            'No students match this filter. Check attendance or choose Everyone.',
+          ),
+        ),
+      );
+    }
     final behavior = ScrollConfiguration.of(context).copyWith(
       dragDevices: const {
         PointerDeviceKind.touch,
@@ -179,10 +299,16 @@ class _EvaluationMatrix extends StatelessWidget {
                         for (final option in controller.projectActivities)
                           DataCell(
                             _EvaluationCell(
-                              row: controller.cell(
-                                option.activity.id,
-                                student.studentId,
-                              ),
+                              row:
+                                  !controller.isVisibleForActivity(
+                                    option.activity.id,
+                                    student.studentId,
+                                  )
+                                  ? null
+                                  : controller.cell(
+                                      option.activity.id,
+                                      student.studentId,
+                                    ),
                               disabled: controller.isSaving,
                               onQuickSave: (draft) => controller.saveCell(
                                 activityId: option.activity.id,
@@ -227,7 +353,23 @@ class _EvaluationMatrix extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
-                for (final student in controller.matrixRows) ...[
+                Text(
+                  option.activity.occursOn == null
+                      ? _label(context, 'Sin fecha', 'No date')
+                      : MaterialLocalizations.of(context)
+                            .formatShortDate(option.activity.occursOn!),
+                ),
+                if (controller.visibleMatrixRowsFor(option.activity.id).isEmpty)
+                  Text(
+                    _label(
+                      context,
+                      'Sin alumnos para este filtro. Revisa la asistencia o selecciona Todos.',
+                      'No students match this filter. Check attendance or choose Everyone.',
+                    ),
+                  ),
+                for (final student in controller.visibleMatrixRowsFor(
+                  option.activity.id,
+                )) ...[
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
@@ -396,15 +538,43 @@ class _EvaluationCell extends StatelessWidget {
           ),
         ),
       ],
-      child: SizedBox(
-        width: 48,
-        height: 44,
-        child: Center(
-          child: Text(
-            _code(row!.evaluation),
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-        ),
+      child: _EvaluationBadge(code: _code(row!.evaluation)),
+    );
+  }
+}
+
+class _EvaluationBadge extends StatelessWidget {
+  const _EvaluationBadge({required this.code, this.compact = false});
+  final String code;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = switch (code) {
+      'D' => Colors.green,
+      'S' => Colors.blue,
+      'E' => Colors.amber,
+      'R' => Colors.orange,
+      'N' => Colors.red,
+      'T' => Colors.purple,
+      _ => Colors.grey,
+    };
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = dark ? palette.shade100 : palette.shade900;
+    return Container(
+      width: compact ? 28 : 44,
+      height: compact ? 28 : 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: dark
+            ? palette.shade900.withValues(alpha: 0.45)
+            : palette.shade50,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: foreground.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        code,
+        style: TextStyle(color: foreground, fontWeight: FontWeight.w800),
       ),
     );
   }

@@ -233,6 +233,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
           : group != null && _selectedDestination == 4
           ? ChangeNotifierProvider(
               create: (context) => EvaluationController(
+                attendanceRepository: context.read<AttendanceRepository>(),
                 projectRepository: context.read<ProjectRepository>(),
                 activityRepository: context.read<ActivityRepository>(),
                 studentRepository: context.read<StudentRepository>(),
@@ -628,11 +629,13 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
     final enrollmentRepository = context.read<EnrollmentRepository>();
     final evaluationRepository = context.read<EvaluationRepository>();
     final saveActivityEvaluation = context.read<SaveActivityEvaluation>();
+    final attendanceRepository = context.read<AttendanceRepository>();
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => ChangeNotifierProvider(
           create: (_) => EvaluationController(
+            attendanceRepository: attendanceRepository,
             projectRepository: projectRepository,
             activityRepository: activityRepository,
             studentRepository: studentRepository,

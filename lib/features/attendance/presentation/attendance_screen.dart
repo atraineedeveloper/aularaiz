@@ -117,10 +117,24 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 }
 
-class _MonthlyAttendanceGrid extends StatelessWidget {
+class _MonthlyAttendanceGrid extends StatefulWidget {
   const _MonthlyAttendanceGrid({required this.controller});
 
   final AttendanceController controller;
+
+  @override
+  State<_MonthlyAttendanceGrid> createState() => _MonthlyAttendanceGridState();
+}
+
+class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
+  final _horizontalScrollController = ScrollController();
+  AttendanceController get controller => widget.controller;
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,12 +259,21 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                   child: Card(
                     clipBehavior: Clip.antiAlias,
                     child: Scrollbar(
+                      controller: _horizontalScrollController,
                       thumbVisibility: true,
+                      trackVisibility: true,
+                      interactive: true,
+                      scrollbarOrientation: ScrollbarOrientation.bottom,
+                      notificationPredicate: (notification) =>
+                          notification.metrics.axis == Axis.horizontal,
                       child: SingleChildScrollView(
+                        controller: _horizontalScrollController,
+                        primary: false,
+                        padding: const EdgeInsets.only(bottom: 16),
                         scrollDirection: Axis.horizontal,
                         child: SingleChildScrollView(
                           child: DataTable(
-                            headingRowHeight: 72,
+                            headingRowHeight: 108,
                             horizontalMargin: 14,
                             columnSpacing: 10,
                             columns: [
@@ -265,6 +288,9 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                                   label: _DayHeader(
                                     date: date,
                                     dirty: controller.isDateDirty(date),
+                                    summary: controller.daySummary(date),
+                                    enabled: !controller.isSaving,
+                                    onDelete: () => _deleteDay(context, date),
                                     onMarkPresent: () =>
                                         controller.markDayPresent(date),
                                   ),
@@ -329,6 +355,13 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 10),
+              Text(
+                _label(
+                  context,
+                  'Bajo cada fecha: asistentes / registrados (incluye retardos). Abre Opciones del día para borrar un registro.',
+                  'Under each date: attended / recorded (includes late arrivals). Open Day options to delete a record.',
+                ),
+              ),
               Wrap(
                 spacing: 12,
                 runSpacing: 8,
@@ -381,6 +414,7 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
   }
 
   Future<void> _changeMonth(BuildContext context, int delta) async {
+    if (controller.isSaving) return;
     if (controller.isDirty) {
       final l10n = AppLocalizations.of(context);
       final discard = await showDialog<bool>(
@@ -405,6 +439,59 @@ class _MonthlyAttendanceGrid extends StatelessWidget {
     final month = controller.selectedMonth;
     await controller.selectMonth(DateTime(month.year, month.month + delta));
   }
+
+  Future<void> _deleteDay(BuildContext context, DateTime date) async {
+    final formatted = MaterialLocalizations.of(context).formatFullDate(date);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          _label(context, 'Borrar registro del día', 'Delete day attendance'),
+        ),
+        content: Text(
+          _label(
+            context,
+            'Se eliminará la asistencia del $formatted, incluidos los cambios sin guardar de ese día. Los alumnos y las evaluaciones se conservarán. El día volverá a quedar sin registrar. Esta acción no se puede deshacer.',
+            'Attendance for $formatted, including unsaved changes for that day, will be deleted. Students and evaluations will be preserved. The day will become unrecorded. This cannot be undone.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(_label(context, 'Cancelar', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(_label(context, 'Borrar registro', 'Delete record')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final deleted = await controller.deleteDay(date);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          deleted
+              ? _label(
+                  context,
+                  'Registro del día eliminado.',
+                  'Day attendance deleted.',
+                )
+              : friendlyErrorMessage(
+                  context,
+                  controller.error,
+                  fallback: _label(
+                    context,
+                    'No se pudo borrar la asistencia del día.',
+                    'Could not delete day attendance.',
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
 }
 
 class _DayHeader extends StatelessWidget {
@@ -412,11 +499,17 @@ class _DayHeader extends StatelessWidget {
     required this.date,
     required this.dirty,
     required this.onMarkPresent,
+    required this.onDelete,
+    required this.summary,
+    required this.enabled,
   });
 
   final DateTime date;
   final bool dirty;
   final VoidCallback onMarkPresent;
+  final VoidCallback onDelete;
+  final MonthlyAttendanceSummary? summary;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -432,18 +525,54 @@ class _DayHeader extends StatelessWidget {
           ),
           SizedBox(
             height: 28,
-            child: IconButton(
+            child: PopupMenuButton<String>(
+              enabled: enabled,
               padding: EdgeInsets.zero,
               iconSize: 18,
-              tooltip: _label(
-                context,
-                'Marcar este día: todos presentes',
-                'Mark this day: everyone present',
-              ),
-              onPressed: onMarkPresent,
+              tooltip: _label(context, 'Opciones del día', 'Day options'),
+              onSelected: (value) =>
+                  value == 'delete' ? onDelete() : onMarkPresent(),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'present',
+                  child: Text(
+                    _label(
+                      context,
+                      'Marcar todos presentes',
+                      'Mark everyone present',
+                    ),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  enabled: summary != null,
+                  child: Text(
+                    _label(
+                      context,
+                      'Borrar registro del día',
+                      'Delete day attendance',
+                    ),
+                  ),
+                ),
+              ],
               icon: Icon(
                 dirty ? Icons.check_circle_rounded : Icons.done_all_rounded,
               ),
+            ),
+          ),
+          Tooltip(
+            message: summary == null
+                ? _label(context, 'Sin registrar', 'Not recorded')
+                : _label(
+                    context,
+                    'Asistieron ${summary!.attended} de ${summary!.recorded}: ${summary!.present} presentes · ${summary!.late} retardos · ${summary!.absent} faltas · ${summary!.justified} justificadas',
+                    '${summary!.attended} of ${summary!.recorded} attended: ${summary!.present} present · ${summary!.late} late · ${summary!.absent} absent · ${summary!.justified} justified',
+                  ),
+            child: Text(
+              summary == null
+                  ? '—'
+                  : '${summary!.attended}/${summary!.recorded}',
+              style: Theme.of(context).textTheme.labelSmall,
             ),
           ),
         ],

@@ -175,9 +175,55 @@ final class AttendanceController extends ChangeNotifier {
 
   bool hasAttendanceFor(DateTime date) => _attendanceFor(date) != null;
 
+  MonthlyAttendanceSummary? daySummary(DateTime date) {
+    final day = _attendanceFor(date);
+    if (day == null) return null;
+    return MonthlyAttendanceSummary(
+      recorded: day.entries.length,
+      present: day.count(AttendanceStatus.present),
+      late: day.count(AttendanceStatus.late),
+      absent: day.count(AttendanceStatus.absent),
+      justified: day.count(AttendanceStatus.justifiedAbsence),
+    );
+  }
+
+  Future<bool> deleteDay(DateTime date) async {
+    final group = _group;
+    if (group == null || _isSaving || _isLoading) return false;
+    final normalized = _normalize(date);
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final repository = _attendanceRepository;
+      if (repository is! DeletableAttendanceRepository) {
+        throw UnsupportedError('Attendance deletion is not supported.');
+      }
+      await (repository as DeletableAttendanceRepository).deleteByGroupAndDate(
+        group.id,
+        normalized,
+      );
+      _savedMonthDays = _savedMonthDays
+          .where((day) => _normalize(day.date) != normalized)
+          .toList();
+      _draftDays.remove(normalized);
+      _dirtyDates.remove(normalized);
+      SafeLog.operationSuccess('delete_attendance_day');
+      return true;
+    } catch (error) {
+      _error = error;
+      SafeLog.operationFailure('delete_attendance_day', error);
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
   bool isDateDirty(DateTime date) => _dirtyDates.contains(_normalize(date));
 
   Future<void> markDayPresent(DateTime date) async {
+    if (_isSaving || _isLoading) return;
     final attendance = await _ensureDraft(date);
     if (attendance == null || attendance.entries.isEmpty) return;
 
@@ -196,6 +242,7 @@ final class AttendanceController extends ChangeNotifier {
     DateTime date,
     AttendanceStatus status,
   ) async {
+    if (_isSaving || _isLoading) return;
     final normalized = _normalize(date);
     final attendance = await _ensureDraft(normalized);
     if (attendance == null || attendance.statusFor(studentId) == null) return;

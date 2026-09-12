@@ -1,3 +1,4 @@
+import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,9 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WindowTitleService.setTitle('AulaRaíz · ${l10n.openAbout}');
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.aboutTitle)),

@@ -1,8 +1,37 @@
 #include "flutter_window.h"
 
+#include <windows.h>
+
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+
+std::wstring Utf16FromUtf8(const std::string& utf8_string) {
+  if (utf8_string.empty()) {
+    return std::wstring();
+  }
+  int target_length = ::MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                                            utf8_string.data(),
+                                            static_cast<int>(utf8_string.size()),
+                                            nullptr, 0);
+  if (target_length == 0) {
+    return std::wstring();
+  }
+  std::wstring utf16_string(target_length, L'\0');
+  int converted_length = ::MultiByteToWideChar(
+      CP_UTF8, MB_ERR_INVALID_CHARS, utf8_string.data(),
+      static_cast<int>(utf8_string.size()), utf16_string.data(),
+      target_length);
+  if (converted_length == 0) {
+    return std::wstring();
+  }
+  return utf16_string;
+}
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -25,6 +54,33 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+
+  window_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "aularaiz/window",
+          &flutter::StandardMethodCodec::GetInstance());
+  window_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
+        if (call.method_name() != "setTitle") {
+          result->NotImplemented();
+          return;
+        }
+        const auto* title = std::get_if<std::string>(call.arguments());
+        if (title == nullptr || title->empty()) {
+          result->Error("invalid_title", "Window title cannot be empty.");
+          return;
+        }
+        const std::wstring utf16_title = Utf16FromUtf8(*title);
+        if (utf16_title.empty()) {
+          result->Error("invalid_title", "Window title must be valid UTF-8.");
+          return;
+        }
+        ::SetWindowText(GetHandle(), utf16_title.c_str());
+        result->Success();
+      });
+
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -41,6 +97,7 @@ bool FlutterWindow::OnCreate() {
 
 void FlutterWindow::OnDestroy() {
   if (flutter_controller_) {
+    window_channel_ = nullptr;
     flutter_controller_ = nullptr;
   }
 

@@ -15,6 +15,7 @@ import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
 import 'package:aularaiz/infrastructure/update/github_update_service.dart';
+import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -79,12 +80,14 @@ class _HomeScreenState extends State<HomeScreen> {
       future: _setupsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
+          _setWindowTitle('AulaRaíz');
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
         if (snapshot.hasError) {
+          _setWindowTitle(_windowTitle('Mis escuelas'));
           return Scaffold(
             body: SafeArea(
               child: AppStatePanel(
@@ -100,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final setups = snapshot.data ?? const <InitialSchoolSetup>[];
         if (setups.isEmpty || _creatingSchool) {
+          _setWindowTitle(_windowTitle('Configuración inicial'));
           return ChangeNotifierProvider(
             create: (context) => SchoolSetupController(
               context.read<CreateInitialWorkspace>(),
@@ -112,6 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final selectedSchoolId = _selectedSchoolId;
         if (selectedSchoolId == null ||
             !setups.any((setup) => setup.school.id == selectedSchoolId)) {
+          _setWindowTitle(_windowTitle('Mis escuelas'));
           return SchoolSelectionScreen(
             setups: setups,
             onSelect: (schoolId) {
@@ -125,6 +130,15 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
+        final selectedSetup = setups.firstWhere(
+          (setup) => setup.school.id == selectedSchoolId,
+        );
+        _setWindowTitle(
+          _windowTitle(
+            '${selectedSetup.school.name} · '
+            '${selectedSetup.schoolYear.label}',
+          ),
+        );
         return ChangeNotifierProvider(
           create: (context) => SchoolWorkspaceController(
             setupRepository: context.read<SchoolSetupRepository>(),
@@ -141,6 +155,12 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  void _setWindowTitle(String title) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(WindowTitleService.setTitle(title));
+    });
   }
 
   Future<void> _deleteSchool(String schoolId) async {
@@ -178,6 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 }
+
+String _windowTitle(String segment) => 'AulaRaíz · $segment';
 
 String _schoolDeletionMessage(BuildContext context, Object error) {
   final detail = error.toString().toLowerCase();

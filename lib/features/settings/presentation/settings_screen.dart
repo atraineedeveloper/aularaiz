@@ -3,6 +3,7 @@ import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/features/settings/presentation/teacher_profile_section.dart';
 import 'package:aularaiz/features/settings/presentation/update_section.dart';
+import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +15,9 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = context.watch<AppSettingsController>();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WindowTitleService.setTitle('AulaRaíz · ${l10n.settingsTitle}');
+    });
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),

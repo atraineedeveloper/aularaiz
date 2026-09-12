@@ -270,6 +270,9 @@ final class DriftSchoolSetupRepository
       'DELETE FROM student_record_entries WHERE student_id IN ($orphanStudents)',
     );
     await database.customStatement(
+      'DELETE FROM literacy_assessments WHERE student_id IN ($orphanStudents)',
+    );
+    await database.customStatement(
       'DELETE FROM student_records WHERE student_id IN ($orphanStudents)',
     );
     await database.customStatement(

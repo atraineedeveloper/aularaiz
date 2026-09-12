@@ -5,10 +5,14 @@ import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
+import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/update_literacy_assessment.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
@@ -179,8 +183,15 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                 attendanceRepository: context.read<AttendanceRepository>(),
                 evaluationRepository: context.read<EvaluationRepository>(),
                 activityRepository: context.read<ActivityRepository>(),
+                literacyAssessmentRepository: context
+                    .read<LiteracyAssessmentRepository>(),
                 updateStudentRecord: context.read<UpdateStudentRecord>(),
                 addStudentRecordEntry: context.read<AddStudentRecordEntry>(),
+                saveLiteracyAssessment: context.read<SaveLiteracyAssessment>(),
+                updateLiteracyAssessment: context
+                    .read<UpdateLiteracyAssessment>(),
+                deleteLiteracyAssessment: context
+                    .read<DeleteLiteracyAssessment>(),
               ),
               child: StudentRecordScreen(
                 group: group,

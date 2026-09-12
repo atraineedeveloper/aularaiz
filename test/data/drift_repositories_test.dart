@@ -4,6 +4,7 @@ import 'package:aularaiz/core/id/uuid_id_generator.dart';
 import 'package:aularaiz/data/local/app_database.dart' hide AttendanceEntry;
 import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
+import 'package:aularaiz/data/repositories/drift_literacy_assessment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
@@ -11,6 +12,9 @@ import 'package:aularaiz/domain/attendance/attendance_entry.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/attendance/daily_attendance.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/literacy/literacy_assessment.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
@@ -247,6 +251,69 @@ void main() {
     expect(rawRow, isA<EnrollmentRow>());
     expect(rawRow.listNumber, 7);
   });
+
+  test(
+    'literacy assessment repository saves history and latest level',
+    () async {
+      final repository = DriftLiteracyAssessmentRepository(database);
+      final older = LiteracyAssessment(
+        id: 'literacy-1',
+        studentId: 'student-1',
+        assessedAt: DateTime(2026, 9, 12),
+        writingLevel: WritingLevel.syllabic,
+        readingLevel: ReadingLevel.syllabic,
+        notes: '  Primer registro.  ',
+      );
+      final newer = LiteracyAssessment(
+        id: 'literacy-2',
+        studentId: 'student-1',
+        assessedAt: DateTime(2026, 11, 10),
+        writingLevel: WritingLevel.syllabicAlphabetic,
+        readingLevel: ReadingLevel.wordByWord,
+      );
+      final otherStudent = LiteracyAssessment(
+        id: 'literacy-3',
+        studentId: 'student-2',
+        assessedAt: DateTime(2026, 12, 1),
+        writingLevel: WritingLevel.alphabetic,
+        readingLevel: ReadingLevel.fluent,
+      );
+
+      await repository.save(older);
+      await repository.save(newer);
+      await repository.save(otherStudent);
+
+      final history = await repository.listForStudent('student-1');
+      expect(history.map((item) => item.id), ['literacy-2', 'literacy-1']);
+      expect(history.last.notes, 'Primer registro.');
+      expect(
+        (await repository.latestForStudent('student-1'))?.id,
+        'literacy-2',
+      );
+      expect(await repository.listForStudent('missing'), isEmpty);
+
+      await repository.save(
+        LiteracyAssessment(
+          id: newer.id,
+          studentId: newer.studentId,
+          assessedAt: DateTime(2026, 8, 20),
+          writingLevel: WritingLevel.alphabetic,
+          readingLevel: ReadingLevel.sentence,
+        ),
+      );
+      expect(
+        (await repository.latestForStudent('student-1'))?.id,
+        'literacy-1',
+      );
+
+      await repository.delete('literacy-1');
+      expect(
+        (await repository.listForStudent('student-1')).single.id,
+        'literacy-2',
+      );
+      expect(await repository.listForStudent('student-2'), hasLength(1));
+    },
+  );
 
   test('persisted list number conflict is rejected by the use case', () async {
     await enrollmentRepository.save(

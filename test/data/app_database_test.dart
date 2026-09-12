@@ -47,6 +47,7 @@ void main() {
           'activity_evaluations',
           'student_records',
           'student_record_entries',
+          'literacy_assessments',
           'teacher_profiles',
         ]),
       );
@@ -54,7 +55,7 @@ void main() {
   );
 
   test(
-    'fresh database publishes schema version 8 with foreign keys on',
+    'fresh database publishes schema version 9 with foreign keys on',
     () async {
       final versionRow = await database
           .customSelect('PRAGMA user_version')
@@ -64,8 +65,8 @@ void main() {
           .getSingle();
 
       expect(database.schemaVersion, AppDatabase.currentSchemaVersion);
-      expect(database.schemaVersion, 8);
-      expect(versionRow.read<int>('user_version'), 8);
+      expect(database.schemaVersion, 9);
+      expect(versionRow.read<int>('user_version'), 9);
       expect(foreignKeyRow.read<int>('foreign_keys'), 1);
     },
   );

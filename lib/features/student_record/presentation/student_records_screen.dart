@@ -1,7 +1,11 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
+import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/update_literacy_assessment.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
@@ -135,8 +139,13 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
     final attendanceRepository = context.read<AttendanceRepository>();
     final evaluationRepository = context.read<EvaluationRepository>();
     final activityRepository = context.read<ActivityRepository>();
+    final literacyAssessmentRepository = context
+        .read<LiteracyAssessmentRepository>();
     final updateStudentRecord = context.read<UpdateStudentRecord>();
     final addStudentRecordEntry = context.read<AddStudentRecordEntry>();
+    final saveLiteracyAssessment = context.read<SaveLiteracyAssessment>();
+    final updateLiteracyAssessment = context.read<UpdateLiteracyAssessment>();
+    final deleteLiteracyAssessment = context.read<DeleteLiteracyAssessment>();
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -146,8 +155,12 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
             attendanceRepository: attendanceRepository,
             evaluationRepository: evaluationRepository,
             activityRepository: activityRepository,
+            literacyAssessmentRepository: literacyAssessmentRepository,
             updateStudentRecord: updateStudentRecord,
             addStudentRecordEntry: addStudentRecordEntry,
+            saveLiteracyAssessment: saveLiteracyAssessment,
+            updateLiteracyAssessment: updateLiteracyAssessment,
+            deleteLiteracyAssessment: deleteLiteracyAssessment,
           ),
           child: StudentRecordScreen(
             group: widget.group,

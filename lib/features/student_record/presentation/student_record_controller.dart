@@ -1,12 +1,19 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
+import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/update_literacy_assessment.dart';
 import 'package:aularaiz/application/student_record/add_student_record_entry.dart';
 import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
+import 'package:aularaiz/domain/literacy/literacy_assessment.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record.dart';
@@ -39,26 +46,39 @@ final class StudentRecordController extends ChangeNotifier {
     required AttendanceRepository attendanceRepository,
     required EvaluationRepository evaluationRepository,
     required ActivityRepository activityRepository,
+    required LiteracyAssessmentRepository literacyAssessmentRepository,
     required UpdateStudentRecord updateStudentRecord,
     required AddStudentRecordEntry addStudentRecordEntry,
+    required SaveLiteracyAssessment saveLiteracyAssessment,
+    required UpdateLiteracyAssessment updateLiteracyAssessment,
+    required DeleteLiteracyAssessment deleteLiteracyAssessment,
   }) : _studentRecordRepository = studentRecordRepository,
        _attendanceRepository = attendanceRepository,
        _evaluationRepository = evaluationRepository,
        _activityRepository = activityRepository,
+       _literacyAssessmentRepository = literacyAssessmentRepository,
        _updateStudentRecord = updateStudentRecord,
-       _addStudentRecordEntry = addStudentRecordEntry;
+       _addStudentRecordEntry = addStudentRecordEntry,
+       _saveLiteracyAssessment = saveLiteracyAssessment,
+       _updateLiteracyAssessment = updateLiteracyAssessment,
+       _deleteLiteracyAssessment = deleteLiteracyAssessment;
 
   final StudentRecordRepository _studentRecordRepository;
   final AttendanceRepository _attendanceRepository;
   final EvaluationRepository _evaluationRepository;
   final ActivityRepository _activityRepository;
+  final LiteracyAssessmentRepository _literacyAssessmentRepository;
   final UpdateStudentRecord _updateStudentRecord;
   final AddStudentRecordEntry _addStudentRecordEntry;
+  final SaveLiteracyAssessment _saveLiteracyAssessment;
+  final UpdateLiteracyAssessment _updateLiteracyAssessment;
+  final DeleteLiteracyAssessment _deleteLiteracyAssessment;
 
   TeachingGroup? _group;
   Student? _student;
   StudentRecord? _record;
   List<StudentRecordEntry> _entries = const [];
+  List<LiteracyAssessment> _literacyAssessments = const [];
   List<AttendanceEvidence> _attendanceEvidence = const [];
   List<EvaluationEvidence> _evaluationEvidence = const [];
   bool _isLoading = false;
@@ -69,6 +89,9 @@ final class StudentRecordController extends ChangeNotifier {
   Student? get student => _student;
   StudentRecord? get record => _record;
   List<StudentRecordEntry> get entries => _entries;
+  List<LiteracyAssessment> get literacyAssessments => _literacyAssessments;
+  LiteracyAssessment? get latestLiteracyAssessment =>
+      _literacyAssessments.isEmpty ? null : _literacyAssessments.first;
   List<AttendanceEvidence> get attendanceEvidence => _attendanceEvidence;
   List<EvaluationEvidence> get evaluationEvidence => _evaluationEvidence;
   bool get isLoading => _isLoading;
@@ -95,6 +118,9 @@ final class StudentRecordController extends ChangeNotifier {
       final reference = referenceDate ?? DateTime.now();
       _record = await _studentRecordRepository.find(student.id);
       _entries = await _studentRecordRepository.listEntries(student.id);
+      _literacyAssessments = await _literacyAssessmentRepository.listForStudent(
+        student.id,
+      );
 
       final attendance = await _attendanceRepository.listForMonth(
         group.id,
@@ -176,6 +202,62 @@ final class StudentRecordController extends ChangeNotifier {
         text: text,
       );
       _entries = await _studentRecordRepository.listEntries(student.id);
+    });
+  }
+
+  Future<bool> saveLiteracyAssessment({
+    required DateTime assessedAt,
+    required WritingLevel writingLevel,
+    required ReadingLevel readingLevel,
+    String? notes,
+  }) async {
+    final student = _student;
+    if (student == null || _isSaving) return false;
+    return _mutate(() async {
+      await _saveLiteracyAssessment(
+        studentId: student.id,
+        assessedAt: assessedAt,
+        writingLevel: writingLevel,
+        readingLevel: readingLevel,
+        notes: notes,
+      );
+      _literacyAssessments = await _literacyAssessmentRepository.listForStudent(
+        student.id,
+      );
+    });
+  }
+
+  Future<bool> updateLiteracyAssessment({
+    required String id,
+    required DateTime assessedAt,
+    required WritingLevel writingLevel,
+    required ReadingLevel readingLevel,
+    String? notes,
+  }) async {
+    final student = _student;
+    if (student == null || _isSaving) return false;
+    return _mutate(() async {
+      await _updateLiteracyAssessment(
+        id: id,
+        assessedAt: assessedAt,
+        writingLevel: writingLevel,
+        readingLevel: readingLevel,
+        notes: notes,
+      );
+      _literacyAssessments = await _literacyAssessmentRepository.listForStudent(
+        student.id,
+      );
+    });
+  }
+
+  Future<bool> deleteLiteracyAssessment(String id) async {
+    final student = _student;
+    if (student == null || _isSaving) return false;
+    return _mutate(() async {
+      await _deleteLiteracyAssessment(id);
+      _literacyAssessments = await _literacyAssessmentRepository.listForStudent(
+        student.id,
+      );
     });
   }
 

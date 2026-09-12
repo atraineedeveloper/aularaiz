@@ -2,6 +2,9 @@ import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/literacy/literacy_assessment.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
@@ -131,6 +134,14 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                           },
                         ),
                         const SizedBox(height: 24),
+                        _LiteracySection(
+                          controller: controller,
+                          onRegister: () => _editLiteracyAssessment(),
+                          onHistory: _showLiteracyHistory,
+                          onEdit: _editLiteracyAssessment,
+                          onDelete: _confirmDeleteLiteracyAssessment,
+                        ),
+                        const SizedBox(height: 24),
                         _TimelineSection(
                           controller: controller,
                           onObservation: () =>
@@ -176,6 +187,118 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
       occurredAt: draft.date,
       text: draft.text,
     );
+  }
+
+  Future<void> _editLiteracyAssessment([LiteracyAssessment? assessment]) async {
+    final draft = await showDialog<_LiteracyDraft>(
+      context: context,
+      builder: (context) => _LiteracyDialog(assessment: assessment),
+    );
+    if (draft == null || !mounted) return;
+
+    final controller = context.read<StudentRecordController>();
+    final saved = assessment == null
+        ? await controller.saveLiteracyAssessment(
+            assessedAt: draft.assessedAt,
+            writingLevel: draft.writingLevel,
+            readingLevel: draft.readingLevel,
+            notes: draft.notes,
+          )
+        : await controller.updateLiteracyAssessment(
+            id: assessment.id,
+            assessedAt: draft.assessedAt,
+            writingLevel: draft.writingLevel,
+            readingLevel: draft.readingLevel,
+            notes: draft.notes,
+          );
+    if (!saved && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).literacySaveError)),
+      );
+    }
+  }
+
+  Future<void> _showLiteracyHistory() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(AppLocalizations.of(context).literacyHistory),
+          content: SizedBox(
+            width: 620,
+            child: Consumer<StudentRecordController>(
+              builder: (context, controller, _) {
+                if (controller.literacyAssessments.isEmpty) {
+                  return Text(
+                    AppLocalizations.of(context).literacyNoAssessment,
+                  );
+                }
+                return SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final assessment
+                          in controller.literacyAssessments) ...[
+                        _LiteracyHistoryTile(
+                          assessment: assessment,
+                          onEdit: () async {
+                            Navigator.of(dialogContext).pop();
+                            await _editLiteracyAssessment(assessment);
+                          },
+                          onDelete: () async {
+                            Navigator.of(dialogContext).pop();
+                            await _confirmDeleteLiteracyAssessment(assessment);
+                          },
+                        ),
+                        const Divider(height: 16),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(AppLocalizations.of(context).cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDeleteLiteracyAssessment(
+    LiteracyAssessment assessment,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.literacyDeleteTitle),
+        content: Text(l10n.literacyDeleteBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_outline),
+            label: Text(l10n.literacyDeleteAction),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final deleted = await context
+        .read<StudentRecordController>()
+        .deleteLiteracyAssessment(assessment.id);
+    if (!deleted && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.literacyDeleteError)));
+    }
   }
 }
 
@@ -400,6 +523,214 @@ class _EvidenceSection extends StatelessWidget {
                 ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LiteracySection extends StatelessWidget {
+  const _LiteracySection({
+    required this.controller,
+    required this.onRegister,
+    required this.onHistory,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final StudentRecordController controller;
+  final VoidCallback onRegister;
+  final VoidCallback onHistory;
+  final void Function(LiteracyAssessment assessment) onEdit;
+  final void Function(LiteracyAssessment assessment) onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final latest = controller.latestLiteracyAssessment;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                Text(
+                  l10n.literacyTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: controller.isSaving ? null : onRegister,
+                      icon: const Icon(Icons.add_rounded),
+                      label: Text(l10n.literacyRegisterLevel),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed:
+                          controller.literacyAssessments.isEmpty ||
+                              controller.isSaving
+                          ? null
+                          : onHistory,
+                      icon: const Icon(Icons.history_rounded),
+                      label: Text(l10n.literacyViewHistory),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (latest == null)
+              Text(l10n.literacyNoAssessment)
+            else
+              _LiteracySummary(
+                assessment: latest,
+                onEdit: () => onEdit(latest),
+                onDelete: () => onDelete(latest),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LiteracySummary extends StatelessWidget {
+  const _LiteracySummary({
+    required this.assessment,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final LiteracyAssessment assessment;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '${l10n.literacyLatestAssessment}: '
+                '${MaterialLocalizations.of(context).formatMediumDate(assessment.assessedAt.toLocal())}',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+            ),
+            IconButton(
+              onPressed: onEdit,
+              tooltip: l10n.literacyEditAction,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              onPressed: onDelete,
+              tooltip: l10n.literacyDeleteAction,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            _LiteracyLevelChip(
+              label: l10n.literacyWritingLevel,
+              value: _writingLevelLabel(assessment.writingLevel, l10n),
+            ),
+            _LiteracyLevelChip(
+              label: l10n.literacyReadingLevel,
+              value: _readingLevelLabel(assessment.readingLevel, l10n),
+            ),
+          ],
+        ),
+        if (assessment.notes != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            l10n.literacyNotes,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(assessment.notes!),
+        ],
+      ],
+    );
+  }
+}
+
+class _LiteracyLevelChip extends StatelessWidget {
+  const _LiteracyLevelChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: const Icon(Icons.menu_book_outlined, size: 18),
+      label: Text('$label: $value'),
+    );
+  }
+}
+
+class _LiteracyHistoryTile extends StatelessWidget {
+  const _LiteracyHistoryTile({
+    required this.assessment,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final LiteracyAssessment assessment;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.menu_book_outlined),
+      title: Text(
+        MaterialLocalizations.of(context)
+            .formatMediumDate(assessment.assessedAt.toLocal()),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${l10n.literacyWritingLevel}: '
+            '${_writingLevelLabel(assessment.writingLevel, l10n)}',
+          ),
+          Text(
+            '${l10n.literacyReadingLevel}: '
+            '${_readingLevelLabel(assessment.readingLevel, l10n)}',
+          ),
+          if (assessment.notes != null) Text(assessment.notes!),
+        ],
+      ),
+      trailing: Wrap(
+        spacing: 4,
+        children: [
+          IconButton(
+            onPressed: onEdit,
+            tooltip: l10n.literacyEditAction,
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            tooltip: l10n.literacyDeleteAction,
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
       ),
     );
   }
@@ -679,6 +1010,147 @@ class _EntryDialogState extends State<_EntryDialog> {
   }
 }
 
+class _LiteracyDialog extends StatefulWidget {
+  const _LiteracyDialog({this.assessment});
+
+  final LiteracyAssessment? assessment;
+
+  @override
+  State<_LiteracyDialog> createState() => _LiteracyDialogState();
+}
+
+class _LiteracyDialogState extends State<_LiteracyDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _notesController;
+  late DateTime _date;
+  WritingLevel? _writingLevel;
+  ReadingLevel? _readingLevel;
+
+  @override
+  void initState() {
+    super.initState();
+    final assessment = widget.assessment;
+    _date = assessment?.assessedAt.toLocal() ?? DateTime.now();
+    _writingLevel = assessment?.writingLevel;
+    _readingLevel = assessment?.readingLevel;
+    _notesController = TextEditingController(text: assessment?.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(
+        widget.assessment == null
+            ? l10n.literacyRegisterLevel
+            : l10n.literacyEdit,
+      ),
+      content: SizedBox(
+        width: 520,
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.literacyAssessmentDate),
+                  subtitle: Text(
+                    MaterialLocalizations.of(context).formatMediumDate(_date),
+                  ),
+                  trailing: const Icon(Icons.calendar_month_outlined),
+                  onTap: _pickDate,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<WritingLevel>(
+                  initialValue: _writingLevel,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: l10n.literacyWritingLevel,
+                  ),
+                  items: [
+                    for (final level in WritingLevel.values)
+                      DropdownMenuItem(
+                        value: level,
+                        child: Text(_writingLevelLabel(level, l10n)),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _writingLevel = value),
+                  validator: (value) =>
+                      value == null ? l10n.requiredField : null,
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<ReadingLevel>(
+                  initialValue: _readingLevel,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: l10n.literacyReadingLevel,
+                  ),
+                  items: [
+                    for (final level in ReadingLevel.values)
+                      DropdownMenuItem(
+                        value: level,
+                        child: Text(_readingLevelLabel(level, l10n)),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _readingLevel = value),
+                  validator: (value) =>
+                      value == null ? l10n.requiredField : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _notesController,
+                  minLines: 3,
+                  maxLines: 6,
+                  decoration: InputDecoration(
+                    labelText: l10n.literacyNotesOptional,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(onPressed: _submit, child: Text(l10n.save)),
+      ],
+    );
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: _date,
+    );
+    if (picked != null) setState(() => _date = picked);
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.of(context).pop(
+      _LiteracyDraft(
+        assessedAt: _date,
+        writingLevel: _writingLevel!,
+        readingLevel: _readingLevel!,
+        notes: _notesController.text,
+      ),
+    );
+  }
+}
+
 final class _ProfileDraft {
   const _ProfileDraft({
     required this.strengths,
@@ -696,6 +1168,20 @@ final class _EntryDraft {
 
   final DateTime date;
   final String text;
+}
+
+final class _LiteracyDraft {
+  const _LiteracyDraft({
+    required this.assessedAt,
+    required this.writingLevel,
+    required this.readingLevel,
+    required this.notes,
+  });
+
+  final DateTime assessedAt;
+  final WritingLevel writingLevel;
+  final ReadingLevel readingLevel;
+  final String notes;
 }
 
 String _attendanceLabel(AttendanceStatus status, AppLocalizations l10n) {
@@ -722,5 +1208,24 @@ String _evaluationLabel(
     AchievementLevel.sufficient => l10n.achievementSufficient,
     AchievementLevel.inProgress => l10n.achievementInProgress,
     AchievementLevel.requiresSupport => l10n.achievementRequiresSupport,
+  };
+}
+
+String _writingLevelLabel(WritingLevel level, AppLocalizations l10n) {
+  return switch (level) {
+    WritingLevel.presyllabic => l10n.writingPresyllabic,
+    WritingLevel.syllabic => l10n.writingSyllabic,
+    WritingLevel.syllabicAlphabetic => l10n.writingSyllabicAlphabetic,
+    WritingLevel.alphabetic => l10n.writingAlphabetic,
+  };
+}
+
+String _readingLevelLabel(ReadingLevel level, AppLocalizations l10n) {
+  return switch (level) {
+    ReadingLevel.doesNotRead => l10n.readingDoesNotRead,
+    ReadingLevel.syllabic => l10n.readingSyllabic,
+    ReadingLevel.wordByWord => l10n.readingWordByWord,
+    ReadingLevel.sentence => l10n.readingSentence,
+    ReadingLevel.fluent => l10n.readingFluent,
   };
 }

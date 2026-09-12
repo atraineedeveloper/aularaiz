@@ -5,6 +5,7 @@ import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/school_year_repository.dart';
@@ -17,6 +18,9 @@ import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
+import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/update_literacy_assessment.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/reports/report_projection_builder.dart';
@@ -38,6 +42,7 @@ import 'package:aularaiz/data/repositories/drift_activity_repository.dart';
 import 'package:aularaiz/data/repositories/drift_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_enrollment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_evaluation_repository.dart';
+import 'package:aularaiz/data/repositories/drift_literacy_assessment_repository.dart';
 import 'package:aularaiz/data/repositories/drift_project_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_setup_repository.dart';
 import 'package:aularaiz/data/repositories/drift_school_year_repository.dart';
@@ -116,6 +121,10 @@ class AppDependencies extends StatelessWidget {
         Provider<StudentRecordRepository>(
           create: (context) =>
               DriftStudentRecordRepository(context.read<AppDatabase>()),
+        ),
+        Provider<LiteracyAssessmentRepository>(
+          create: (context) =>
+              DriftLiteracyAssessmentRepository(context.read<AppDatabase>()),
         ),
         Provider<TeacherProfileRepository>(
           create: (context) =>
@@ -279,6 +288,23 @@ class AppDependencies extends StatelessWidget {
             studentRepository: context.read<StudentRepository>(),
             studentRecordRepository: context.read<StudentRecordRepository>(),
             idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<SaveLiteracyAssessment>(
+          create: (context) => SaveLiteracyAssessment(
+            studentRepository: context.read<StudentRepository>(),
+            repository: context.read<LiteracyAssessmentRepository>(),
+            idGenerator: context.read<IdGenerator>(),
+          ),
+        ),
+        Provider<UpdateLiteracyAssessment>(
+          create: (context) => UpdateLiteracyAssessment(
+            repository: context.read<LiteracyAssessmentRepository>(),
+          ),
+        ),
+        Provider<DeleteLiteracyAssessment>(
+          create: (context) => DeleteLiteracyAssessment(
+            repository: context.read<LiteracyAssessmentRepository>(),
           ),
         ),
       ],

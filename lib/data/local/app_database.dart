@@ -6,6 +6,8 @@ import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
@@ -41,6 +43,7 @@ part 'app_database.g.dart';
     ActivityEvaluations,
     StudentRecords,
     StudentRecordEntries,
+    LiteracyAssessments,
     TeacherProfiles,
   ],
 )
@@ -62,7 +65,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 8;
+  static const int currentSchemaVersion = 9;
 
   final StorageProfile? storageProfile;
 
@@ -191,6 +194,15 @@ final class AppDatabase extends _$AppDatabase {
             .toSet();
         if (!groupNames.contains('teaching_role')) {
           await migrator.addColumn(teachingGroups, teachingGroups.teachingRole);
+        }
+      }
+      if (from < 9 && to >= 9) {
+        final literacyTables = await customSelect(
+          "SELECT name FROM sqlite_master "
+          "WHERE type = 'table' AND name = 'literacy_assessments'",
+        ).get();
+        if (literacyTables.isEmpty) {
+          await migrator.createTable(literacyAssessments);
         }
       }
     },

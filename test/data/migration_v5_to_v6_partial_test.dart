@@ -6,27 +6,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
-  test('partial migrations with existing columns recover through v8', () async {
-    final directory = await Directory.systemTemp.createTemp('aularaiz-v8-');
-    final file = File(
-      '${directory.path}${Platform.pathSeparator}database.sqlite',
-    );
-    addTearDown(() => directory.delete(recursive: true));
+  test(
+    'partial migrations with existing columns recover to current schema',
+    () async {
+      final directory = await Directory.systemTemp.createTemp('aularaiz-v9-');
+      final file = File(
+        '${directory.path}${Platform.pathSeparator}database.sqlite',
+      );
+      addTearDown(() => directory.delete(recursive: true));
 
-    final initial = AppDatabase.forTesting(NativeDatabase(file));
-    await initial.customSelect('SELECT 1').getSingle();
-    await initial.close();
+      final initial = AppDatabase.forTesting(NativeDatabase(file));
+      await initial.customSelect('SELECT 1').getSingle();
+      await initial.close();
 
-    final raw = sqlite3.open(file.path);
-    raw.execute('PRAGMA user_version = 5');
-    raw.close();
+      final raw = sqlite3.open(file.path);
+      raw.execute('PRAGMA user_version = 5');
+      raw.close();
 
-    final upgraded = AppDatabase.forTesting(NativeDatabase(file));
-    addTearDown(upgraded.close);
-    final version = await upgraded
-        .customSelect('PRAGMA user_version')
-        .getSingle();
+      final upgraded = AppDatabase.forTesting(NativeDatabase(file));
+      addTearDown(upgraded.close);
+      final version = await upgraded
+          .customSelect('PRAGMA user_version')
+          .getSingle();
 
-    expect(version.read<int>('user_version'), 8);
-  });
+      expect(
+        version.read<int>('user_version'),
+        AppDatabase.currentSchemaVersion,
+      );
+    },
+  );
 }

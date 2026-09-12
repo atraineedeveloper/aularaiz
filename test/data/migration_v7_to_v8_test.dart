@@ -43,7 +43,10 @@ void main() {
       final version = await upgraded
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(version.read<int>('user_version'), 8);
+      expect(
+        version.read<int>('user_version'),
+        AppDatabase.currentSchemaVersion,
+      );
 
       final schoolColumns = await _columnNames(upgraded, 'schools');
       expect(
@@ -131,7 +134,7 @@ void main() {
     final version = await upgraded
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.read<int>('user_version'), 8);
+    expect(version.read<int>('user_version'), AppDatabase.currentSchemaVersion);
 
     expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM schools'), 1);
     expect(
@@ -168,7 +171,7 @@ void main() {
     final version = await upgraded
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.read<int>('user_version'), 8);
+    expect(version.read<int>('user_version'), AppDatabase.currentSchemaVersion);
     expect(await _count(upgraded, 'SELECT COUNT(*) AS n FROM enrollments'), 1);
   });
 }

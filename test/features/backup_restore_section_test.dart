@@ -204,7 +204,20 @@ final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
   Future<bool> exportBackup() async => true;
 
   @override
+  Future<PortableBackupExport?> exportPortableBackup() async =>
+      const PortableBackupExport(transferCode: 'ABCD-EFGH-JKLM-NPQR');
+
+  @override
   Future<BackupSelection?> selectBackup() async {
+    final error = selectionError;
+    if (error != null) throw error;
+    return selection;
+  }
+
+  @override
+  Future<BackupSelection?> selectPortableBackup({
+    required String transferCode,
+  }) async {
     final error = selectionError;
     if (error != null) throw error;
     return selection;

@@ -165,22 +165,28 @@ class AppDependencies extends StatelessWidget {
           ),
         ),
         Provider<BackupRestoreGateway>(
-          create: (context) => PlatformBackupRestoreGateway(
-            createBackup: CreateBackup(
-              snapshotter: DriftDatabaseSnapshotter(
-                database: context.read<AppDatabase>(),
+          create: (context) {
+            final snapshotter = DriftDatabaseSnapshotter(
+              database: context.read<AppDatabase>(),
+            );
+            return PlatformBackupRestoreGateway(
+              createBackup: CreateBackup(
+                snapshotter: snapshotter,
+                schemaVersion: AppDatabase.currentSchemaVersion,
+                storageProfile: storageProfile.name,
+                protector: context.read<BackupProtector>(),
               ),
+              snapshotter: snapshotter,
               schemaVersion: AppDatabase.currentSchemaVersion,
               storageProfile: storageProfile.name,
-              protector: context.read<BackupProtector>(),
-            ),
-            restoreStagingService: RestoreStagingService(
-              profile: storageProfile,
-              currentSchemaVersion: AppDatabase.currentSchemaVersion,
-              protector: context.read<BackupProtector>(),
-            ),
-            publicationService: context.read<ReportPublicationService>(),
-          ),
+              restoreStagingService: RestoreStagingService(
+                profile: storageProfile,
+                currentSchemaVersion: AppDatabase.currentSchemaVersion,
+                protector: context.read<BackupProtector>(),
+              ),
+              publicationService: context.read<ReportPublicationService>(),
+            );
+          },
         ),
         Provider<CreateInitialSchoolSetup>(
           create: (context) => CreateInitialSchoolSetup(

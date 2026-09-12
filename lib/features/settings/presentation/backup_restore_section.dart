@@ -84,10 +84,24 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                   icon: const Icon(Icons.save_alt_rounded),
                   label: Text(strings.createBackup),
                 ),
+                FilledButton.tonalIcon(
+                  onPressed: _busy || _restorePrepared
+                      ? null
+                      : _exportPortableBackup,
+                  icon: const Icon(Icons.devices_other_rounded),
+                  label: Text(strings.createPortableBackup),
+                ),
                 OutlinedButton.icon(
                   onPressed: _busy || _restorePrepared ? null : _selectBackup,
                   icon: const Icon(Icons.restore_rounded),
                   label: Text(strings.chooseBackup),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _busy || _restorePrepared
+                      ? null
+                      : _selectPortableBackup,
+                  icon: const Icon(Icons.phonelink_setup_rounded),
+                  label: Text(strings.choosePortableBackup),
                 ),
               ],
             ),
@@ -152,6 +166,59 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
     });
   }
 
+  Future<void> _exportPortableBackup() async {
+    final strings = _BackupRestoreStrings.of(context);
+    PortableBackupExport? portable;
+    await _runBusy(() async {
+      portable = await context
+          .read<BackupRestoreGateway>()
+          .exportPortableBackup();
+      if (!mounted) return;
+      _setStatus(
+        portable == null
+            ? strings.backupCancelled
+            : strings.portableBackupSaved,
+        isError: false,
+      );
+    });
+    if (!mounted || portable == null) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.transferCodeTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(strings.transferCodeBody),
+            const SizedBox(height: 16),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Center(
+                  child: SelectableText(
+                    portable!.transferCode,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(strings.understood),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _selectBackup() async {
     final strings = _BackupRestoreStrings.of(context);
     await _runBusy(() async {
@@ -165,6 +232,56 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
         _statusIsError = false;
       });
     });
+  }
+
+  Future<void> _selectPortableBackup() async {
+    final strings = _BackupRestoreStrings.of(context);
+    final transferCode = await _askTransferCode(strings);
+    if (!mounted || transferCode == null) return;
+    await _runBusy(() async {
+      final selection = await context
+          .read<BackupRestoreGateway>()
+          .selectPortableBackup(transferCode: transferCode);
+      if (!mounted || selection == null) return;
+      setState(() {
+        _selection = selection;
+        _status = strings.backupReady;
+        _statusIsError = false;
+      });
+    });
+  }
+
+  Future<String?> _askTransferCode(_BackupRestoreStrings strings) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.enterTransferCodeTitle),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: strings.transferCodeLabel,
+            helperText: strings.transferCodeHelper,
+          ),
+          textCapitalization: TextCapitalization.characters,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: Text(strings.continueAction),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null || result.trim().isEmpty) return null;
+    return result;
   }
 
   Future<void> _confirmRestore() async {
@@ -462,13 +579,21 @@ final class _BackupRestoreStrings {
       : 'Save a complete encrypted AulaRaíz backup or prepare a validated restore. For now, encrypted backups can only be restored by the installation that created them.';
   String get createBackup =>
       spanish ? 'Crear copia de seguridad' : 'Create backup';
+  String get createPortableBackup => spanish
+      ? 'Crear copia para otro dispositivo'
+      : 'Create backup for another device';
   String get chooseBackup =>
       spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
+  String get choosePortableBackup =>
+      spanish ? 'Restaurar copia portable' : 'Restore portable backup';
   String get working =>
       spanish ? 'Procesando de forma segura…' : 'Processing safely…';
   String get backupSaved => spanish
       ? 'Copia de seguridad cifrada guardada o compartida.'
       : 'Encrypted backup saved or shared.';
+  String get portableBackupSaved => spanish
+      ? 'Copia portable guardada. Usa el código de transferencia para abrirla en otro dispositivo.'
+      : 'Portable backup saved. Use the transfer code to open it on another device.';
   String get backupCancelled =>
       spanish ? 'No se guardó ninguna copia.' : 'No backup was saved.';
   String get backupReady => spanish
@@ -493,12 +618,25 @@ final class _BackupRestoreStrings {
   String get cancel => spanish ? 'Cancelar' : 'Cancel';
   String get confirmAction =>
       spanish ? 'Preparar restauración' : 'Prepare restore';
+  String get continueAction => spanish ? 'Continuar' : 'Continue';
   String get preparedTitle =>
       spanish ? 'Restauración preparada' : 'Restore prepared';
   String get preparedBody => spanish
       ? 'Cierra completamente AulaRaíz y vuelve a abrirla para aplicar la restauración. No continúes editando datos antes de reiniciar.'
       : 'Fully close AulaRaíz and open it again to apply the restore. Do not keep editing data before restarting.';
   String get understood => spanish ? 'Entendido' : 'Got it';
+  String get transferCodeTitle =>
+      spanish ? 'Código de transferencia' : 'Transfer code';
+  String get transferCodeBody => spanish
+      ? 'Guarda este código. Lo necesitarás para restaurar esta copia en otro dispositivo. No lo compartas con personas que no deban ver tus datos.'
+      : 'Save this code. You will need it to restore this backup on another device. Do not share it with anyone who should not see your data.';
+  String get enterTransferCodeTitle =>
+      spanish ? 'Ingresar código de transferencia' : 'Enter transfer code';
+  String get transferCodeLabel =>
+      spanish ? 'Código de transferencia' : 'Transfer code';
+  String get transferCodeHelper => spanish
+      ? 'Es el código mostrado al crear la copia portable.'
+      : 'This is the code shown when the portable backup was created.';
   String get invalidBackup => spanish
       ? 'El archivo no es una copia válida de AulaRaíz, está dañado o su cifrado fue alterado.'
       : 'The file is not a valid AulaRaíz backup, is damaged, or its encrypted contents were altered.';

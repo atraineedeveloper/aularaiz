@@ -2,15 +2,29 @@ import 'dart:typed_data';
 
 import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
+import 'package:aularaiz/application/contracts/backup_protector.dart';
+import 'package:aularaiz/application/contracts/database_snapshotter.dart';
+import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:file_selector/file_selector.dart';
 
 final class BackupSelection {
-  const BackupSelection({required this.bytes, required this.preview});
+  const BackupSelection({
+    required this.bytes,
+    required this.preview,
+    this.restoreProtector,
+  });
 
   final Uint8List bytes;
   final RestorePreview preview;
+  final BackupProtector? restoreProtector;
+}
+
+final class PortableBackupExport {
+  const PortableBackupExport({required this.transferCode});
+
+  final String transferCode;
 }
 
 abstract interface class BackupRestoreGateway {
@@ -18,7 +32,11 @@ abstract interface class BackupRestoreGateway {
 
   Future<bool> exportBackup();
 
+  Future<PortableBackupExport?> exportPortableBackup();
+
   Future<BackupSelection?> selectBackup();
+
+  Future<BackupSelection?> selectPortableBackup({required String transferCode});
 
   Future<StagedRestore> stageRestore(BackupSelection selection);
 }
@@ -26,13 +44,22 @@ abstract interface class BackupRestoreGateway {
 final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   const PlatformBackupRestoreGateway({
     required CreateBackup createBackup,
+    required DatabaseSnapshotter snapshotter,
+    required int schemaVersion,
+    required String storageProfile,
     required RestoreStagingService restoreStagingService,
     required ReportPublicationService publicationService,
   }) : _createBackup = createBackup,
+       _snapshotter = snapshotter,
+       _schemaVersion = schemaVersion,
+       _storageProfile = storageProfile,
        _restoreStagingService = restoreStagingService,
        _publicationService = publicationService;
 
   final CreateBackup _createBackup;
+  final DatabaseSnapshotter _snapshotter;
+  final int _schemaVersion;
+  final String _storageProfile;
   final RestoreStagingService _restoreStagingService;
   final ReportPublicationService _publicationService;
 
@@ -55,6 +82,27 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
+  Future<PortableBackupExport?> exportPortableBackup() async {
+    final createdAtUtc = DateTime.now().toUtc();
+    final transferCode = generatePortableBackupTransferCode();
+    final bytes = await CreateBackup(
+      snapshotter: _snapshotter,
+      schemaVersion: _schemaVersion,
+      storageProfile: _storageProfile,
+      protector: PortableBackupProtector(transferCode: transferCode),
+    )(createdAtUtc: createdAtUtc);
+    final published = await _publicationService.publishFile(
+      bytes: bytes,
+      fileName: buildAulaRaizPortableBackupFileName(createdAtUtc),
+      mimeType: 'application/octet-stream',
+      extension: 'aularaiz',
+      typeLabel: 'AulaRaíz portable backup',
+    );
+    if (!published) return null;
+    return PortableBackupExport(transferCode: transferCode);
+  }
+
+  @override
   Future<BackupSelection?> selectBackup() async {
     final file = await openFile(
       acceptedTypeGroups: <XTypeGroup>[
@@ -69,8 +117,34 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
+  Future<BackupSelection?> selectPortableBackup({
+    required String transferCode,
+  }) async {
+    final file = await openFile(
+      acceptedTypeGroups: <XTypeGroup>[
+        XTypeGroup(label: 'AulaRaíz backup', extensions: <String>['aularaiz']),
+      ],
+    );
+    if (file == null) return null;
+
+    final protector = PortableBackupProtector(transferCode: transferCode);
+    final service = _restoreStagingService.withProtector(protector);
+    final bytes = await file.readAsBytes();
+    final preview = await service.inspect(bytes);
+    return BackupSelection(
+      bytes: bytes,
+      preview: preview,
+      restoreProtector: protector,
+    );
+  }
+
+  @override
   Future<StagedRestore> stageRestore(BackupSelection selection) {
-    return _restoreStagingService.stage(selection.bytes);
+    final protector = selection.restoreProtector;
+    final service = protector == null
+        ? _restoreStagingService
+        : _restoreStagingService.withProtector(protector);
+    return service.stage(selection.bytes);
   }
 }
 
@@ -83,4 +157,15 @@ String buildAulaRaizBackupFileName(DateTime createdAtUtc) {
   final minute = value.minute.toString().padLeft(2, '0');
   final second = value.second.toString().padLeft(2, '0');
   return 'aularaiz-backup-$year$month$day-$hour$minute$second.aularaiz';
+}
+
+String buildAulaRaizPortableBackupFileName(DateTime createdAtUtc) {
+  final value = createdAtUtc.toUtc();
+  final year = value.year.toString().padLeft(4, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  final second = value.second.toString().padLeft(2, '0');
+  return 'aularaiz-transfer-$year$month$day-$hour$minute$second.aularaiz';
 }

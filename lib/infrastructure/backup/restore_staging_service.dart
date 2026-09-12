@@ -38,6 +38,17 @@ final class RestoreStagingService {
 
   static int _sequence = 0;
 
+  RestoreStagingService withProtector(BackupProtector protector) {
+    return RestoreStagingService(
+      profile: _profile,
+      currentSchemaVersion: _currentSchemaVersion,
+      directoryProvider: _directoryProvider,
+      codec: _codec,
+      protector: protector,
+      validator: _validator,
+    );
+  }
+
   Future<bool> hasPendingRequest() async {
     final layout = await AulaRaizStorageLayout.resolve(
       _profile,

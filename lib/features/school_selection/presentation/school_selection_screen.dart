@@ -1,4 +1,5 @@
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
+import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:flutter/material.dart';
 
 class SchoolSelectionScreen extends StatelessWidget {
@@ -19,160 +20,64 @@ class SchoolSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final english = Localizations.localeOf(context).languageCode == 'en';
+    final copy = _SchoolSelectionCopy(
+      english: Localizations.localeOf(context).languageCode == 'en',
+    );
     return Scaffold(
       appBar: AppBar(
-        title: Text(english ? 'My schools' : 'Mis escuelas'),
+        title: Text(copy.title),
         actions: [
           IconButton(
-            tooltip: english ? 'Settings' : 'Preferencias',
+            tooltip: copy.settings,
             onPressed: onOpenSettings,
             icon: const Icon(Icons.tune_rounded),
           ),
           const SizedBox(width: 8),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _FloatingCreateButton(
+        label: copy.addSchool,
         onPressed: onCreateSchool,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(english ? 'Add school' : 'Agregar escuela'),
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 980),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 100),
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .primaryContainer,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Icon(
-                              Icons.school_rounded,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                english
-                                    ? 'Choose a school'
-                                    : 'Selecciona una escuela',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                english
-                                    ? 'Select the school and school year you want to work with.'
-                                    : 'Elige la escuela y el ciclo escolar con el que quieres trabajar.',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final desktop = constraints.maxWidth >= 720;
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1040),
+                child: ListView.separated(
+                  padding: EdgeInsets.fromLTRB(
+                    desktop ? 32 : 20,
+                    28,
+                    desktop ? 32 : 20,
+                    desktop ? 32 : 104,
                   ),
+                  itemCount: setups.length + 1,
+                  separatorBuilder: (_, index) =>
+                      SizedBox(height: index == 0 ? 20 : 12),
+                  itemBuilder: (context, index) {
+                    if (index == 0) {
+                      return _SchoolSelectionHeader(
+                        copy: copy,
+                        schoolCount: setups.length,
+                        desktop: desktop,
+                        onCreateSchool: onCreateSchool,
+                      );
+                    }
+
+                    final setup = setups[index - 1];
+                    return _SchoolCard(
+                      setup: setup,
+                      copy: copy,
+                      onSelect: () => onSelect(setup.school.id),
+                      onDelete: () => _confirmDelete(context, setup),
+                    );
+                  },
                 ),
-                const SizedBox(height: 24),
-                for (final setup in setups) ...[
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: () => onSelect(setup.school.id),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primaryContainer,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Icon(
-                                Icons.school_rounded,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    setup.school.name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleLarge,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    [
-                                      setup.schoolYear.label,
-                                      if (setup.school.cct?.trim().isNotEmpty ==
-                                          true)
-                                        'CCT ${setup.school.cct}',
-                                      if (setup.school.municipality
-                                              ?.trim()
-                                              .isNotEmpty ==
-                                          true)
-                                        setup.school.municipality!,
-                                    ].join(' · '),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: english
-                                  ? 'Delete school'
-                                  : 'Eliminar escuela',
-                              onPressed: () => _confirmDelete(context, setup),
-                              icon: Icon(
-                                Icons.delete_outline_rounded,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -182,7 +87,9 @@ class SchoolSelectionScreen extends StatelessWidget {
     BuildContext context,
     InitialSchoolSetup setup,
   ) async {
-    final english = Localizations.localeOf(context).languageCode == 'en';
+    final copy = _SchoolSelectionCopy(
+      english: Localizations.localeOf(context).languageCode == 'en',
+    );
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -190,16 +97,12 @@ class SchoolSelectionScreen extends StatelessWidget {
           Icons.warning_amber_rounded,
           color: Theme.of(context).colorScheme.error,
         ),
-        title: Text(english ? 'Delete school?' : '¿Eliminar escuela?'),
-        content: Text(
-          english
-              ? 'This will permanently delete “${setup.school.name}”, its class, attendance, projects, activities and evaluations. This action cannot be undone.'
-              : 'Se eliminará permanentemente “${setup.school.name}”, su grupo, asistencias, proyectos, actividades y evaluaciones. Esta acción no se puede deshacer.',
-        ),
+        title: Text(copy.deleteSchoolQuestion),
+        content: Text(copy.deleteSchoolBody(setup.school.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(english ? 'Cancel' : 'Cancelar'),
+            child: Text(copy.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -207,7 +110,7 @@ class SchoolSelectionScreen extends StatelessWidget {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text(english ? 'Delete' : 'Eliminar'),
+            child: Text(copy.delete),
           ),
         ],
       ),
@@ -215,4 +118,250 @@ class SchoolSelectionScreen extends StatelessWidget {
     if (confirmed != true || !context.mounted) return;
     await onDeleteSchool(setup.school.id);
   }
+}
+
+class _SchoolSelectionHeader extends StatelessWidget {
+  const _SchoolSelectionHeader({
+    required this.copy,
+    required this.schoolCount,
+    required this.desktop,
+    required this.onCreateSchool,
+  });
+
+  final _SchoolSelectionCopy copy;
+  final int schoolCount;
+  final bool desktop;
+  final VoidCallback onCreateSchool;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: desktop ? 4 : 0),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 16,
+        runSpacing: 16,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(copy.title, style: theme.textTheme.headlineMedium),
+                const SizedBox(height: 6),
+                Text(copy.subtitle, style: theme.textTheme.bodyLarge),
+                const SizedBox(height: 12),
+                Chip(
+                  avatar: const Icon(Icons.school_outlined, size: 18),
+                  label: Text(copy.schoolCount(schoolCount)),
+                ),
+              ],
+            ),
+          ),
+          if (desktop)
+            FilledButton.icon(
+              onPressed: onCreateSchool,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(copy.addSchool),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SchoolCard extends StatelessWidget {
+  const _SchoolCard({
+    required this.setup,
+    required this.copy,
+    required this.onSelect,
+    required this.onDelete,
+  });
+
+  final InitialSchoolSetup setup;
+  final _SchoolSelectionCopy copy;
+  final VoidCallback onSelect;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final school = setup.school;
+    final details = <String>[
+      setup.schoolYear.label,
+      if (school.cct != null) 'CCT ${school.cct}',
+      if (school.municipality != null) school.municipality!,
+    ];
+    final chips = <String>[
+      _organizationLabel(school.organization, copy),
+      if (school.schoolZone != null) '${copy.zone}: ${school.schoolZone}',
+      if (school.schoolSector != null) '${copy.sector}: ${school.schoolSector}',
+    ].where((item) => item.trim().isNotEmpty).toList(growable: false);
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onSelect,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.school_rounded,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(school.name, style: theme.textTheme.titleLarge),
+                    const SizedBox(height: 4),
+                    Text(
+                      details.join(' · '),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    if (chips.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final chip in chips)
+                            Chip(
+                              visualDensity: VisualDensity.compact,
+                              label: Text(chip),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              PopupMenuButton<_SchoolAction>(
+                tooltip: copy.moreActions,
+                onSelected: (action) {
+                  switch (action) {
+                    case _SchoolAction.open:
+                      onSelect();
+                    case _SchoolAction.delete:
+                      onDelete();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: _SchoolAction.open,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.login_rounded),
+                      title: Text(copy.openSchool),
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _SchoolAction.delete,
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(
+                        Icons.delete_outline_rounded,
+                        color: theme.colorScheme.error,
+                      ),
+                      title: Text(
+                        copy.deleteSchool,
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingCreateButton extends StatelessWidget {
+  const _FloatingCreateButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width >= 720) {
+      return const SizedBox.shrink();
+    }
+    return FloatingActionButton.extended(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_rounded),
+      label: Text(label),
+    );
+  }
+}
+
+enum _SchoolAction { open, delete }
+
+final class _SchoolSelectionCopy {
+  const _SchoolSelectionCopy({required this.english});
+
+  final bool english;
+
+  String get title => english ? 'My schools' : 'Mis escuelas';
+  String get subtitle => english
+      ? 'Select the school and school year you want to work with.'
+      : 'Elige la escuela y el ciclo escolar con el que quieres trabajar.';
+  String get settings => english ? 'Settings' : 'Preferencias';
+  String get addSchool => english ? 'Add school' : 'Agregar escuela';
+  String get openSchool => english ? 'Open school' : 'Entrar a la escuela';
+  String get deleteSchool => english ? 'Delete school' : 'Eliminar escuela';
+  String get moreActions => english ? 'More actions' : 'Más acciones';
+  String get cancel => english ? 'Cancel' : 'Cancelar';
+  String get delete => english ? 'Delete' : 'Eliminar';
+  String get deleteSchoolQuestion =>
+      english ? 'Delete school?' : '¿Eliminar escuela?';
+  String get zone => english ? 'Zone' : 'Zona';
+  String get sector => english ? 'Sector' : 'Sector';
+
+  String schoolCount(int count) => english
+      ? '$count ${count == 1 ? 'school' : 'schools'}'
+      : '$count ${count == 1 ? 'escuela' : 'escuelas'}';
+
+  String deleteSchoolBody(String schoolName) => english
+      ? 'This will permanently delete "$schoolName", its class, attendance, projects, activities and evaluations. This action cannot be undone.'
+      : 'Se eliminará permanentemente "$schoolName", su grupo, asistencias, proyectos, actividades y evaluaciones. Esta acción no se puede deshacer.';
+}
+
+String _organizationLabel(
+  SchoolOrganization organization,
+  _SchoolSelectionCopy copy,
+) {
+  return switch (organization) {
+    SchoolOrganization.unspecified => '',
+    SchoolOrganization.unitary => copy.english ? 'One-teacher' : 'Unitaria',
+    SchoolOrganization.twoTeacher => copy.english ? 'Two-teacher' : 'Bidocente',
+    SchoolOrganization.threeTeacher =>
+      copy.english ? 'Three-teacher' : 'Tridocente',
+    SchoolOrganization.fourTeacher =>
+      copy.english ? 'Four-teacher' : 'Tetradocente',
+    SchoolOrganization.fiveTeacher =>
+      copy.english ? 'Five-teacher' : 'Pentadocente',
+    SchoolOrganization.complete => copy.english ? 'Complete' : 'Completa',
+  };
 }

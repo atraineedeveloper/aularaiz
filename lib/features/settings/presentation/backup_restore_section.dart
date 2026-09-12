@@ -2,8 +2,10 @@ import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
+import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class BackupRestoreSection extends StatefulWidget {
   const BackupRestoreSection({super.key});
@@ -90,6 +92,13 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                       : _exportPortableBackup,
                   icon: const Icon(Icons.devices_other_rounded),
                   label: Text(strings.createPortableBackup),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _busy || _restorePrepared
+                      ? null
+                      : _startWifiTransfer,
+                  icon: const Icon(Icons.qr_code_2_rounded),
+                  label: Text(strings.startWifiTransfer),
                 ),
                 OutlinedButton.icon(
                   onPressed: _busy || _restorePrepared ? null : _selectBackup,
@@ -217,6 +226,88 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
         ],
       ),
     );
+  }
+
+  Future<void> _startWifiTransfer() async {
+    final strings = _BackupRestoreStrings.of(context);
+    Object? startError;
+    PortableBackupTransferSession? session;
+    await _runBusy(() async {
+      try {
+        session = await context
+            .read<BackupRestoreGateway>()
+            .startPortableBackupTransfer();
+      } on Object catch (error) {
+        startError = error;
+        rethrow;
+      }
+    });
+    if (!mounted || session == null || startError != null) return;
+    final activeSession = session!;
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(strings.wifiTransferTitle),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(strings.wifiTransferBody),
+                  const SizedBox(height: 18),
+                  Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: QrImageView(
+                          data: activeSession.downloadUrl,
+                          version: QrVersions.auto,
+                          size: 220,
+                          backgroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    strings.transferCodeLabel,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  _SelectableCode(value: activeSession.transferCode),
+                  const SizedBox(height: 14),
+                  Text(
+                    strings.downloadUrlLabel,
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  SelectableText(activeSession.downloadUrl),
+                  const SizedBox(height: 14),
+                  Text(strings.wifiTransferWarning),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(strings.stopWifiTransfer),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      await activeSession.stop();
+    }
   }
 
   Future<void> _selectBackup() async {
@@ -562,6 +653,32 @@ class _StatusPanel extends StatelessWidget {
   }
 }
 
+class _SelectableCode extends StatelessWidget {
+  const _SelectableCode({required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Center(
+          child: SelectableText(
+            value,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 final class _BackupRestoreStrings {
   const _BackupRestoreStrings(this.spanish);
 
@@ -582,6 +699,8 @@ final class _BackupRestoreStrings {
   String get createPortableBackup => spanish
       ? 'Crear copia para otro dispositivo'
       : 'Create backup for another device';
+  String get startWifiTransfer =>
+      spanish ? 'Vincular celular por Wi-Fi' : 'Link phone over Wi-Fi';
   String get chooseBackup =>
       spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
   String get choosePortableBackup =>
@@ -637,6 +756,17 @@ final class _BackupRestoreStrings {
   String get transferCodeHelper => spanish
       ? 'Es el código mostrado al crear la copia portable.'
       : 'This is the code shown when the portable backup was created.';
+  String get wifiTransferTitle =>
+      spanish ? 'Vincular celular por Wi-Fi' : 'Link phone over Wi-Fi';
+  String get wifiTransferBody => spanish
+      ? 'Conecta tu celular a la misma red Wi-Fi, escanea el QR o abre la liga, descarga la copia y usa el código de transferencia para restaurarla.'
+      : 'Connect your phone to the same Wi-Fi network, scan the QR or open the link, download the backup, and use the transfer code to restore it.';
+  String get downloadUrlLabel => spanish ? 'Liga de descarga' : 'Download link';
+  String get wifiTransferWarning => spanish
+      ? 'Mantén esta ventana abierta mientras descargas la copia. Al cerrarla, AulaRaíz apagará la transferencia local.'
+      : 'Keep this window open while downloading the backup. When you close it, AulaRaíz will stop the local transfer.';
+  String get stopWifiTransfer =>
+      spanish ? 'Cerrar transferencia' : 'Close transfer';
   String get invalidBackup => spanish
       ? 'El archivo no es una copia válida de AulaRaíz, está dañado o su cifrado fue alterado.'
       : 'The file is not a valid AulaRaíz backup, is damaged, or its encrypted contents were altered.';

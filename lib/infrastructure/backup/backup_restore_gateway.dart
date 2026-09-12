@@ -4,6 +4,7 @@ import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/application/contracts/database_snapshotter.dart';
+import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
 import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
@@ -33,6 +34,8 @@ abstract interface class BackupRestoreGateway {
   Future<bool> exportBackup();
 
   Future<PortableBackupExport?> exportPortableBackup();
+
+  Future<PortableBackupTransferSession> startPortableBackupTransfer();
 
   Future<BackupSelection?> selectBackup();
 
@@ -100,6 +103,15 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     );
     if (!published) return null;
     return PortableBackupExport(transferCode: transferCode);
+  }
+
+  @override
+  Future<PortableBackupTransferSession> startPortableBackupTransfer() {
+    return LocalBackupTransferServer(
+      snapshotter: _snapshotter,
+      schemaVersion: _schemaVersion,
+      storageProfile: _storageProfile,
+    ).start();
   }
 
   @override

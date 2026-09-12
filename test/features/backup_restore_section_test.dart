@@ -5,6 +5,7 @@ import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
+import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -206,6 +207,15 @@ final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
   @override
   Future<PortableBackupExport?> exportPortableBackup() async =>
       const PortableBackupExport(transferCode: 'ABCD-EFGH-JKLM-NPQR');
+
+  @override
+  Future<PortableBackupTransferSession> startPortableBackupTransfer() async {
+    return PortableBackupTransferSession(
+      downloadUrl: 'http://192.168.1.10:1234/aularaiz-transfer?token=test',
+      transferCode: 'ABCD-EFGH-JKLM-NPQR',
+      stop: () async {},
+    );
+  }
 
   @override
   Future<BackupSelection?> selectBackup() async {

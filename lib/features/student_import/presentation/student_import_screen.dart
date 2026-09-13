@@ -345,22 +345,29 @@ class _MappingCard extends StatelessWidget {
             const SizedBox(height: 5),
             Text(l10n.importMappingDescription),
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 14,
-              runSpacing: 14,
-              children: [
-                for (final field in StudentImportField.values)
-                  SizedBox(
-                    width: 320,
-                    child: _MappingDropdown(
-                      field: field,
-                      requiredField: _requiredFields.contains(field),
-                      mapping: mapping,
-                      enabled: enabled,
-                      onChanged: onChanged,
-                    ),
-                  ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final fieldWidth = constraints.maxWidth < 340
+                    ? constraints.maxWidth
+                    : 320.0;
+                return Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  children: [
+                    for (final field in StudentImportField.values)
+                      SizedBox(
+                        width: fieldWidth,
+                        child: _MappingDropdown(
+                          field: field,
+                          requiredField: _requiredFields.contains(field),
+                          mapping: mapping,
+                          enabled: enabled,
+                          onChanged: onChanged,
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             if (duplicateColumns) ...[
               const SizedBox(height: 12),
@@ -405,7 +412,13 @@ class _MappingDropdown extends StatelessWidget {
       items: [
         DropdownMenuItem(value: -1, child: Text(l10n.importNotMapped)),
         for (var index = 0; index < mapping.headers.length; index++)
-          DropdownMenuItem(value: index, child: Text(mapping.headers[index])),
+          DropdownMenuItem(
+            value: index,
+            child: Text(
+              mapping.headers[index],
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
       ],
       onChanged: !enabled
           ? null
@@ -546,6 +559,8 @@ class _PreviewRowCard extends StatelessWidget {
                   children: [
                     Text(
                       title.isEmpty ? '—' : title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 3),

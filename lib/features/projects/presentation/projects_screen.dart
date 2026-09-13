@@ -297,6 +297,7 @@ class _ProjectCard extends StatelessWidget {
       ..sort((a, b) => a.number.compareTo(b.number));
     final axes = project.articulatingAxes.toList()
       ..sort((a, b) => a.index.compareTo(b.index));
+    final compact = MediaQuery.sizeOf(context).width < 600;
 
     return Card(
       child: Padding(
@@ -312,6 +313,8 @@ class _ProjectCard extends StatelessWidget {
               children: [
                 Text(
                   project.title,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 Wrap(
@@ -354,7 +357,11 @@ class _ProjectCard extends StatelessWidget {
             ),
             if (project.description != null) ...[
               const SizedBox(height: 10),
-              Text(project.description!),
+              Text(
+                project.description!,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
             const SizedBox(height: 12),
             Text(
@@ -470,36 +477,81 @@ class _ProjectCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          FilledButton.tonalIcon(
-                            onPressed: () => onEvaluateActivity(activity),
-                            icon: const Icon(Icons.grid_on_rounded),
-                            label: Text(l10n.evaluateActivity),
-                          ),
-                          IconButton(
-                            tooltip: _label(
-                              context,
-                              'Editar actividad',
-                              'Edit activity',
+                          if (compact)
+                            IconButton.filledTonal(
+                              tooltip: l10n.evaluateActivity,
+                              onPressed: () => onEvaluateActivity(activity),
+                              icon: const Icon(Icons.grid_on_rounded),
+                            )
+                          else
+                            FilledButton.tonalIcon(
+                              onPressed: () => onEvaluateActivity(activity),
+                              icon: const Icon(Icons.grid_on_rounded),
+                              label: Text(l10n.evaluateActivity),
                             ),
-                            onPressed: isSaving
-                                ? null
-                                : () => onEditActivity(activity),
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
-                          IconButton(
-                            tooltip: _label(
-                              context,
-                              'Eliminar actividad',
-                              'Delete activity',
+                          if (compact)
+                            PopupMenuButton<_ActivityAction>(
+                              tooltip: _label(context, 'Acciones', 'Actions'),
+                              onSelected: (action) {
+                                switch (action) {
+                                  case _ActivityAction.edit:
+                                    onEditActivity(activity);
+                                  case _ActivityAction.delete:
+                                    onDeleteActivity(activity);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  value: _ActivityAction.edit,
+                                  enabled: !isSaving,
+                                  child: Text(
+                                    _label(
+                                      context,
+                                      'Editar actividad',
+                                      'Edit activity',
+                                    ),
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: _ActivityAction.delete,
+                                  enabled: !isSaving,
+                                  child: Text(
+                                    _label(
+                                      context,
+                                      'Eliminar actividad',
+                                      'Delete activity',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else ...[
+                            IconButton(
+                              tooltip: _label(
+                                context,
+                                'Editar actividad',
+                                'Edit activity',
+                              ),
+                              onPressed: isSaving
+                                  ? null
+                                  : () => onEditActivity(activity),
+                              icon: const Icon(Icons.edit_outlined),
                             ),
-                            onPressed: isSaving
-                                ? null
-                                : () => onDeleteActivity(activity),
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: Theme.of(context).colorScheme.error,
+                            IconButton(
+                              tooltip: _label(
+                                context,
+                                'Eliminar actividad',
+                                'Delete activity',
+                              ),
+                              onPressed: isSaving
+                                  ? null
+                                  : () => onDeleteActivity(activity),
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -511,6 +563,8 @@ class _ProjectCard extends StatelessWidget {
     );
   }
 }
+
+enum _ActivityAction { edit, delete }
 
 class _ProjectDialog extends StatefulWidget {
   const _ProjectDialog({required this.group, this.initialProject});

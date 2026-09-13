@@ -80,50 +80,64 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
               ],
             ),
             const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                FilledButton.icon(
-                  onPressed: _busy || _restorePrepared ? null : _exportBackup,
-                  icon: const Icon(Icons.save_alt_rounded),
-                  label: Text(strings.createBackup),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: _busy || _restorePrepared
-                      ? null
-                      : _exportPortableBackup,
-                  icon: const Icon(Icons.devices_other_rounded),
-                  label: Text(strings.createPortableBackup),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: _busy || _restorePrepared
-                      ? null
-                      : _startWifiTransfer,
-                  icon: const Icon(Icons.qr_code_2_rounded),
-                  label: Text(strings.startWifiTransfer),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy || _restorePrepared ? null : _selectBackup,
-                  icon: const Icon(Icons.restore_rounded),
-                  label: Text(strings.chooseBackup),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _busy || _restorePrepared
-                      ? null
-                      : _selectPortableBackup,
-                  icon: const Icon(Icons.phonelink_setup_rounded),
-                  label: Text(strings.choosePortableBackup),
-                ),
-                if (Platform.isAndroid)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 560;
+                final actions = <Widget>[
+                  FilledButton.icon(
+                    onPressed: _busy || _restorePrepared ? null : _exportBackup,
+                    icon: const Icon(Icons.save_alt_rounded),
+                    label: Text(strings.createBackup),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: _busy || _restorePrepared
+                        ? null
+                        : _exportPortableBackup,
+                    icon: const Icon(Icons.devices_other_rounded),
+                    label: Text(strings.createPortableBackup),
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: _busy || _restorePrepared
+                        ? null
+                        : _startWifiTransfer,
+                    icon: const Icon(Icons.qr_code_2_rounded),
+                    label: Text(strings.startWifiTransfer),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _restorePrepared ? null : _selectBackup,
+                    icon: const Icon(Icons.restore_rounded),
+                    label: Text(strings.chooseBackup),
+                  ),
                   OutlinedButton.icon(
                     onPressed: _busy || _restorePrepared
                         ? null
-                        : () => context.push('/settings/receive-backup'),
-                    icon: const Icon(Icons.qr_code_scanner_rounded),
-                    label: Text(strings.receiveFromPc),
+                        : _selectPortableBackup,
+                    icon: const Icon(Icons.phonelink_setup_rounded),
+                    label: Text(strings.choosePortableBackup),
                   ),
-              ],
+                  if (Platform.isAndroid)
+                    OutlinedButton.icon(
+                      onPressed: _busy || _restorePrepared
+                          ? null
+                          : () => context.push('/settings/receive-backup'),
+                      icon: const Icon(Icons.qr_code_scanner_rounded),
+                      label: Text(strings.receiveFromPc),
+                    ),
+                ];
+                if (compact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (var index = 0; index < actions.length; index++) ...[
+                        actions[index],
+                        if (index < actions.length - 1)
+                          const SizedBox(height: 10),
+                      ],
+                    ],
+                  );
+                }
+                return Wrap(spacing: 12, runSpacing: 12, children: actions);
+              },
             ),
             if (_busy) ...[
               const SizedBox(height: 18),
@@ -578,16 +592,33 @@ class _PreviewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 130,
-            child: Text(label, style: Theme.of(context).textTheme.labelLarge),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(value)),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 360) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: Theme.of(context).textTheme.labelLarge),
+                const SizedBox(height: 2),
+                Text(value),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 130,
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(value)),
+            ],
+          );
+        },
       ),
     );
   }

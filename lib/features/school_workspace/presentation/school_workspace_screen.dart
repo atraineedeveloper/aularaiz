@@ -114,6 +114,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   .where((candidate) => candidate.id == _activeGroupId)
                   .firstOrNull ??
               groups.first);
+    final compactWorkspace = MediaQuery.sizeOf(context).width < 600;
     return SchoolWorkspaceShell(
       schoolName: setup.school.name,
       schoolYearLabel: setup.schoolYear.label,
@@ -288,14 +289,15 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                         _label(context, 'Mi grupo', 'My class'),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _label(
-                          context,
-                          'Cada grupo es una asignación con sus propias fechas de contratación. Puedes registrar otro grupo en el mismo ciclo si tu contratación cambia, o iniciar el siguiente ciclo escolar cuando te recontraten.',
-                          'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
+                      if (!compactWorkspace) const SizedBox(height: 8),
+                      if (!compactWorkspace)
+                        Text(
+                          _label(
+                            context,
+                            'Cada grupo es una asignación con sus propias fechas de contratación. Puedes registrar otro grupo en el mismo ciclo si tu contratación cambia, o iniciar el siguiente ciclo escolar cuando te recontraten.',
+                            'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
+                          ),
                         ),
-                      ),
                       const SizedBox(height: 16),
                       Wrap(
                         spacing: 8,

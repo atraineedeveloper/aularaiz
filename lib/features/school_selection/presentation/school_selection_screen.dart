@@ -226,7 +226,12 @@ class _SchoolCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(school.name, style: theme.textTheme.titleLarge),
+                    Text(
+                      school.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleLarge,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       details.join(' · '),

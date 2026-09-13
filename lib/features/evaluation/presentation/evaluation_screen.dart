@@ -452,6 +452,8 @@ class _EvaluationMatrix extends StatelessWidget {
               children: [
                 Text(
                   option.activity.title,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
@@ -476,6 +478,8 @@ class _EvaluationMatrix extends StatelessWidget {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       student.student?.displayName ?? student.studentId,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     subtitle: controller.group?.isMultigrade == true
                         ? Text(

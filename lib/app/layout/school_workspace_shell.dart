@@ -70,7 +70,10 @@ class SchoolWorkspaceShell extends StatelessWidget {
             constraints.maxWidth < _mobileBreakpoint && destinations.isNotEmpty;
 
         return Scaffold(
-          appBar: _appBar(showMenu: !desktop && destinations.isNotEmpty),
+          appBar: _appBar(
+            context,
+            showMenu: !desktop && destinations.isNotEmpty,
+          ),
           drawer: desktop ? null : _drawer(context),
           bottomNavigationBar: mobile && destinations.isNotEmpty
               ? _mobileNavigation(context)
@@ -92,7 +95,8 @@ class SchoolWorkspaceShell extends StatelessWidget {
     );
   }
 
-  PreferredSizeWidget _appBar({required bool showMenu}) {
+  PreferredSizeWidget _appBar(BuildContext context, {required bool showMenu}) {
+    final compactActions = MediaQuery.sizeOf(context).width < 430;
     return AppBar(
       leading: showMenu
           ? Builder(
@@ -109,7 +113,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
         groupName: groupName,
       ),
       actions: [
-        if (_canChooseGroup)
+        if (!compactActions && _canChooseGroup)
           PopupMenuButton<String>(
             tooltip: 'Cambiar grupo',
             icon: const Icon(Icons.groups_rounded),
@@ -123,22 +127,65 @@ class SchoolWorkspaceShell extends StatelessWidget {
                 ),
             ],
           ),
-        IconButton(
-          tooltip: 'Cambiar escuela',
-          onPressed: onChooseSchool,
-          icon: const Icon(Icons.swap_horiz_rounded),
-        ),
-        if (onEditSchool != null)
+        if (!compactActions) ...[
           IconButton(
-            tooltip: 'Editar escuela',
-            onPressed: onEditSchool,
-            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Cambiar escuela',
+            onPressed: onChooseSchool,
+            icon: const Icon(Icons.swap_horiz_rounded),
           ),
-        IconButton(
-          tooltip: 'Preferencias',
-          onPressed: onOpenSettings,
-          icon: const Icon(Icons.tune_rounded),
-        ),
+          if (onEditSchool != null)
+            IconButton(
+              tooltip: 'Editar escuela',
+              onPressed: onEditSchool,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          IconButton(
+            tooltip: 'Preferencias',
+            onPressed: onOpenSettings,
+            icon: const Icon(Icons.tune_rounded),
+          ),
+        ] else
+          PopupMenuButton<_WorkspaceAction>(
+            tooltip: 'Acciones',
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (action) {
+              switch (action) {
+                case _WorkspaceAction.chooseSchool:
+                  onChooseSchool();
+                case _WorkspaceAction.editSchool:
+                  onEditSchool?.call();
+                case _WorkspaceAction.settings:
+                  onOpenSettings();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: _WorkspaceAction.chooseSchool,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.swap_horiz_rounded),
+                  title: Text('Cambiar escuela'),
+                ),
+              ),
+              if (onEditSchool != null)
+                const PopupMenuItem(
+                  value: _WorkspaceAction.editSchool,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('Editar escuela'),
+                  ),
+                ),
+              const PopupMenuItem(
+                value: _WorkspaceAction.settings,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.tune_rounded),
+                  title: Text('Preferencias'),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(width: 8),
       ],
     );
@@ -307,6 +354,8 @@ class SchoolWorkspaceShell extends StatelessWidget {
     );
   }
 }
+
+enum _WorkspaceAction { chooseSchool, editSchool, settings }
 
 class _GroupChoiceLabel extends StatelessWidget {
   const _GroupChoiceLabel({required this.choice});

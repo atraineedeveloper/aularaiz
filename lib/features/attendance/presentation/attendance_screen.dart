@@ -142,9 +142,10 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
     final l10n = AppLocalizations.of(context);
     final month = controller.selectedMonth;
     final groupRate = controller.groupSummary.rate;
+    final compact = MediaQuery.sizeOf(context).width < 600;
 
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1320),
@@ -236,14 +237,15 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _label(
-                  context,
-                  'Haz clic en ✓ bajo un día para marcar al grupo presente y luego cambia sólo las excepciones. También puedes elegir directamente P, A, R o J en cada alumno.',
-                  'Use ✓ under a date to mark the class present, then change only exceptions. You can also choose P, A, R or J for each student.',
+              if (!compact) const SizedBox(height: 8),
+              if (!compact)
+                Text(
+                  _label(
+                    context,
+                    'Haz clic en ✓ bajo un día para marcar al grupo presente y luego cambia sólo las excepciones. También puedes elegir directamente P, A, R o J en cada alumno.',
+                    'Use ✓ under a date to mark the class present, then change only exceptions. You can also choose P, A, R or J for each student.',
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               if (controller.group?.isMultigrade == true)
                 GradeFilter(
@@ -371,58 +373,61 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                     ),
                   ),
                 ),
-              const SizedBox(height: 10),
-              Text(
-                _label(
-                  context,
-                  'Bajo cada fecha: asistentes / registrados (incluye retardos). Abre Opciones del día para borrar un registro.',
-                  'Under each date: attended / recorded (includes late arrivals). Open Day options to delete a record.',
+              if (!compact) const SizedBox(height: 10),
+              if (!compact)
+                Text(
+                  _label(
+                    context,
+                    'Bajo cada fecha: asistentes / registrados (incluye retardos). Abre Opciones del día para borrar un registro.',
+                    'Under each date: attended / recorded (includes late arrivals). Open Day options to delete a record.',
+                  ),
                 ),
-              ),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _LegendItem(
-                    status: AttendanceStatus.present,
-                    label: _label(context, 'P = Presente', 'P = Present'),
-                  ),
-                  _LegendItem(
-                    status: AttendanceStatus.absent,
-                    label: _label(context, 'A = Ausente', 'A = Absent'),
-                  ),
-                  _LegendItem(
-                    status: AttendanceStatus.late,
-                    label: _label(context, 'R = Retardo', 'R = Late'),
-                  ),
-                  _LegendItem(
-                    status: AttendanceStatus.justifiedAbsence,
-                    label: _label(
-                      context,
-                      'J = Falta justificada',
-                      'J = Justified absence',
+              if (!compact)
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _LegendItem(
+                      status: AttendanceStatus.present,
+                      label: _label(context, 'P = Presente', 'P = Present'),
                     ),
-                  ),
-                  Text(
-                    _label(
-                      context,
-                      '— = no inscrito / sin pase de lista',
-                      '— = not enrolled / no attendance saved',
+                    _LegendItem(
+                      status: AttendanceStatus.absent,
+                      label: _label(context, 'A = Ausente', 'A = Absent'),
                     ),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _label(
-                  context,
-                  'El porcentaje cuenta Presente y Retardo como asistencia y usa sólo los días con pase de lista registrado.',
-                  'The percentage counts Present and Late as attendance and uses only days with recorded attendance.',
+                    _LegendItem(
+                      status: AttendanceStatus.late,
+                      label: _label(context, 'R = Retardo', 'R = Late'),
+                    ),
+                    _LegendItem(
+                      status: AttendanceStatus.justifiedAbsence,
+                      label: _label(
+                        context,
+                        'J = Falta justificada',
+                        'J = Justified absence',
+                      ),
+                    ),
+                    Text(
+                      _label(
+                        context,
+                        '— = no inscrito / sin pase de lista',
+                        '— = not enrolled / no attendance saved',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
                 ),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (!compact) const SizedBox(height: 4),
+              if (!compact)
+                Text(
+                  _label(
+                    context,
+                    'El porcentaje cuenta Presente y Retardo como asistencia y usa sólo los días con pase de lista registrado.',
+                    'The percentage counts Present and Late as attendance and uses only days with recorded attendance.',
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
             ],
           ),
         ),

@@ -457,19 +457,28 @@ class _GroupReportCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: onGenerate,
               icon: const Icon(Icons.picture_as_pdf_outlined),
-              label: Text(l10n.reportsGeneratePdf),
+              label: Text(
+                l10n.reportsGeneratePdf,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: onExportCsv,
               icon: const Icon(Icons.table_rows_outlined),
-              label: Text(l10n.reportsExportCsv),
+              label: Text(
+                l10n.reportsExportCsv,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: onExportXlsx,
               icon: const Icon(Icons.grid_on_outlined),
-              label: Text(l10n.reportsExportXlsx),
+              label: Text(
+                l10n.reportsExportXlsx,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -524,7 +533,11 @@ class _StudentReportsList extends StatelessWidget {
             return Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('${student.listNumber}')),
-                title: Text(student.displayName),
+                title: Text(
+                  student.displayName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 subtitle: Text(
                   '${student.grade.number}° · '
                   '${l10n.reportsAttendance}: ${student.attendance.totalMarked} · '

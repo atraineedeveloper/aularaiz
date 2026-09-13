@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:aularaiz/application/backup/create_backup.dart';
@@ -40,6 +41,11 @@ abstract interface class BackupRestoreGateway {
   Future<BackupSelection?> selectBackup();
 
   Future<BackupSelection?> selectPortableBackup({required String transferCode});
+
+  Future<StagedRestore> receivePortableBackupFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  });
 
   Future<StagedRestore> stageRestore(BackupSelection selection);
 }
@@ -151,12 +157,57 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
+  Future<StagedRestore> receivePortableBackupFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  }) async {
+    final bytes = await _downloadPortableBackup(downloadUrl);
+    final protector = PortableBackupProtector(transferCode: transferCode);
+    final service = _restoreStagingService.withProtector(protector);
+    return service.stage(bytes);
+  }
+
+  @override
   Future<StagedRestore> stageRestore(BackupSelection selection) {
     final protector = selection.restoreProtector;
     final service = protector == null
         ? _restoreStagingService
         : _restoreStagingService.withProtector(protector);
     return service.stage(selection.bytes);
+  }
+
+  Future<Uint8List> _downloadPortableBackup(String downloadUrl) async {
+    final uri = Uri.tryParse(downloadUrl);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      throw const FormatException('Transfer link is not a valid HTTP URL.');
+    }
+
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      if (response.statusCode != HttpStatus.ok) {
+        throw HttpException(
+          'Transfer download returned HTTP ${response.statusCode}.',
+          uri: uri,
+        );
+      }
+
+      const maxBytes = 250 * 1024 * 1024;
+      final builder = BytesBuilder(copy: false);
+      var total = 0;
+      await for (final chunk in response) {
+        total += chunk.length;
+        if (total > maxBytes) {
+          throw const HttpException('Transfer backup is too large.');
+        }
+        builder.add(chunk);
+      }
+      return builder.takeBytes();
+    } finally {
+      client.close(force: true);
+    }
   }
 }
 

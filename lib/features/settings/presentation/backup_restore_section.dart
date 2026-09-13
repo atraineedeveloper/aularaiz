@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -112,6 +115,14 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                   icon: const Icon(Icons.phonelink_setup_rounded),
                   label: Text(strings.choosePortableBackup),
                 ),
+                if (Platform.isAndroid)
+                  OutlinedButton.icon(
+                    onPressed: _busy || _restorePrepared
+                        ? null
+                        : () => context.push('/settings/receive-backup'),
+                    icon: const Icon(Icons.qr_code_scanner_rounded),
+                    label: Text(strings.receiveFromPc),
+                  ),
               ],
             ),
             if (_busy) ...[
@@ -707,6 +718,7 @@ final class _BackupRestoreStrings {
       spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
   String get choosePortableBackup =>
       spanish ? 'Restaurar copia portable' : 'Restore portable backup';
+  String get receiveFromPc => spanish ? 'Recibir desde PC' : 'Receive from PC';
   String get working =>
       spanish ? 'Procesando de forma segura…' : 'Processing safely…';
   String get backupSaved => spanish

@@ -255,6 +255,15 @@ final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
+  Future<StagedRestore> receivePortableBackupFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  }) async {
+    stageCalls += 1;
+    return StagedRestore(requestId: 'test-request', preview: selection.preview);
+  }
+
+  @override
   Future<StagedRestore> stageRestore(BackupSelection selection) async {
     stageCalls += 1;
     return StagedRestore(requestId: 'test-request', preview: selection.preview);

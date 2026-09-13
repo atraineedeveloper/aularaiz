@@ -1,0 +1,70 @@
+name: Publish Android Internal Testing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.47.1'
+
+jobs:
+  publish-internal:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_PATH: upload-keystore.jks
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Require publishing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          for name in \
+            ANDROID_KEYSTORE_BASE64 \
+            ANDROID_KEYSTORE_PASSWORD \
+            ANDROID_KEY_ALIAS \
+            ANDROID_KEY_PASSWORD \
+            GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+          do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::$name is required to publish Android internal testing."
+              exit 1
+            fi
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          chmod 600 android/app/upload-keystore.jks
+
+      - run: flutter pub get
+      - run: dart run build_runner build
+      - run: flutter gen-l10n
+      - run: flutter build appbundle --release
+
+      - name: Install fastlane
+        working-directory: android
+        run: bundle install
+
+      - name: Upload to Google Play Internal Testing
+        working-directory: android
+        run: bundle exec fastlane internal
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/upload-keystore.jks

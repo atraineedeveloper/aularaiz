@@ -27,6 +27,9 @@ windows/flutter/ephemeral/
 key.properties
 .env
 .env.*
+development-*.json
+google-play-service-account*.json
+play-store-service-account*.json
 
 # OS
 .DS_Store

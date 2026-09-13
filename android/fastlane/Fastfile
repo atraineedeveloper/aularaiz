@@ -1,0 +1,24 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload the signed AulaRaíz App Bundle to Google Play Internal Testing"
+  lane :internal do |options|
+    aab_path = options[:aab_path] || "../build/app/outputs/bundle/release/app-release.aab"
+    service_account_json = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"]
+
+    UI.user_error!("AAB not found at #{aab_path}") unless File.exist?(aab_path)
+    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if service_account_json.to_s.strip.empty?
+
+    upload_to_play_store(
+      package_name: "com.mindtzijib.aularaiz",
+      track: "internal",
+      aab: aab_path,
+      json_key_data: service_account_json,
+      release_status: "completed",
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+end

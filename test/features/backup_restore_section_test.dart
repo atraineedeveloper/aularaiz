@@ -73,6 +73,27 @@ void main() {
     expect(find.text('Choose backup to restore'), findsOneWidget);
   });
 
+  testWidgets('Wi-Fi transfer action shows QR dialog and transfer code', (
+    tester,
+  ) async {
+    final gateway = _FakeBackupRestoreGateway(selection: _selection());
+
+    await tester.pumpWidget(
+      _host(gateway: gateway, locale: const Locale('es')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Vincular celular por Wi-Fi'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vincular celular por Wi-Fi'), findsWidgets);
+    expect(find.text('ABCD-EFGH-JKLM-NPQR'), findsOneWidget);
+    expect(
+      find.textContaining('http://192.168.1.10:1234/aularaiz-transfer'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('invalid backup error is actionable and does not stage restore', (
     tester,
   ) async {

@@ -268,11 +268,13 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(14),
-                        child: QrImageView(
-                          data: activeSession.downloadUrl,
-                          version: QrVersions.auto,
-                          size: 220,
-                          backgroundColor: Colors.white,
+                        child: SizedBox.square(
+                          dimension: 220,
+                          child: QrImageView(
+                            data: activeSession.downloadUrl,
+                            version: QrVersions.auto,
+                            backgroundColor: Colors.white,
+                          ),
                         ),
                       ),
                     ),

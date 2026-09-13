@@ -17,6 +17,7 @@ lib/l10n/generated/
 
 # Platform-generated local files
 android/.gradle/
+android/.kotlin/
 android/local.properties
 windows/flutter/ephemeral/
 

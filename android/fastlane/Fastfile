@@ -1,8 +1,8 @@
 default_platform(:android)
 
 platform :android do
-  desc "Upload the signed AulaRaíz App Bundle to Google Play Internal Testing"
-  lane :internal do |options|
+  desc "Upload the signed AulaRaíz App Bundle to Google Play Closed Testing"
+  lane :closed_testing do |options|
     aab_path = options[:aab_path] || File.expand_path("../../build/app/outputs/bundle/release/app-release.aab", __dir__)
     service_account_json = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"]
 
@@ -11,7 +11,7 @@ platform :android do
 
     upload_to_play_store(
       package_name: "com.mindtzijib.aularaiz",
-      track: "internal",
+      track: "alpha",
       aab: aab_path,
       json_key_data: service_account_json,
       release_status: "completed",
@@ -20,5 +20,10 @@ platform :android do
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
+  end
+
+  desc "Backward-compatible alias for the publishing workflow"
+  lane :internal do |options|
+    closed_testing(options)
   end
 end

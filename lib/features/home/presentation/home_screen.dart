@@ -102,7 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final setups = snapshot.data ?? const <InitialSchoolSetup>[];
-        if (setups.isEmpty || _creatingSchool) {
+        if (_creatingSchool) {
           _setWindowTitle(_windowTitle('Configuración inicial'));
           return ChangeNotifierProvider(
             create: (context) => SchoolSetupController(
@@ -114,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         final selectedSchoolId = _selectedSchoolId;
-        if (selectedSchoolId == null ||
+        if (setups.isEmpty ||
+            selectedSchoolId == null ||
             !setups.any((setup) => setup.school.id == selectedSchoolId)) {
           _setWindowTitle(_windowTitle('Mis escuelas'));
           return SchoolSelectionScreen(

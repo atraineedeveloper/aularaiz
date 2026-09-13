@@ -17,7 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('renders the Spanish first-run school setup', (tester) async {
+  testWidgets('renders the Spanish first-run school picker', (tester) async {
     final settings = AppSettingsController()..setLocale(const Locale('es'));
     final setupRepository = _EmptySchoolSetupRepository();
     final groupRepository = _EmptyTeachingGroupRepository();
@@ -60,6 +60,12 @@ void main() {
         child: const AulaRaizApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mis escuelas'), findsWidgets);
+    expect(find.text('Agregar escuela'), findsWidgets);
+
+    await tester.tap(find.text('Agregar escuela').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Configura tu escuela'), findsOneWidget);

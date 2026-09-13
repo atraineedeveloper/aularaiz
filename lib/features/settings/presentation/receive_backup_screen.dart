@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
@@ -18,6 +20,8 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
   bool _processing = false;
   String? _status;
   bool _statusIsError = false;
+
+  bool get _canScanQr => Platform.isAndroid || Platform.isIOS;
 
   @override
   void initState() {
@@ -51,50 +55,77 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
-            Text(strings.instructions),
-            const SizedBox(height: 18),
-            AspectRatio(
-              aspectRatio: 1,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    MobileScanner(
-                      controller: _scannerController,
-                      onDetect: _onDetect,
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.primary,
-                          width: 3,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    if (_processing)
-                      ColoredBox(
-                        color: Colors.black54,
-                        child: Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const CircularProgressIndicator(),
-                              const SizedBox(height: 16),
-                              Text(
-                                strings.processing,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+            Text(
+              _canScanQr ? strings.instructions : strings.manualInstructions,
             ),
             const SizedBox(height: 18),
+            if (_canScanQr) ...[
+              AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      MobileScanner(
+                        controller: _scannerController,
+                        onDetect: _onDetect,
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 3,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      if (_processing)
+                        ColoredBox(
+                          color: Colors.black54,
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const CircularProgressIndicator(),
+                                const SizedBox(height: 16),
+                                Text(
+                                  strings.processing,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+            ] else ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.link_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          strings.manualOnlyBody,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+            ],
             OutlinedButton.icon(
               onPressed: _processing ? null : _enterLinkManually,
               icon: const Icon(Icons.link_rounded),
@@ -164,7 +195,7 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
       _statusIsError = false;
     });
     try {
-      await _scannerController.stop();
+      if (_canScanQr) await _scannerController.stop();
       await gateway.receivePortableBackupFromUrl(
         downloadUrl: url,
         transferCode: code,
@@ -194,7 +225,7 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
         _status = _friendlyError(error, strings);
         _statusIsError = true;
       });
-      await _scannerController.start();
+      if (_canScanQr) await _scannerController.start();
     } finally {
       if (mounted) {
         setState(() => _processing = false);
@@ -285,27 +316,35 @@ final class _ReceiveBackupStrings {
 
   final bool spanish;
 
-  String get title => spanish ? 'Recibir desde PC' : 'Receive from PC';
-  String get heading =>
-      spanish ? 'Escanea el QR de tu computadora' : 'Scan your computer QR';
+  String get title => spanish ? 'Recibir por Wi-Fi' : 'Receive over Wi-Fi';
+  String get heading => spanish
+      ? 'Recibe datos de otro dispositivo'
+      : 'Receive data from another device';
   String get instructions => spanish
-      ? 'En tu PC abre Preferencias → Vincular celular por Wi-Fi. Mantén esa ventana abierta mientras este celular recibe la copia.'
-      : 'On your PC, open Preferences → Link phone over Wi-Fi. Keep that window open while this phone receives the backup.';
+      ? 'En el otro dispositivo abre Preferencias → Enviar a otro dispositivo por Wi-Fi. Mantén esa ventana abierta mientras este equipo recibe la copia.'
+      : 'On the other device, open Preferences → Send to another device over Wi-Fi. Keep that window open while this device receives the backup.';
+  String get manualInstructions => spanish
+      ? 'En el otro dispositivo abre Preferencias → Enviar a otro dispositivo por Wi-Fi. Copia la liga de descarga y el código de transferencia para pegarlos aquí.'
+      : 'On the other device, open Preferences → Send to another device over Wi-Fi. Copy the download link and transfer code, then paste them here.';
+  String get manualOnlyBody => spanish
+      ? 'Este equipo recibirá los datos pegando la liga de descarga. Si el otro dispositivo muestra un QR, también muestra la misma liga debajo del código.'
+      : 'This device receives data by pasting the download link. If the other device shows a QR, it also shows the same link below the code.';
   String get processing =>
       spanish ? 'Recibiendo y validando copia…' : 'Receiving and validating…';
   String get manualLink =>
       spanish ? 'Pegar liga manualmente' : 'Paste link manually';
   String get manualLinkTitle =>
       spanish ? 'Pegar liga de transferencia' : 'Paste transfer link';
-  String get manualLinkLabel =>
-      spanish ? 'Liga mostrada en la PC' : 'Link shown on the PC';
+  String get manualLinkLabel => spanish
+      ? 'Liga mostrada en el otro dispositivo'
+      : 'Link shown on the other device';
   String get transferCodeTitle =>
       spanish ? 'Código de transferencia' : 'Transfer code';
   String get transferCodeLabel =>
       spanish ? 'Código de transferencia' : 'Transfer code';
   String get transferCodeHelper => spanish
-      ? 'Es el código que aparece debajo del QR en la PC.'
-      : 'This is the code shown under the QR on the PC.';
+      ? 'Es el código que aparece debajo del QR o junto a la liga.'
+      : 'This is the code shown under the QR or next to the link.';
   String get cancel => spanish ? 'Cancelar' : 'Cancel';
   String get continueAction => spanish ? 'Continuar' : 'Continue';
   String get preparedTitle =>

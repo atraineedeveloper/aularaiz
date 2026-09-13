@@ -115,14 +115,17 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                     icon: const Icon(Icons.phonelink_setup_rounded),
                     label: Text(strings.choosePortableBackup),
                   ),
-                  if (Platform.isAndroid)
-                    OutlinedButton.icon(
-                      onPressed: _busy || _restorePrepared
-                          ? null
-                          : () => context.push('/settings/receive-backup'),
-                      icon: const Icon(Icons.qr_code_scanner_rounded),
-                      label: Text(strings.receiveFromPc),
+                  OutlinedButton.icon(
+                    onPressed: _busy || _restorePrepared
+                        ? null
+                        : () => context.push('/settings/receive-backup'),
+                    icon: Icon(
+                      Platform.isAndroid
+                          ? Icons.qr_code_scanner_rounded
+                          : Icons.link_rounded,
                     ),
+                    label: Text(strings.receiveFromDevice),
+                  ),
                 ];
                 if (compact) {
                   return Column(
@@ -743,13 +746,15 @@ final class _BackupRestoreStrings {
   String get createPortableBackup => spanish
       ? 'Crear copia para otro dispositivo'
       : 'Create backup for another device';
-  String get startWifiTransfer =>
-      spanish ? 'Vincular celular por Wi-Fi' : 'Link phone over Wi-Fi';
+  String get startWifiTransfer => spanish
+      ? 'Enviar a otro dispositivo por Wi-Fi'
+      : 'Send to another device over Wi-Fi';
   String get chooseBackup =>
       spanish ? 'Elegir copia para restaurar' : 'Choose backup to restore';
   String get choosePortableBackup =>
       spanish ? 'Restaurar copia portable' : 'Restore portable backup';
-  String get receiveFromPc => spanish ? 'Recibir desde PC' : 'Receive from PC';
+  String get receiveFromDevice =>
+      spanish ? 'Recibir por Wi-Fi' : 'Receive over Wi-Fi';
   String get working =>
       spanish ? 'Procesando de forma segura…' : 'Processing safely…';
   String get backupSaved => spanish
@@ -802,14 +807,14 @@ final class _BackupRestoreStrings {
       ? 'Es el código mostrado al crear la copia portable.'
       : 'This is the code shown when the portable backup was created.';
   String get wifiTransferTitle =>
-      spanish ? 'Vincular celular por Wi-Fi' : 'Link phone over Wi-Fi';
+      spanish ? 'Enviar datos por Wi-Fi' : 'Send data over Wi-Fi';
   String get wifiTransferBody => spanish
-      ? 'Conecta tu celular a la misma red Wi-Fi, escanea el QR o abre la liga, descarga la copia y usa el código de transferencia para restaurarla.'
-      : 'Connect your phone to the same Wi-Fi network, scan the QR or open the link, download the backup, and use the transfer code to restore it.';
+      ? 'Conecta el otro dispositivo a la misma red Wi-Fi. En ese dispositivo abre Recibir por Wi-Fi, escanea el QR o pega la liga, y usa el código de transferencia para restaurar los datos.'
+      : 'Connect the other device to the same Wi-Fi network. On that device, open Receive over Wi-Fi, scan the QR or paste the link, and use the transfer code to restore the data.';
   String get downloadUrlLabel => spanish ? 'Liga de descarga' : 'Download link';
   String get wifiTransferWarning => spanish
-      ? 'Mantén esta ventana abierta mientras descargas la copia. Al cerrarla, AulaRaíz apagará la transferencia local.'
-      : 'Keep this window open while downloading the backup. When you close it, AulaRaíz will stop the local transfer.';
+      ? 'Mantén esta ventana abierta mientras el otro dispositivo recibe la copia. Al cerrarla, AulaRaíz apagará la transferencia local.'
+      : 'Keep this window open while the other device receives the backup. When you close it, AulaRaíz will stop the local transfer.';
   String get stopWifiTransfer =>
       spanish ? 'Cerrar transferencia' : 'Close transfer';
   String get invalidBackup => spanish

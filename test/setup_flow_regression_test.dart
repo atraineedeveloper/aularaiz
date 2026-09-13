@@ -35,6 +35,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _openSchoolSetup(tester);
+
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Nombre de la escuela'),
         'Primaria de prueba',
@@ -105,6 +107,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+    expect(find.text('Mis escuelas'), findsWidgets);
+    expect(find.text('Agregar escuela'), findsWidgets);
+
+    await _openSchoolSetup(tester);
     expect(find.text('Configura tu escuela'), findsOneWidget);
 
     final submit = find.text('Guardar y comenzar');
@@ -130,6 +136,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    await _openSchoolSetup(tester);
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Nombre de la escuela'),
@@ -212,6 +220,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _openSchoolSetup(tester);
+
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Nombre completo del docente'),
         'María Pérez López',
@@ -275,6 +285,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await _openSchoolSetup(tester);
+
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Nombre completo del docente'),
         'María Pérez López',
@@ -308,6 +320,14 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+Future<void> _openSchoolSetup(WidgetTester tester) async {
+  final addSchool = find.text('Agregar escuela').last;
+  await tester.ensureVisible(addSchool);
+  await tester.pumpAndSettle();
+  await tester.tap(addSchool);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _confirmDatePicker(WidgetTester tester) async {

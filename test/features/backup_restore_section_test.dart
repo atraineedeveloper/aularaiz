@@ -83,10 +83,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Vincular celular por Wi-Fi'));
+    await tester.tap(find.text('Enviar a otro dispositivo por Wi-Fi'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vincular celular por Wi-Fi'), findsWidgets);
+    expect(find.text('Enviar datos por Wi-Fi'), findsOneWidget);
     expect(find.text('ABCD-EFGH-JKLM-NPQR'), findsOneWidget);
     expect(
       find.textContaining('http://192.168.1.10:1234/aularaiz-transfer'),

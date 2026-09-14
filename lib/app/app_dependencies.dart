@@ -57,6 +57,7 @@ import 'package:aularaiz/infrastructure/backup/device_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/drift_database_snapshotter.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -159,6 +160,7 @@ class AppDependencies extends StatelessWidget {
         Provider<ReportPublicationService>(
           create: (_) => const ReportPublicationService(),
         ),
+        Provider<SyncDeviceRegistry>(create: (_) => SyncDeviceRegistry()),
         Provider<BackupProtector>(
           create: (_) => DeviceBackupProtector(
             keyStore: const SecureBackupEncryptionKeyStore(),
@@ -185,6 +187,7 @@ class AppDependencies extends StatelessWidget {
                 protector: context.read<BackupProtector>(),
               ),
               publicationService: context.read<ReportPublicationService>(),
+              syncDeviceRegistry: context.read<SyncDeviceRegistry>(),
             );
           },
         ),

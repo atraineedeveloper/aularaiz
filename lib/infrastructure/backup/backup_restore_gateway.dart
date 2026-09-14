@@ -1,14 +1,19 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/application/contracts/database_snapshotter.dart';
+import 'package:aularaiz/data/local/storage_layout.dart';
+import 'package:aularaiz/data/local/storage_profile.dart';
+import 'package:aularaiz/infrastructure/backup/backup_content_summary_reader.dart';
 import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
 import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
 import 'package:file_selector/file_selector.dart';
 
 final class BackupSelection {
@@ -42,6 +47,13 @@ abstract interface class BackupRestoreGateway {
 
   Future<BackupSelection?> selectPortableBackup({required String transferCode});
 
+  Future<BackupContentSummary> currentContentSummary();
+
+  Future<BackupSelection> receivePortableBackupSelectionFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  });
+
   Future<StagedRestore> receivePortableBackupFromUrl({
     required String downloadUrl,
     required String transferCode,
@@ -58,12 +70,17 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     required String storageProfile,
     required RestoreStagingService restoreStagingService,
     required ReportPublicationService publicationService,
+    SyncDeviceRegistry? syncDeviceRegistry,
+    BackupContentSummaryReader summaryReader =
+        const BackupContentSummaryReader(),
   }) : _createBackup = createBackup,
        _snapshotter = snapshotter,
        _schemaVersion = schemaVersion,
        _storageProfile = storageProfile,
        _restoreStagingService = restoreStagingService,
-       _publicationService = publicationService;
+       _publicationService = publicationService,
+       _syncDeviceRegistry = syncDeviceRegistry,
+       _summaryReader = summaryReader;
 
   final CreateBackup _createBackup;
   final DatabaseSnapshotter _snapshotter;
@@ -71,6 +88,9 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   final String _storageProfile;
   final RestoreStagingService _restoreStagingService;
   final ReportPublicationService _publicationService;
+  final SyncDeviceRegistry? _syncDeviceRegistry;
+  final BackupContentSummaryReader _summaryReader;
+  final AulaRaizBackupCodec _codec = const AulaRaizBackupCodec();
 
   @override
   Future<bool> hasPendingRestore() {
@@ -112,11 +132,14 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
-  Future<PortableBackupTransferSession> startPortableBackupTransfer() {
+  Future<PortableBackupTransferSession> startPortableBackupTransfer() async {
+    final identity = await _syncDeviceRegistry?.identity();
     return LocalBackupTransferServer(
       snapshotter: _snapshotter,
       schemaVersion: _schemaVersion,
       storageProfile: _storageProfile,
+      sourceDeviceId: identity?.id,
+      sourceDeviceName: identity?.name,
     ).start();
   }
 
@@ -146,14 +169,25 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     if (file == null) return null;
 
     final protector = PortableBackupProtector(transferCode: transferCode);
-    final service = _restoreStagingService.withProtector(protector);
     final bytes = await file.readAsBytes();
-    final preview = await service.inspect(bytes);
-    return BackupSelection(
-      bytes: bytes,
-      preview: preview,
-      restoreProtector: protector,
-    );
+    return _inspectSelection(bytes: bytes, protector: protector);
+  }
+
+  @override
+  Future<BackupContentSummary> currentContentSummary() async {
+    final snapshot = await _snapshotter.createSnapshot();
+    final summary = await _summaryReader.read(snapshot);
+    return summary.copyWith(localModifiedAtUtc: await _currentModifiedAtUtc());
+  }
+
+  @override
+  Future<BackupSelection> receivePortableBackupSelectionFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  }) async {
+    final bytes = await _downloadPortableBackup(downloadUrl);
+    final protector = PortableBackupProtector(transferCode: transferCode);
+    return _inspectSelection(bytes: bytes, protector: protector);
   }
 
   @override
@@ -161,10 +195,11 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     required String downloadUrl,
     required String transferCode,
   }) async {
-    final bytes = await _downloadPortableBackup(downloadUrl);
-    final protector = PortableBackupProtector(transferCode: transferCode);
-    final service = _restoreStagingService.withProtector(protector);
-    return service.stage(bytes);
+    final selection = await receivePortableBackupSelectionFromUrl(
+      downloadUrl: downloadUrl,
+      transferCode: transferCode,
+    );
+    return stageRestore(selection);
   }
 
   @override
@@ -174,6 +209,34 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
         ? _restoreStagingService
         : _restoreStagingService.withProtector(protector);
     return service.stage(selection.bytes);
+  }
+
+  Future<BackupSelection> _inspectSelection({
+    required Uint8List bytes,
+    required BackupProtector protector,
+  }) async {
+    final service = _restoreStagingService.withProtector(protector);
+    final preview = await service.inspect(bytes);
+    final clearBytes = await protector.unprotect(bytes);
+    final inspection = _codec.inspect(clearBytes);
+    final summary = await _summaryReader.read(inspection.databaseBytes);
+    return BackupSelection(
+      bytes: bytes,
+      preview: RestorePreview(manifest: preview.manifest, summary: summary),
+      restoreProtector: protector,
+    );
+  }
+
+  Future<DateTime?> _currentModifiedAtUtc() async {
+    final profile = switch (_storageProfile) {
+      'production' => StorageProfile.production,
+      'demo' => StorageProfile.demo,
+      _ => null,
+    };
+    if (profile == null) return null;
+    final layout = await AulaRaizStorageLayout.resolve(profile);
+    if (!await layout.databaseFile.exists()) return null;
+    return layout.databaseFile.lastModified().then((value) => value.toUtc());
   }
 
   Future<Uint8List> _downloadPortableBackup(String downloadUrl) async {

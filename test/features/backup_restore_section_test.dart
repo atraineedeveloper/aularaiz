@@ -255,6 +255,30 @@ final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
   }
 
   @override
+  Future<BackupContentSummary> currentContentSummary() async {
+    return const BackupContentSummary(
+      schools: 1,
+      schoolYears: 1,
+      groups: 1,
+      students: 12,
+      attendanceDays: 3,
+      projects: 1,
+      activities: 2,
+      evaluations: 24,
+      literacyAssessments: 4,
+      schoolNames: <String>['Primaria de prueba'],
+    );
+  }
+
+  @override
+  Future<BackupSelection> receivePortableBackupSelectionFromUrl({
+    required String downloadUrl,
+    required String transferCode,
+  }) async {
+    return selection;
+  }
+
+  @override
   Future<StagedRestore> receivePortableBackupFromUrl({
     required String downloadUrl,
     required String transferCode,

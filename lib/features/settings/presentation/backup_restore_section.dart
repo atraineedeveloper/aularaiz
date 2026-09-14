@@ -5,6 +5,7 @@ import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
+import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -167,6 +168,8 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
               const SizedBox(height: 18),
               _PreparedRestorePanel(strings: strings),
             ],
+            const SizedBox(height: 18),
+            _LinkedDevicesPanel(strings: strings),
           ],
         ),
       ),
@@ -272,6 +275,12 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
     });
     if (!mounted || session == null || startError != null) return;
     final activeSession = session!;
+    final qrPayload = buildPortableBackupTransferQrPayload(
+      downloadUrl: activeSession.downloadUrl,
+      transferCode: activeSession.transferCode,
+      sourceDeviceId: activeSession.sourceDeviceId,
+      sourceDeviceName: activeSession.sourceDeviceName,
+    );
 
     try {
       await showDialog<void>(
@@ -299,7 +308,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                         child: SizedBox.square(
                           dimension: 220,
                           child: QrImageView(
-                            data: activeSession.downloadUrl,
+                            data: qrPayload,
                             version: QrVersions.auto,
                             backgroundColor: Colors.white,
                           ),
@@ -512,6 +521,81 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
       };
     }
     return strings.genericError;
+  }
+}
+
+class _LinkedDevicesPanel extends StatelessWidget {
+  const _LinkedDevicesPanel({required this.strings});
+
+  final _BackupRestoreStrings strings;
+
+  @override
+  Widget build(BuildContext context) {
+    final registry = _maybeRegistry(context);
+    return FutureBuilder<List<LinkedSyncDevice>>(
+      future:
+          registry?.listLinkedDevices() ??
+          Future.value(const <LinkedSyncDevice>[]),
+      builder: (context, snapshot) {
+        final devices = snapshot.data ?? const <LinkedSyncDevice>[];
+        final scheme = Theme.of(context).colorScheme;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.outlineVariant),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.devices_rounded, color: scheme.primary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        strings.linkedDevicesTitle,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (snapshot.connectionState != ConnectionState.done)
+                  const LinearProgressIndicator()
+                else if (devices.isEmpty)
+                  Text(strings.noLinkedDevices)
+                else
+                  for (final device in devices) ...[
+                    const SizedBox(height: 10),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.phonelink_rounded),
+                      title: Text(device.name),
+                      subtitle: Text(
+                        strings.linkedDeviceSubtitle(
+                          lastSeenAtUtc: device.lastSeenAtUtc,
+                          lastReceivedBackupCreatedAtUtc:
+                              device.lastReceivedBackupCreatedAtUtc,
+                        ),
+                      ),
+                    ),
+                  ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  SyncDeviceRegistry? _maybeRegistry(BuildContext context) {
+    try {
+      return context.read<SyncDeviceRegistry>();
+    } on ProviderNotFoundException {
+      return null;
+    }
   }
 }
 
@@ -755,6 +839,29 @@ final class _BackupRestoreStrings {
       spanish ? 'Restaurar copia portable' : 'Restore portable backup';
   String get receiveFromDevice =>
       spanish ? 'Recibir por Wi-Fi' : 'Receive over Wi-Fi';
+  String get linkedDevicesTitle =>
+      spanish ? 'Dispositivos vinculados' : 'Linked devices';
+  String get noLinkedDevices => spanish
+      ? 'Aún no hay dispositivos vinculados. Escanea un QR de AulaRaíz para crear el vínculo.'
+      : 'No linked devices yet. Scan an AulaRaíz QR to create the link.';
+  String linkedDeviceSubtitle({
+    required DateTime lastSeenAtUtc,
+    DateTime? lastReceivedBackupCreatedAtUtc,
+  }) {
+    final seen = _dateTime(lastSeenAtUtc);
+    final received = lastReceivedBackupCreatedAtUtc == null
+        ? null
+        : _dateTime(lastReceivedBackupCreatedAtUtc);
+    if (spanish) {
+      return received == null
+          ? 'Visto por última vez: $seen'
+          : 'Visto: $seen · Última copia recibida: $received';
+    }
+    return received == null
+        ? 'Last seen: $seen'
+        : 'Seen: $seen · Last received backup: $received';
+  }
+
   String get working =>
       spanish ? 'Procesando de forma segura…' : 'Processing safely…';
   String get backupSaved => spanish
@@ -809,8 +916,8 @@ final class _BackupRestoreStrings {
   String get wifiTransferTitle =>
       spanish ? 'Enviar datos por Wi-Fi' : 'Send data over Wi-Fi';
   String get wifiTransferBody => spanish
-      ? 'Conecta el otro dispositivo a la misma red Wi-Fi. En ese dispositivo abre Recibir por Wi-Fi, escanea el QR o pega la liga, y usa el código de transferencia para restaurar los datos.'
-      : 'Connect the other device to the same Wi-Fi network. On that device, open Receive over Wi-Fi, scan the QR or paste the link, and use the transfer code to restore the data.';
+      ? 'Conecta el otro dispositivo a la misma red Wi-Fi. En ese dispositivo abre Recibir por Wi-Fi y escanea el QR. Si no puedes escanear, pega la liga y escribe el código manualmente.'
+      : 'Connect the other device to the same Wi-Fi network. On that device, open Receive over Wi-Fi and scan the QR. If scanning is not available, paste the link and enter the code manually.';
   String get downloadUrlLabel => spanish ? 'Liga de descarga' : 'Download link';
   String get wifiTransferWarning => spanish
       ? 'Mantén esta ventana abierta mientras el otro dispositivo recibe la copia. Al cerrarla, AulaRaíz apagará la transferencia local.'
@@ -841,4 +948,11 @@ final class _BackupRestoreStrings {
   String get genericError => spanish
       ? 'No se pudo completar la operación. Tus datos actuales no fueron reemplazados.'
       : 'The operation could not be completed. Your current data was not replaced.';
+
+  String _dateTime(DateTime value) {
+    final local = value.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} '
+        '${two(local.hour)}:${two(local.minute)}';
+  }
 }

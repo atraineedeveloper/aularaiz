@@ -12,14 +12,32 @@ final class PortableBackupTransferSession {
   const PortableBackupTransferSession({
     required this.downloadUrl,
     required this.transferCode,
+    this.sourceDeviceId,
+    this.sourceDeviceName,
     required Future<void> Function() stop,
   }) : _stop = stop;
 
   final String downloadUrl;
   final String transferCode;
+  final String? sourceDeviceId;
+  final String? sourceDeviceName;
   final Future<void> Function() _stop;
 
   Future<void> stop() => _stop();
+}
+
+final class PortableBackupTransferPayload {
+  const PortableBackupTransferPayload({
+    required this.downloadUrl,
+    required this.transferCode,
+    this.sourceDeviceId,
+    this.sourceDeviceName,
+  });
+
+  final String downloadUrl;
+  final String transferCode;
+  final String? sourceDeviceId;
+  final String? sourceDeviceName;
 }
 
 final class LocalBackupTransferServer {
@@ -27,13 +45,19 @@ final class LocalBackupTransferServer {
     required DatabaseSnapshotter snapshotter,
     required int schemaVersion,
     required String storageProfile,
+    String? sourceDeviceId,
+    String? sourceDeviceName,
   }) : _snapshotter = snapshotter,
        _schemaVersion = schemaVersion,
-       _storageProfile = storageProfile;
+       _storageProfile = storageProfile,
+       _sourceDeviceId = sourceDeviceId,
+       _sourceDeviceName = sourceDeviceName;
 
   final DatabaseSnapshotter _snapshotter;
   final int _schemaVersion;
   final String _storageProfile;
+  final String? _sourceDeviceId;
+  final String? _sourceDeviceName;
 
   Future<PortableBackupTransferSession> start() async {
     final transferCode = generatePortableBackupTransferCode();
@@ -68,6 +92,8 @@ final class LocalBackupTransferServer {
     return PortableBackupTransferSession(
       downloadUrl: downloadUrl,
       transferCode: transferCode,
+      sourceDeviceId: _sourceDeviceId,
+      sourceDeviceName: _sourceDeviceName,
       stop: () async {
         await subscription.cancel();
         await server.close(force: true);
@@ -131,4 +157,47 @@ String buildAulaRaizPortableTransferFileName(DateTime createdAtUtc) {
   final minute = value.minute.toString().padLeft(2, '0');
   final second = value.second.toString().padLeft(2, '0');
   return 'aularaiz-transfer-$year$month$day-$hour$minute$second.aularaiz';
+}
+
+String buildPortableBackupTransferQrPayload({
+  required String downloadUrl,
+  required String transferCode,
+  String? sourceDeviceId,
+  String? sourceDeviceName,
+}) {
+  return Uri(
+    scheme: 'aularaiz-transfer',
+    host: 'local',
+    queryParameters: <String, String>{
+      'url': downloadUrl,
+      'code': transferCode,
+      if (sourceDeviceId != null && sourceDeviceId.trim().isNotEmpty)
+        'deviceId': sourceDeviceId,
+      if (sourceDeviceName != null && sourceDeviceName.trim().isNotEmpty)
+        'deviceName': sourceDeviceName,
+    },
+  ).toString();
+}
+
+PortableBackupTransferPayload? parsePortableBackupTransferQrPayload(
+  String value,
+) {
+  final uri = Uri.tryParse(value);
+  if (uri == null || uri.scheme != 'aularaiz-transfer' || uri.host != 'local') {
+    return null;
+  }
+  final downloadUrl = uri.queryParameters['url']?.trim();
+  final transferCode = uri.queryParameters['code']?.trim();
+  if (downloadUrl == null ||
+      downloadUrl.isEmpty ||
+      transferCode == null ||
+      transferCode.isEmpty) {
+    return null;
+  }
+  return PortableBackupTransferPayload(
+    downloadUrl: downloadUrl,
+    transferCode: transferCode,
+    sourceDeviceId: uri.queryParameters['deviceId']?.trim(),
+    sourceDeviceName: uri.queryParameters['deviceName']?.trim(),
+  );
 }

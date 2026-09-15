@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
@@ -43,6 +44,7 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = _ReceiveBackupStrings.of(context);
+    final layout = ResponsiveLayoutInfo.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WindowTitleService.setTitle('AulaRaíz · ${strings.title}');
     });
@@ -51,60 +53,72 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
       appBar: AppBar(title: Text(strings.title)),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(layout.pagePadding),
           children: [
             Text(
               strings.heading,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 8),
-            Text(
-              _canScanQr ? strings.instructions : strings.manualInstructions,
-            ),
-            const SizedBox(height: 18),
+            if (!layout.preferDenseUi) ...[
+              const SizedBox(height: 8),
+              Text(
+                _canScanQr ? strings.instructions : strings.manualInstructions,
+              ),
+            ],
+            SizedBox(height: layout.preferDenseUi ? 12 : 18),
             if (_canScanQr) ...[
-              AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      MobileScanner(
-                        controller: _scannerController,
-                        onDetect: _onDetect,
-                      ),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.primary,
-                            width: 3,
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: layout.preferDenseUi ? 260 : 420,
+                    maxHeight: layout.preferDenseUi ? 260 : 420,
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          MobileScanner(
+                            controller: _scannerController,
+                            onDetect: _onDetect,
                           ),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      if (_processing)
-                        ColoredBox(
-                          color: Colors.black54,
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const CircularProgressIndicator(),
-                                const SizedBox(height: 16),
-                                Text(
-                                  strings.processing,
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ],
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.primary,
+                                width: 3,
+                              ),
+                              borderRadius: BorderRadius.circular(24),
                             ),
                           ),
-                        ),
-                    ],
+                          if (_processing)
+                            ColoredBox(
+                              color: Colors.black54,
+                              child: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const CircularProgressIndicator(),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      strings.processing,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: layout.preferDenseUi ? 12 : 18),
             ] else ...[
               Card(
                 child: Padding(

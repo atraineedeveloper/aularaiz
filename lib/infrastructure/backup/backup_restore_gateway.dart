@@ -156,11 +156,27 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
       storageProfile: _storageProfile,
       uploadHandler: _recordLevelSyncService == null
           ? null
-          : ({required bytes, required transferCode}) async {
+          : ({
+              required bytes,
+              required transferCode,
+              sourceDeviceId,
+              sourceDeviceName,
+            }) async {
               final summary = await _recordLevelSyncService.mergeBackup(
                 backupBytes: bytes,
                 protector: PortableBackupProtector(transferCode: transferCode),
               );
+              final normalizedDeviceId = sourceDeviceId?.trim();
+              if (normalizedDeviceId != null &&
+                  normalizedDeviceId.isNotEmpty &&
+                  normalizedDeviceId != identity?.id) {
+                await _syncDeviceRegistry?.rememberLinkedDevice(
+                  id: normalizedDeviceId,
+                  name: sourceDeviceName?.trim().isNotEmpty == true
+                      ? sourceDeviceName!.trim()
+                      : 'Dispositivo AulaRaÃ­z',
+                );
+              }
               _notifySyncChanged(summary);
               return summary;
             },
@@ -259,10 +275,21 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     required String uploadUrl,
     required String transferCode,
   }) async {
-    final uri = Uri.tryParse(uploadUrl);
-    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+    final parsedUri = Uri.tryParse(uploadUrl);
+    if (parsedUri == null ||
+        (parsedUri.scheme != 'http' && parsedUri.scheme != 'https')) {
       return null;
     }
+    final identity = await _syncDeviceRegistry?.identity();
+    final uri = identity == null
+        ? parsedUri
+        : parsedUri.replace(
+            queryParameters: <String, String>{
+              ...parsedUri.queryParameters,
+              'deviceId': identity.id,
+              'deviceName': identity.name,
+            },
+          );
 
     final createdAtUtc = DateTime.now().toUtc();
     final bytes = await CreateBackup(

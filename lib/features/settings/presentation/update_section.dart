@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/infrastructure/update/app_update.dart';
@@ -158,10 +159,11 @@ class _UpdateSectionState extends State<UpdateSection> {
     final strings = _UpdateStrings.of(context);
     final scheme = Theme.of(context).colorScheme;
     final notes = _availableUpdate?.releaseNotes;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -189,20 +191,22 @@ class _UpdateSectionState extends State<UpdateSection> {
                         strings.title,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _currentVersion == null
-                            ? strings.description
-                            : strings.currentVersion(_currentVersion!),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                      if (!layout.preferDenseUi) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          _currentVersion == null
+                              ? strings.description
+                              : strings.currentVersion(_currentVersion!),
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ],
             ),
             if (_status != null) ...[
-              const SizedBox(height: 18),
+              SizedBox(height: layout.preferDenseUi ? 12 : 18),
               Text(_status!),
             ],
             if (notes != null) ...[
@@ -217,7 +221,7 @@ class _UpdateSectionState extends State<UpdateSection> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-            const SizedBox(height: 18),
+            SizedBox(height: layout.preferDenseUi ? 12 : 18),
             Wrap(
               spacing: 12,
               runSpacing: 12,

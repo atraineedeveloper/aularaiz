@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/dashboard/presentation/group_dashboard_controller.dart';
@@ -31,6 +32,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<GroupDashboardController>();
+    final layout = ResponsiveLayoutInfo.of(context);
     final grades = widget.group.grades.toList()
       ..sort((left, right) => left.number.compareTo(right.number));
 
@@ -40,10 +42,11 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(_label(context, 'Resumen del grupo', 'Class dashboard')),
-            Text(
-              widget.group.name,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            if (!layout.isPhoneLandscape)
+              Text(
+                widget.group.name,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
           ],
         ),
         actions: [
@@ -61,7 +64,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
             : RefreshIndicator(
                 onRefresh: controller.refresh,
                 child: ListView(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(layout.pagePadding),
                   children: [
                     Center(
                       child: ConstrainedBox(
@@ -71,7 +74,9 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                           children: [
                             Card(
                               child: Padding(
-                                padding: const EdgeInsets.all(20),
+                                padding: EdgeInsets.all(
+                                  layout.preferDenseUi ? 14 : 20,
+                                ),
                                 child: Wrap(
                                   spacing: 10,
                                   runSpacing: 10,
@@ -79,6 +84,8 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                                   children: [
                                     Text(
                                       widget.group.name,
+                                      maxLines: layout.preferDenseUi ? 1 : 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineSmall,
@@ -111,7 +118,7 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen> {
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 18),
+                            SizedBox(height: layout.preferDenseUi ? 12 : 18),
                             Wrap(
                               spacing: 14,
                               runSpacing: 14,

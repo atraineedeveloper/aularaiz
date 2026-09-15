@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -88,10 +89,11 @@ class _TeacherProfileSectionState extends State<TeacherProfileSection> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final english = Localizations.localeOf(context).languageCode == 'en';
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

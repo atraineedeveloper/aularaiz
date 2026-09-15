@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:flutter/material.dart';
@@ -23,6 +24,7 @@ class SchoolSelectionScreen extends StatelessWidget {
     final copy = _SchoolSelectionCopy(
       english: Localizations.localeOf(context).languageCode == 'en',
     );
+    final layout = ResponsiveLayoutInfo.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(copy.title),
@@ -37,21 +39,23 @@ class SchoolSelectionScreen extends StatelessWidget {
       ),
       floatingActionButton: _FloatingCreateButton(
         label: copy.addSchool,
+        compact: layout.isPhoneLandscape,
         onPressed: onCreateSchool,
       ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final desktop = constraints.maxWidth >= 720;
+            final dense = layout.preferDenseUi;
             return Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1040),
                 child: ListView.separated(
                   padding: EdgeInsets.fromLTRB(
-                    desktop ? 32 : 20,
-                    28,
-                    desktop ? 32 : 20,
-                    desktop ? 32 : 104,
+                    desktop ? 32 : layout.pagePadding,
+                    dense ? 12 : 28,
+                    desktop ? 32 : layout.pagePadding,
+                    desktop ? 32 : (dense ? 72 : 104),
                   ),
                   itemCount: setups.length + 1,
                   separatorBuilder: (_, index) =>
@@ -62,6 +66,7 @@ class SchoolSelectionScreen extends StatelessWidget {
                         copy: copy,
                         schoolCount: setups.length,
                         desktop: desktop,
+                        dense: dense,
                         onCreateSchool: onCreateSchool,
                       );
                     }
@@ -70,6 +75,7 @@ class SchoolSelectionScreen extends StatelessWidget {
                     return _SchoolCard(
                       setup: setup,
                       copy: copy,
+                      dense: dense,
                       onSelect: () => onSelect(setup.school.id),
                       onDelete: () => _confirmDelete(context, setup),
                     );
@@ -125,12 +131,14 @@ class _SchoolSelectionHeader extends StatelessWidget {
     required this.copy,
     required this.schoolCount,
     required this.desktop,
+    required this.dense,
     required this.onCreateSchool,
   });
 
   final _SchoolSelectionCopy copy;
   final int schoolCount;
   final bool desktop;
+  final bool dense;
   final VoidCallback onCreateSchool;
 
   @override
@@ -150,9 +158,11 @@ class _SchoolSelectionHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(copy.title, style: theme.textTheme.headlineMedium),
-                const SizedBox(height: 6),
-                Text(copy.subtitle, style: theme.textTheme.bodyLarge),
-                const SizedBox(height: 12),
+                if (!dense) ...[
+                  const SizedBox(height: 6),
+                  Text(copy.subtitle, style: theme.textTheme.bodyLarge),
+                ],
+                SizedBox(height: dense ? 8 : 12),
                 Chip(
                   avatar: const Icon(Icons.school_outlined, size: 18),
                   label: Text(copy.schoolCount(schoolCount)),
@@ -176,12 +186,14 @@ class _SchoolCard extends StatelessWidget {
   const _SchoolCard({
     required this.setup,
     required this.copy,
+    required this.dense,
     required this.onSelect,
     required this.onDelete,
   });
 
   final InitialSchoolSetup setup;
   final _SchoolSelectionCopy copy;
+  final bool dense;
   final VoidCallback onSelect;
   final VoidCallback onDelete;
 
@@ -205,7 +217,7 @@ class _SchoolCard extends StatelessWidget {
       child: InkWell(
         onTap: onSelect,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(dense ? 14 : 20),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -237,7 +249,7 @@ class _SchoolCard extends StatelessWidget {
                       details.join(' · '),
                       style: theme.textTheme.bodyMedium,
                     ),
-                    if (chips.isNotEmpty) ...[
+                    if (chips.isNotEmpty && !dense) ...[
                       const SizedBox(height: 10),
                       Wrap(
                         spacing: 8,
@@ -303,15 +315,27 @@ class _SchoolCard extends StatelessWidget {
 }
 
 class _FloatingCreateButton extends StatelessWidget {
-  const _FloatingCreateButton({required this.label, required this.onPressed});
+  const _FloatingCreateButton({
+    required this.label,
+    required this.compact,
+    required this.onPressed,
+  });
 
   final String label;
+  final bool compact;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     if (MediaQuery.sizeOf(context).width >= 720) {
       return const SizedBox.shrink();
+    }
+    if (compact) {
+      return FloatingActionButton(
+        onPressed: onPressed,
+        tooltip: label,
+        child: const Icon(Icons.add_rounded),
+      );
     }
     return FloatingActionButton.extended(
       onPressed: onPressed,

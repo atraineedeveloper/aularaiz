@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/student_import/student_import_models.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/student_import/presentation/student_import_controller.dart';
@@ -27,6 +28,7 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
     final table = controller.table;
     final mapping = controller.mapping;
     final preview = controller.preview;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.importStudentsTitle)),
@@ -34,7 +36,12 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
           ? null
           : SafeArea(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 10, 24, 18),
+                padding: EdgeInsets.fromLTRB(
+                  layout.pagePadding,
+                  8,
+                  layout.pagePadding,
+                  layout.preferDenseUi ? 10 : 18,
+                ),
                 child: FilledButton.icon(
                   onPressed: preview.canConfirm && !controller.isImporting
                       ? _confirmImport
@@ -53,22 +60,24 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
             ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.pagePadding),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1180),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    l10n.importStudentsTitle,
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(l10n.importStudentsDescription),
-                  const SizedBox(height: 18),
-                  _PrivacyNotice(message: l10n.importPrivacyNote),
-                  const SizedBox(height: 16),
+                  if (!layout.preferDenseUi) ...[
+                    Text(
+                      l10n.importStudentsTitle,
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(l10n.importStudentsDescription),
+                    const SizedBox(height: 18),
+                    _PrivacyNotice(message: l10n.importPrivacyNote),
+                    const SizedBox(height: 16),
+                  ],
                   _FileCard(
                     table: table,
                     isReading: controller.isReading,
@@ -90,7 +99,7 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
                     _ErrorBanner(message: l10n.importFailed),
                   ],
                   if (table != null && mapping != null) ...[
-                    const SizedBox(height: 20),
+                    SizedBox(height: layout.preferDenseUi ? 12 : 20),
                     _MappingCard(
                       mapping: mapping,
                       duplicateColumns: controller.mappingHasDuplicateColumns,
@@ -107,7 +116,7 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
                     ],
                   ],
                   if (preview != null) ...[
-                    const SizedBox(height: 20),
+                    SizedBox(height: layout.preferDenseUi ? 12 : 20),
                     _PreviewSection(
                       preview: preview,
                       enabled: !controller.isImporting,
@@ -118,7 +127,7 @@ class _StudentImportScreenState extends State<StudentImportScreen> {
                       const SizedBox(height: 12),
                       _ErrorBanner(message: l10n.importFailed),
                     ],
-                    const SizedBox(height: 88),
+                    SizedBox(height: layout.preferDenseUi ? 64 : 88),
                   ],
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/student_import/import_students.dart';
 import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
@@ -53,8 +54,9 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<StudentRosterController>();
     final entries = controller.entries;
-    final textScale = MediaQuery.textScalerOf(context).scale(14) / 14;
-    final compact = MediaQuery.sizeOf(context).width < 480 || textScale >= 1.5;
+    final layout = ResponsiveLayoutInfo.of(context);
+    final compact =
+        MediaQuery.sizeOf(context).width < 480 || layout.preferDenseUi;
     final loadFailed = controller.failureKind == StudentRosterFailureKind.load;
     final canMutate =
         !controller.isSaving && !controller.isLoading && !loadFailed;
@@ -76,8 +78,8 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
         top: !widget.embedded,
         child: Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 16 : 24,
-            vertical: 24,
+            horizontal: layout.pagePadding,
+            vertical: layout.preferDenseUi ? 10 : 24,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -86,7 +88,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                 l10n.studentsTitle,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: layout.preferDenseUi ? 6 : 10),
               if (compact)
                 SizedBox(
                   width: double.infinity,
@@ -111,7 +113,7 @@ class _StudentRosterScreenState extends State<StudentRosterScreen> {
                     label: Text(l10n.importStudentsTitle),
                   ),
                 ),
-              const SizedBox(height: 16),
+              SizedBox(height: layout.preferDenseUi ? 8 : 16),
               TextField(
                 controller: _searchController,
                 enabled: !loadFailed,

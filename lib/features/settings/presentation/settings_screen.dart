@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/app/settings/app_settings_controller.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
@@ -15,6 +16,7 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final settings = context.watch<AppSettingsController>();
+    final layout = ResponsiveLayoutInfo.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WindowTitleService.setTitle('AulaRaíz · ${l10n.settingsTitle}');
     });
@@ -26,11 +28,11 @@ class SettingsScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 860),
             child: ListView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(layout.pagePadding),
               children: [
                 Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 24),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -77,7 +79,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: layout.preferDenseUi ? 12 : 20),
                 _SettingsSection(
                   icon: Icons.language_rounded,
                   title: l10n.language,
@@ -100,7 +102,7 @@ class SettingsScreen extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: layout.preferDenseUi ? 12 : 20),
                 _SettingsSection(
                   icon: Icons.contrast_rounded,
                   title: l10n.appearance,
@@ -128,11 +130,11 @@ class SettingsScreen extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: layout.preferDenseUi ? 12 : 20),
                 const TeacherProfileSection(),
-                const SizedBox(height: 20),
+                SizedBox(height: layout.preferDenseUi ? 12 : 20),
                 const BackupRestoreSection(),
-                const SizedBox(height: 20),
+                SizedBox(height: layout.preferDenseUi ? 12 : 20),
                 const UpdateSection(),
                 if (SafeLog.filePath != null) ...[
                   const SizedBox(height: 20),
@@ -170,10 +172,11 @@ class _SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -198,7 +201,7 @@ class _SettingsSection extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: layout.preferDenseUi ? 12 : 20),
             child,
           ],
         ),

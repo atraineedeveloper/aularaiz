@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ class AboutScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final layout = ResponsiveLayoutInfo.of(context);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       WindowTitleService.setTitle('AulaRaíz · ${l10n.openAbout}');
     });
@@ -17,7 +19,7 @@ class AboutScreen extends StatelessWidget {
       appBar: AppBar(title: Text(l10n.aboutTitle)),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.pagePadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -26,7 +28,7 @@ class AboutScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: layout.preferDenseUi ? 12 : 24),
               OutlinedButton.icon(
                 onPressed: () => context.go('/'),
                 icon: const Icon(Icons.arrow_back),

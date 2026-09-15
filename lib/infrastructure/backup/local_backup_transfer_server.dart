@@ -12,6 +12,8 @@ import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
 typedef PortableBackupUploadHandler = Future<RecordLevelSyncSummary> Function({
   required Uint8List bytes,
   required String transferCode,
+  String? sourceDeviceId,
+  String? sourceDeviceName,
 });
 
 final class PortableBackupTransferSession {
@@ -191,6 +193,8 @@ final class LocalBackupTransferServer {
       final summary = await handler(
         bytes: builder.takeBytes(),
         transferCode: transferCode,
+        sourceDeviceId: request.uri.queryParameters['deviceId']?.trim(),
+        sourceDeviceName: request.uri.queryParameters['deviceName']?.trim(),
       );
       response.headers.contentType = ContentType.json;
       response.write(

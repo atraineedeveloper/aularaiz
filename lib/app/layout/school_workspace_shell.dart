@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:flutter/material.dart';
 
 final class SchoolWorkspaceDestination {
@@ -63,6 +64,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        final layout = ResponsiveLayoutInfo.of(context);
         final desktop =
             constraints.maxWidth >= _desktopBreakpoint &&
             destinations.isNotEmpty;
@@ -76,7 +78,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
           ),
           drawer: desktop ? null : _drawer(context),
           bottomNavigationBar: mobile && destinations.isNotEmpty
-              ? _mobileNavigation(context)
+              ? _mobileNavigation(context, compact: layout.isPhoneLandscape)
               : null,
           body: SafeArea(
             top: false,
@@ -96,8 +98,11 @@ class SchoolWorkspaceShell extends StatelessWidget {
   }
 
   PreferredSizeWidget _appBar(BuildContext context, {required bool showMenu}) {
-    final compactActions = MediaQuery.sizeOf(context).width < 430;
+    final layout = ResponsiveLayoutInfo.of(context);
+    final compactActions =
+        MediaQuery.sizeOf(context).width < 430 || layout.isPhoneLandscape;
     return AppBar(
+      toolbarHeight: layout.isPhoneLandscape ? 48 : null,
       leading: showMenu
           ? Builder(
               builder: (context) => IconButton(
@@ -111,6 +116,7 @@ class SchoolWorkspaceShell extends StatelessWidget {
         schoolName: schoolName,
         schoolYearLabel: schoolYearLabel,
         groupName: groupName,
+        compact: layout.isPhoneLandscape,
       ),
       actions: [
         if (!compactActions && _canChooseGroup)
@@ -305,9 +311,10 @@ class SchoolWorkspaceShell extends StatelessWidget {
     );
   }
 
-  Widget _mobileNavigation(BuildContext context) {
+  Widget _mobileNavigation(BuildContext context, {required bool compact}) {
     final primary = destinations.take(3).toList(growable: false);
     return NavigationBar(
+      height: compact ? 56 : null,
       selectedIndex: selectedIndex < primary.length ? selectedIndex : 0,
       destinations: [
         for (final destination in primary)
@@ -386,11 +393,13 @@ class _WorkspaceTitle extends StatelessWidget {
     required this.schoolName,
     required this.schoolYearLabel,
     required this.groupName,
+    this.compact = false,
   });
 
   final String schoolName;
   final String schoolYearLabel;
   final String groupName;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -398,13 +407,19 @@ class _WorkspaceTitle extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(schoolName, maxLines: 1, overflow: TextOverflow.ellipsis),
         Text(
-          '$groupName · $schoolYearLabel',
+          schoolName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: compact ? Theme.of(context).textTheme.titleMedium : null,
         ),
+        if (!compact)
+          Text(
+            '$groupName · $schoolYearLabel',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
       ],
     );
   }

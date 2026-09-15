@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/backup/aularaiz_backup_codec.dart';
 import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
@@ -38,10 +39,11 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
   Widget build(BuildContext context) {
     final strings = _BackupRestoreStrings.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(22),
+        padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -71,19 +73,21 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        strings.description,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
+                      if (!layout.preferDenseUi)
+                        Text(
+                          strings.description,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: layout.preferDenseUi ? 12 : 20),
             LayoutBuilder(
               builder: (context, constraints) {
-                final compact = constraints.maxWidth < 560;
+                final compact =
+                    constraints.maxWidth < 560 || layout.preferDenseUi;
                 final actions = <Widget>[
                   FilledButton.icon(
                     onPressed: _busy || _restorePrepared ? null : _exportBackup,
@@ -135,7 +139,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
                       for (var index = 0; index < actions.length; index++) ...[
                         actions[index],
                         if (index < actions.length - 1)
-                          const SizedBox(height: 10),
+                          SizedBox(height: layout.preferDenseUi ? 8 : 10),
                       ],
                     ],
                   );
@@ -168,7 +172,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
               const SizedBox(height: 18),
               _PreparedRestorePanel(strings: strings),
             ],
-            const SizedBox(height: 18),
+            SizedBox(height: layout.preferDenseUi ? 12 : 18),
             _LinkedDevicesPanel(strings: strings),
           ],
         ),
@@ -287,63 +291,73 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(strings.wifiTransferTitle),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(strings.wifiTransferBody),
-                  const SizedBox(height: 18),
-                  Center(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: SizedBox.square(
-                          dimension: 220,
-                          child: QrImageView(
-                            data: qrPayload,
-                            version: QrVersions.auto,
-                            backgroundColor: Colors.white,
+        builder: (dialogContext) {
+          final dialogLayout = ResponsiveLayoutInfo.of(dialogContext);
+          final qrSize = dialogLayout.preferDenseUi ? 176.0 : 220.0;
+          return AlertDialog(
+            title: Text(strings.wifiTransferTitle),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!dialogLayout.preferDenseUi) ...[
+                      Text(strings.wifiTransferBody),
+                      const SizedBox(height: 18),
+                    ],
+                    Center(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(
+                            dialogLayout.preferDenseUi ? 10 : 14,
+                          ),
+                          child: SizedBox.square(
+                            dimension: qrSize,
+                            child: QrImageView(
+                              data: qrPayload,
+                              version: QrVersions.auto,
+                              backgroundColor: Colors.white,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    strings.transferCodeLabel,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  _SelectableCode(value: activeSession.transferCode),
-                  const SizedBox(height: 14),
-                  Text(
-                    strings.downloadUrlLabel,
-                    style: Theme.of(context).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  SelectableText(activeSession.downloadUrl),
-                  const SizedBox(height: 14),
-                  Text(strings.wifiTransferWarning),
-                ],
+                    SizedBox(height: dialogLayout.preferDenseUi ? 12 : 18),
+                    Text(
+                      strings.transferCodeLabel,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    _SelectableCode(value: activeSession.transferCode),
+                    if (!dialogLayout.preferDenseUi) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        strings.downloadUrlLabel,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      SelectableText(activeSession.downloadUrl),
+                      const SizedBox(height: 14),
+                      Text(strings.wifiTransferWarning),
+                    ],
+                  ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(strings.stopWifiTransfer),
-            ),
-          ],
-        ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(strings.stopWifiTransfer),
+              ),
+            ],
+          );
+        },
       );
     } finally {
       await activeSession.stop();

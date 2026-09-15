@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
@@ -45,6 +46,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<ProjectsController>();
+    final layout = ResponsiveLayoutInfo.of(context);
     return Scaffold(
       appBar: widget.embedded
           ? null
@@ -60,17 +62,32 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                 ],
               ),
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: controller.isSaving ? null : () => _createProject(context),
-        icon: const Icon(Icons.add_task_rounded),
-        label: Text(l10n.createProject),
-      ),
+      floatingActionButton: layout.isPhoneLandscape
+          ? FloatingActionButton(
+              tooltip: l10n.createProject,
+              onPressed: controller.isSaving
+                  ? null
+                  : () => _createProject(context),
+              child: const Icon(Icons.add_task_rounded),
+            )
+          : FloatingActionButton.extended(
+              onPressed: controller.isSaving
+                  ? null
+                  : () => _createProject(context),
+              icon: const Icon(Icons.add_task_rounded),
+              label: Text(l10n.createProject),
+            ),
       body: SafeArea(
         top: !widget.embedded,
         child: controller.isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 96),
+                padding: EdgeInsets.fromLTRB(
+                  layout.pagePadding,
+                  layout.pagePadding,
+                  layout.pagePadding,
+                  layout.isPhoneLandscape ? 72 : 96,
+                ),
                 children: [
                   Center(
                     child: ConstrainedBox(
@@ -120,6 +137,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 onDeleteActivity: (activity) =>
                                     _deleteActivity(context, activity),
                                 onEvaluateActivity: widget.onEvaluateActivity,
+                                dense: layout.preferDenseUi,
                               ),
                               const SizedBox(height: 14),
                             ],
@@ -278,6 +296,7 @@ class _ProjectCard extends StatelessWidget {
     required this.onEditActivity,
     required this.onDeleteActivity,
     required this.onEvaluateActivity,
+    required this.dense,
   });
 
   final Project project;
@@ -289,6 +308,7 @@ class _ProjectCard extends StatelessWidget {
   final ValueChanged<Activity> onEditActivity;
   final ValueChanged<Activity> onDeleteActivity;
   final ValueChanged<Activity> onEvaluateActivity;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -297,11 +317,11 @@ class _ProjectCard extends StatelessWidget {
       ..sort((a, b) => a.number.compareTo(b.number));
     final axes = project.articulatingAxes.toList()
       ..sort((a, b) => a.index.compareTo(b.index));
-    final compact = MediaQuery.sizeOf(context).width < 600;
+    final compact = MediaQuery.sizeOf(context).width < 600 || dense;
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(dense ? 14 : 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -313,7 +333,7 @@ class _ProjectCard extends StatelessWidget {
               children: [
                 Text(
                   project.title,
-                  maxLines: 3,
+                  maxLines: dense ? 2 : 3,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
@@ -356,14 +376,14 @@ class _ProjectCard extends StatelessWidget {
               ],
             ),
             if (project.description != null) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: dense ? 6 : 10),
               Text(
                 project.description!,
-                maxLines: 5,
+                maxLines: dense ? 2 : 5,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
-            const SizedBox(height: 12),
+            SizedBox(height: dense ? 8 : 12),
             Text(
               _methodologyLabel(project.methodology, l10n),
               style: Theme.of(context).textTheme.titleSmall,
@@ -379,10 +399,10 @@ class _ProjectCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-            const SizedBox(height: 10),
+            SizedBox(height: dense ? 6 : 10),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: dense ? 6 : 8,
+              runSpacing: dense ? 6 : 8,
               children: [
                 for (final grade in grades)
                   Chip(label: Text(_gradeLabel(grade, l10n))),
@@ -394,13 +414,15 @@ class _ProjectCard extends StatelessWidget {
               ],
             ),
             if (project.observations != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                '${_label(context, 'Observaciones', 'Observations')}: ${project.observations}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+              if (!dense) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '${_label(context, 'Observaciones', 'Observations')}: ${project.observations}',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
             ],
-            const Divider(height: 30),
+            Divider(height: dense ? 20 : 30),
             Row(
               children: [
                 Expanded(

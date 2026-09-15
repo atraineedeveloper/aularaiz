@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/layout/app_state_panel.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/app/layout/school_workspace_shell.dart';
 import 'package:aularaiz/application/attendance/build_daily_attendance.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
@@ -115,7 +116,8 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   .where((candidate) => candidate.id == _activeGroupId)
                   .firstOrNull ??
               groups.first);
-    final compactWorkspace = MediaQuery.sizeOf(context).width < 600;
+    final layout = ResponsiveLayoutInfo.of(context);
+    final compactWorkspace = layout.isCompactWidth || layout.preferDenseUi;
     return SyncRefreshListener(
       onRefresh: () =>
           context.read<SchoolWorkspaceController>().refreshAfterSync(),
@@ -336,7 +338,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1120),
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(layout.pagePadding),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -353,7 +355,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                               'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
                             ),
                           ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: layout.preferDenseUi ? 8 : 16),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
@@ -395,7 +397,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 20),
+                        SizedBox(height: layout.preferDenseUi ? 10 : 20),
                         Expanded(
                           child: controller.groups.isEmpty
                               ? _EmptyGroup(

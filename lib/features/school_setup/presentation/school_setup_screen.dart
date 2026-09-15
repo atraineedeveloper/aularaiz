@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
@@ -78,7 +79,8 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<SchoolSetupController>();
     final selectedState = _selectedState;
-    final compact = MediaQuery.sizeOf(context).width < 480;
+    final layout = ResponsiveLayoutInfo.of(context);
+    final compact = layout.isCompactWidth || layout.preferDenseUi;
     final largeText = MediaQuery.textScalerOf(context).scale(16) >= 24;
 
     return Scaffold(
@@ -88,7 +90,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: EdgeInsets.all(compact ? 16 : 24),
+            padding: EdgeInsets.all(layout.pagePadding),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: Form(
@@ -98,7 +100,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                   children: [
                     Card(
                       child: Padding(
-                        padding: const EdgeInsets.all(24),
+                        padding: EdgeInsets.all(layout.preferDenseUi ? 16 : 24),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -131,12 +133,13 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                                         .headlineMedium,
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
-                                    l10n.setupSubtitle,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge,
-                                  ),
+                                  if (!layout.preferDenseUi)
+                                    Text(
+                                      l10n.setupSubtitle,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge,
+                                    ),
                                 ],
                               ),
                             ),
@@ -144,7 +147,7 @@ class _SchoolSetupScreenState extends State<SchoolSetupScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: layout.preferDenseUi ? 16 : 32),
                     TextFormField(
                       controller: _schoolNameController,
                       enabled: !controller.isSaving,

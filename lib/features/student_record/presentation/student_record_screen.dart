@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -53,6 +54,7 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<StudentRecordController>();
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Scaffold(
       appBar: widget.embedded
@@ -65,7 +67,7 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
             : controller.error != null && controller.record == null
             ? Center(child: Text(l10n.studentRecordLoadingError))
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(layout.pagePadding),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1180),
@@ -81,7 +83,7 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                               label: Text(l10n.studentRecordsTitle),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: layout.preferDenseUi ? 4 : 8),
                         ],
                         _Header(student: widget.student),
                         if (controller.error != null) ...[
@@ -97,7 +99,7 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 24),
+                        SizedBox(height: layout.preferDenseUi ? 12 : 24),
                         LayoutBuilder(
                           builder: (context, constraints) {
                             if (constraints.maxWidth >= 900) {
@@ -111,7 +113,9 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                                       onEdit: _editProfile,
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  SizedBox(
+                                    width: layout.preferDenseUi ? 12 : 16,
+                                  ),
                                   Expanded(
                                     flex: 4,
                                     child: _EvidenceSection(
@@ -127,13 +131,15 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                                   controller: controller,
                                   onEdit: _editProfile,
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(
+                                  height: layout.preferDenseUi ? 12 : 16,
+                                ),
                                 _EvidenceSection(controller: controller),
                               ],
                             );
                           },
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: layout.preferDenseUi ? 12 : 24),
                         _LiteracySection(
                           controller: controller,
                           onRegister: () => _editLiteracyAssessment(),

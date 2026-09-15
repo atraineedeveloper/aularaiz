@@ -1,5 +1,6 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/app/layout/grade_filter.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
@@ -40,19 +41,21 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<EvaluationController>();
     final l10n = AppLocalizations.of(context);
+    final layout = ResponsiveLayoutInfo.of(context);
     return Scaffold(
       appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
         top: !widget.embedded,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(layout.pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.evaluationTitle,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              if (!layout.isPhoneLandscape)
+                Text(
+                  l10n.evaluationTitle,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
               if (controller.error != null) ...[
                 const SizedBox(height: 8),
                 Text(
@@ -64,7 +67,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 16),
+              SizedBox(height: layout.preferDenseUi ? 8 : 16),
               if (controller.projects.isNotEmpty)
                 DropdownButtonFormField<String>(
                   isExpanded: true,
@@ -92,7 +95,8 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
               const SizedBox(height: 14),
               if (controller.projects.isNotEmpty) ...[
                 _EvaluationToolbar(controller: controller, group: widget.group),
-                if (!controller.isLoading &&
+                if (!layout.preferDenseUi &&
+                    !controller.isLoading &&
                     controller.projectActivities.any(
                       (option) =>
                           option.activity.occursOn == null ||
@@ -120,7 +124,7 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                           '. Complete the date and attendance, then refresh attendance. Missing records are not absences.',
                         ),
                   ),
-                const SizedBox(height: 8),
+                SizedBox(height: layout.preferDenseUi ? 4 : 8),
               ],
               if (controller.isLoading)
                 const Expanded(
@@ -135,7 +139,12 @@ class _EvaluationScreenState extends State<EvaluationScreen> {
                   child: Center(child: Text(l10n.evaluationNoActivities)),
                 )
               else
-                Expanded(child: _EvaluationMatrix(controller: controller)),
+                Expanded(
+                  child: _EvaluationMatrix(
+                    controller: controller,
+                    dense: layout.preferDenseUi,
+                  ),
+                ),
             ],
           ),
         ),
@@ -316,8 +325,9 @@ class _EvaluationToolbar extends StatelessWidget {
 }
 
 class _EvaluationMatrix extends StatelessWidget {
-  const _EvaluationMatrix({required this.controller});
+  const _EvaluationMatrix({required this.controller, required this.dense});
   final EvaluationController controller;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -362,9 +372,9 @@ class _EvaluationMatrix extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minWidth: width - 8),
                 child: DataTable(
-                  headingRowHeight: 78,
-                  horizontalMargin: 14,
-                  columnSpacing: 12,
+                  headingRowHeight: dense ? 62 : 78,
+                  horizontalMargin: dense ? 10 : 14,
+                  columnSpacing: dense ? 8 : 12,
                   columns: [
                     DataColumn(
                       label: SizedBox(

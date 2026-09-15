@@ -1,4 +1,5 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/reports/report_models.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
@@ -35,22 +36,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<ReportsController>();
     final report = controller.groupReport;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Scaffold(
       appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
         top: !widget.embedded,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.pagePadding),
           child: ListView(
             children: [
-              Text(
-                l10n.reportsTitle,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 8),
-              _PrivacyBoundaryNotice(message: l10n.reportsExternalCopyWarning),
-              const SizedBox(height: 16),
+              if (!layout.preferDenseUi) ...[
+                Text(
+                  l10n.reportsTitle,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                _PrivacyBoundaryNotice(
+                  message: l10n.reportsExternalCopyWarning,
+                ),
+                const SizedBox(height: 16),
+              ],
               _MonthSelector(
                 month: controller.referenceMonth,
                 onPrevious: controller.isLoading || controller.isPublishing
@@ -60,7 +66,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ? null
                     : controller.nextMonth,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: layout.preferDenseUi ? 8 : 12),
               _SensitiveSwitch(
                 value: controller.includeSensitiveFollowUp,
                 enabled: !controller.isPublishing,
@@ -77,7 +83,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 18),
+              SizedBox(height: layout.preferDenseUi ? 12 : 18),
               controller.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : report == null

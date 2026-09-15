@@ -1,3 +1,4 @@
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
@@ -50,20 +51,22 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final controller = context.watch<StudentRecordsController>();
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Scaffold(
       appBar: widget.embedded ? null : AppBar(title: Text(widget.group.name)),
       body: SafeArea(
         top: !widget.embedded,
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(layout.pagePadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.studentRecordsTitle,
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              if (!layout.preferDenseUi)
+                Text(
+                  l10n.studentRecordsTitle,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
               if (controller.error != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -71,7 +74,7 @@ class _StudentRecordsScreenState extends State<StudentRecordsScreen> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
-              const SizedBox(height: 20),
+              SizedBox(height: layout.preferDenseUi ? 8 : 20),
               Expanded(
                 child: controller.isLoading
                     ? const Center(child: CircularProgressIndicator())

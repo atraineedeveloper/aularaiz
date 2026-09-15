@@ -1,5 +1,6 @@
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/app/layout/grade_filter.dart';
+import 'package:aularaiz/app/layout/responsive_layout.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
@@ -142,10 +143,10 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
     final l10n = AppLocalizations.of(context);
     final month = controller.selectedMonth;
     final groupRate = controller.groupSummary.rate;
-    final compact = MediaQuery.sizeOf(context).width < 600;
+    final layout = ResponsiveLayoutInfo.of(context);
 
     return Padding(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(layout.pagePadding),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1320),
@@ -237,8 +238,8 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                   ),
                 ],
               ),
-              if (!compact) const SizedBox(height: 8),
-              if (!compact)
+              if (!layout.preferDenseUi) const SizedBox(height: 8),
+              if (!layout.preferDenseUi)
                 Text(
                   _label(
                     context,
@@ -284,9 +285,9 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                         scrollDirection: Axis.horizontal,
                         child: SingleChildScrollView(
                           child: DataTable(
-                            headingRowHeight: 108,
-                            horizontalMargin: 14,
-                            columnSpacing: 10,
+                            headingRowHeight: layout.preferDenseUi ? 82 : 108,
+                            horizontalMargin: layout.preferDenseUi ? 10 : 14,
+                            columnSpacing: layout.preferDenseUi ? 8 : 10,
                             columns: [
                               DataColumn(
                                 label: SizedBox(
@@ -310,6 +311,7 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                                     onDelete: () => _deleteDay(context, date),
                                     onMarkPresent: () =>
                                         controller.markDayPresent(date),
+                                    compact: layout.preferDenseUi,
                                   ),
                                 ),
                               DataColumn(
@@ -355,6 +357,7 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                                                 date,
                                                 status,
                                               ),
+                                          compact: layout.preferDenseUi,
                                         ),
                                       ),
                                     DataCell(
@@ -373,8 +376,8 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                     ),
                   ),
                 ),
-              if (!compact) const SizedBox(height: 10),
-              if (!compact)
+              if (!layout.preferDenseUi) const SizedBox(height: 10),
+              if (!layout.preferDenseUi)
                 Text(
                   _label(
                     context,
@@ -382,7 +385,7 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                     'Under each date: attended / recorded (includes late arrivals). Open Day options to delete a record.',
                   ),
                 ),
-              if (!compact)
+              if (!layout.preferDenseUi)
                 Wrap(
                   spacing: 12,
                   runSpacing: 8,
@@ -418,8 +421,8 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                     ),
                   ],
                 ),
-              if (!compact) const SizedBox(height: 4),
-              if (!compact)
+              if (!layout.preferDenseUi) const SizedBox(height: 4),
+              if (!layout.preferDenseUi)
                 Text(
                   _label(
                     context,
@@ -524,6 +527,7 @@ class _DayHeader extends StatelessWidget {
     required this.onDelete,
     required this.summary,
     required this.enabled,
+    required this.compact,
   });
 
   final DateTime date;
@@ -532,11 +536,12 @@ class _DayHeader extends StatelessWidget {
   final VoidCallback onDelete;
   final MonthlyAttendanceSummary? summary;
   final bool enabled;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 48,
+      width: compact ? 42 : 48,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -546,11 +551,11 @@ class _DayHeader extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           SizedBox(
-            height: 28,
+            height: compact ? 24 : 28,
             child: PopupMenuButton<String>(
               enabled: enabled,
               padding: EdgeInsets.zero,
-              iconSize: 18,
+              iconSize: compact ? 16 : 18,
               tooltip: _label(context, 'Opciones del día', 'Day options'),
               onSelected: (value) =>
                   value == 'delete' ? onDelete() : onMarkPresent(),
@@ -608,16 +613,21 @@ class _AttendanceCell extends StatelessWidget {
     required this.active,
     required this.status,
     required this.onChanged,
+    required this.compact,
   });
 
   final bool active;
   final AttendanceStatus? status;
   final ValueChanged<AttendanceStatus> onChanged;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     if (!active) {
-      return const SizedBox(width: 40, child: Center(child: Text('—')));
+      return SizedBox(
+        width: compact ? 34 : 40,
+        child: const Center(child: Text('—')),
+      );
     }
 
     final background = _statusBackground(context, status);
@@ -640,8 +650,8 @@ class _AttendanceCell extends StatelessWidget {
       ],
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
-        width: 40,
-        height: 40,
+        width: compact ? 34 : 40,
+        height: compact ? 34 : 40,
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(9),

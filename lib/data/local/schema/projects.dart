@@ -1,3 +1,4 @@
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/data/local/schema/teaching_groups.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_lifecycle.dart';
@@ -5,7 +6,7 @@ import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('ProjectRow')
-class Projects extends Table {
+class Projects extends Table with SyncMetadataColumns {
   late final id = text()();
   late final groupId = text().references(
     TeachingGroups,

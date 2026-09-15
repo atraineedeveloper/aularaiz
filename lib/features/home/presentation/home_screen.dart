@@ -14,6 +14,7 @@ import 'package:aularaiz/features/school_setup/presentation/school_setup_control
 import 'package:aularaiz/features/school_setup/presentation/school_setup_screen.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_controller.dart';
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
+import 'package:aularaiz/infrastructure/sync/sync_refresh_listener.dart';
 import 'package:aularaiz/infrastructure/update/github_update_service.dart';
 import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -76,85 +77,88 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return FutureBuilder<List<InitialSchoolSetup>>(
-      future: _setupsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          _setWindowTitle('AulaRaíz');
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return SyncRefreshListener(
+      onRefresh: _refreshAfterSync,
+      child: FutureBuilder<List<InitialSchoolSetup>>(
+        future: _setupsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            _setWindowTitle('AulaRaíz');
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        if (snapshot.hasError) {
-          _setWindowTitle(_windowTitle('Mis escuelas'));
-          return Scaffold(
-            body: SafeArea(
-              child: AppStatePanel(
-                icon: Icons.error_outline_rounded,
-                title: Localizations.localeOf(context).languageCode == 'en'
-                    ? 'Could not load your schools'
-                    : 'No se pudieron cargar tus escuelas',
-                message: l10n.setupSaveError,
+          if (snapshot.hasError) {
+            _setWindowTitle(_windowTitle('Mis escuelas'));
+            return Scaffold(
+              body: SafeArea(
+                child: AppStatePanel(
+                  icon: Icons.error_outline_rounded,
+                  title: Localizations.localeOf(context).languageCode == 'en'
+                      ? 'Could not load your schools'
+                      : 'No se pudieron cargar tus escuelas',
+                  message: l10n.setupSaveError,
+                ),
               ),
+            );
+          }
+
+          final setups = snapshot.data ?? const <InitialSchoolSetup>[];
+          if (_creatingSchool) {
+            _setWindowTitle(_windowTitle('Configuración inicial'));
+            return ChangeNotifierProvider(
+              create: (context) => SchoolSetupController(
+                context.read<CreateInitialWorkspace>(),
+                saveTeacherProfile: context.read<SaveTeacherProfile>(),
+              ),
+              child: SchoolSetupScreen(onCompleted: _schoolSaved),
+            );
+          }
+
+          final selectedSchoolId = _selectedSchoolId;
+          if (setups.isEmpty ||
+              selectedSchoolId == null ||
+              !setups.any((setup) => setup.school.id == selectedSchoolId)) {
+            _setWindowTitle(_windowTitle('Mis escuelas'));
+            return SchoolSelectionScreen(
+              setups: setups,
+              onSelect: (schoolId) {
+                setState(() => _selectedSchoolId = schoolId);
+              },
+              onDeleteSchool: _deleteSchool,
+              onCreateSchool: () {
+                setState(() => _creatingSchool = true);
+              },
+              onOpenSettings: () => context.push('/settings'),
+            );
+          }
+
+          final selectedSetup = setups.firstWhere(
+            (setup) => setup.school.id == selectedSchoolId,
+          );
+          _setWindowTitle(
+            _windowTitle(
+              '${selectedSetup.school.name} · '
+              '${selectedSetup.schoolYear.label}',
             ),
           );
-        }
-
-        final setups = snapshot.data ?? const <InitialSchoolSetup>[];
-        if (_creatingSchool) {
-          _setWindowTitle(_windowTitle('Configuración inicial'));
           return ChangeNotifierProvider(
-            create: (context) => SchoolSetupController(
-              context.read<CreateInitialWorkspace>(),
-              saveTeacherProfile: context.read<SaveTeacherProfile>(),
+            create: (context) => SchoolWorkspaceController(
+              setupRepository: context.read<SchoolSetupRepository>(),
+              groupRepository: context.read<TeachingGroupRepository>(),
+              createTeachingGroup: context.read<CreateTeachingGroup>(),
+              startSchoolYear: context.read<StartSchoolYear>(),
             ),
-            child: SchoolSetupScreen(onCompleted: _schoolSaved),
+            child: SchoolWorkspaceScreen(
+              schoolId: selectedSchoolId,
+              onChooseSchool: () {
+                setState(() => _selectedSchoolId = null);
+              },
+            ),
           );
-        }
-
-        final selectedSchoolId = _selectedSchoolId;
-        if (setups.isEmpty ||
-            selectedSchoolId == null ||
-            !setups.any((setup) => setup.school.id == selectedSchoolId)) {
-          _setWindowTitle(_windowTitle('Mis escuelas'));
-          return SchoolSelectionScreen(
-            setups: setups,
-            onSelect: (schoolId) {
-              setState(() => _selectedSchoolId = schoolId);
-            },
-            onDeleteSchool: _deleteSchool,
-            onCreateSchool: () {
-              setState(() => _creatingSchool = true);
-            },
-            onOpenSettings: () => context.push('/settings'),
-          );
-        }
-
-        final selectedSetup = setups.firstWhere(
-          (setup) => setup.school.id == selectedSchoolId,
-        );
-        _setWindowTitle(
-          _windowTitle(
-            '${selectedSetup.school.name} · '
-            '${selectedSetup.schoolYear.label}',
-          ),
-        );
-        return ChangeNotifierProvider(
-          create: (context) => SchoolWorkspaceController(
-            setupRepository: context.read<SchoolSetupRepository>(),
-            groupRepository: context.read<TeachingGroupRepository>(),
-            createTeachingGroup: context.read<CreateTeachingGroup>(),
-            startSchoolYear: context.read<StartSchoolYear>(),
-          ),
-          child: SchoolWorkspaceScreen(
-            schoolId: selectedSchoolId,
-            onChooseSchool: () {
-              setState(() => _selectedSchoolId = null);
-            },
-          ),
-        );
-      },
+        },
+      ),
     );
   }
 
@@ -195,6 +199,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _creatingSchool = false;
       _selectedSchoolId = null;
+      _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
+    });
+  }
+
+  Future<void> _refreshAfterSync() async {
+    if (!mounted || _creatingSchool) return;
+    setState(() {
       _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
     });
   }

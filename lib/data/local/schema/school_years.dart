@@ -1,7 +1,8 @@
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('SchoolYearRow')
-class SchoolYears extends Table {
+class SchoolYears extends Table with SyncMetadataColumns {
   late final id = text()();
   late final label = text()();
   late final startsOn = dateTime()();

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -13,7 +14,9 @@ import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart
 import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
 import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
+import 'package:aularaiz/infrastructure/sync/sync_refresh_notifier.dart';
 import 'package:file_selector/file_selector.dart';
 
 final class BackupSelection {
@@ -60,6 +63,13 @@ abstract interface class BackupRestoreGateway {
   });
 
   Future<StagedRestore> stageRestore(BackupSelection selection);
+
+  Future<RecordLevelSyncSummary> mergeIncomingBackup(BackupSelection selection);
+
+  Future<RecordLevelSyncSummary?> pushCurrentBackupToUrl({
+    required String uploadUrl,
+    required String transferCode,
+  });
 }
 
 final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
@@ -70,7 +80,9 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     required String storageProfile,
     required RestoreStagingService restoreStagingService,
     required ReportPublicationService publicationService,
+    RecordLevelSyncService? recordLevelSyncService,
     SyncDeviceRegistry? syncDeviceRegistry,
+    SyncRefreshNotifier? syncRefreshNotifier,
     BackupContentSummaryReader summaryReader =
         const BackupContentSummaryReader(),
   }) : _createBackup = createBackup,
@@ -79,7 +91,9 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
        _storageProfile = storageProfile,
        _restoreStagingService = restoreStagingService,
        _publicationService = publicationService,
+       _recordLevelSyncService = recordLevelSyncService,
        _syncDeviceRegistry = syncDeviceRegistry,
+       _syncRefreshNotifier = syncRefreshNotifier,
        _summaryReader = summaryReader;
 
   final CreateBackup _createBackup;
@@ -88,7 +102,9 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
   final String _storageProfile;
   final RestoreStagingService _restoreStagingService;
   final ReportPublicationService _publicationService;
+  final RecordLevelSyncService? _recordLevelSyncService;
   final SyncDeviceRegistry? _syncDeviceRegistry;
+  final SyncRefreshNotifier? _syncRefreshNotifier;
   final BackupContentSummaryReader _summaryReader;
   final AulaRaizBackupCodec _codec = const AulaRaizBackupCodec();
 
@@ -138,6 +154,16 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
       snapshotter: _snapshotter,
       schemaVersion: _schemaVersion,
       storageProfile: _storageProfile,
+      uploadHandler: _recordLevelSyncService == null
+          ? null
+          : ({required bytes, required transferCode}) async {
+              final summary = await _recordLevelSyncService.mergeBackup(
+                backupBytes: bytes,
+                protector: PortableBackupProtector(transferCode: transferCode),
+              );
+              _notifySyncChanged(summary);
+              return summary;
+            },
       sourceDeviceId: identity?.id,
       sourceDeviceName: identity?.name,
     ).start();
@@ -211,6 +237,63 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     return service.stage(selection.bytes);
   }
 
+  @override
+  Future<RecordLevelSyncSummary> mergeIncomingBackup(
+    BackupSelection selection,
+  ) async {
+    final service = _recordLevelSyncService;
+    final protector = selection.restoreProtector;
+    if (service == null || protector == null) {
+      throw StateError('Record-level sync is not available.');
+    }
+    final summary = await service.mergeBackup(
+      backupBytes: selection.bytes,
+      protector: protector,
+    );
+    _notifySyncChanged(summary);
+    return summary;
+  }
+
+  @override
+  Future<RecordLevelSyncSummary?> pushCurrentBackupToUrl({
+    required String uploadUrl,
+    required String transferCode,
+  }) async {
+    final uri = Uri.tryParse(uploadUrl);
+    if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) {
+      return null;
+    }
+
+    final createdAtUtc = DateTime.now().toUtc();
+    final bytes = await CreateBackup(
+      snapshotter: _snapshotter,
+      schemaVersion: _schemaVersion,
+      storageProfile: _storageProfile,
+      protector: PortableBackupProtector(transferCode: transferCode),
+    )(createdAtUtc: createdAtUtc);
+
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 10);
+    try {
+      final request = await client.postUrl(uri);
+      request.headers.contentType = ContentType.binary;
+      request.headers.contentLength = bytes.length;
+      request.add(bytes);
+      final response = await request.close();
+      if (response.statusCode != HttpStatus.ok) return null;
+      final body = await utf8.decoder.bind(response).join();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map<String, Object?>) return null;
+      return RecordLevelSyncSummary(
+        inserted: decoded['inserted'] is int ? decoded['inserted']! as int : 0,
+        updated: decoded['updated'] is int ? decoded['updated']! as int : 0,
+        skipped: decoded['skipped'] is int ? decoded['skipped']! as int : 0,
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+
   Future<BackupSelection> _inspectSelection({
     required Uint8List bytes,
     required BackupProtector protector,
@@ -271,6 +354,11 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
     } finally {
       client.close(force: true);
     }
+  }
+
+  void _notifySyncChanged(RecordLevelSyncSummary summary) {
+    if (summary.changed == 0) return;
+    _syncRefreshNotifier?.markDataChanged();
   }
 }
 

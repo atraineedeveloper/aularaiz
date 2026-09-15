@@ -1,9 +1,10 @@
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('SchoolRow')
-class Schools extends Table {
+class Schools extends Table with SyncMetadataColumns {
   late final id = text()();
   late final name = text()();
   late final cct = text().nullable().unique()();

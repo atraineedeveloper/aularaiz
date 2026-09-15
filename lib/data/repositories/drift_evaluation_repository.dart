@@ -1,12 +1,17 @@
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
 import 'package:drift/drift.dart';
 
 final class DriftEvaluationRepository implements EvaluationRepository {
-  DriftEvaluationRepository(this.database);
+  DriftEvaluationRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<ActivityEvaluation?> find(String activityId, String studentId) async {
@@ -15,7 +20,8 @@ final class DriftEvaluationRepository implements EvaluationRepository {
               ..where(
                 (table) =>
                     table.activityId.equals(activityId) &
-                    table.studentId.equals(studentId),
+                    table.studentId.equals(studentId) &
+                    table.deletedAt.isNull(),
               )
               ..limit(1))
             .getSingleOrNull();
@@ -27,6 +33,7 @@ final class DriftEvaluationRepository implements EvaluationRepository {
     final rows =
         await (database.select(database.activityEvaluations)
               ..where((table) => table.activityId.equals(activityId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([(table) => OrderingTerm.asc(table.studentId)]))
             .get();
     return List<ActivityEvaluation>.unmodifiable(rows.map(_toDomain));
@@ -37,6 +44,7 @@ final class DriftEvaluationRepository implements EvaluationRepository {
     final rows =
         await (database.select(database.activityEvaluations)
               ..where((table) => table.studentId.equals(studentId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([(table) => OrderingTerm.asc(table.activityId)]))
             .get();
     return List<ActivityEvaluation>.unmodifiable(rows.map(_toDomain));
@@ -44,6 +52,8 @@ final class DriftEvaluationRepository implements EvaluationRepository {
 
   @override
   Future<void> save(ActivityEvaluation evaluation) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database
         .into(database.activityEvaluations)
         .insertOnConflictUpdate(
@@ -53,6 +63,9 @@ final class DriftEvaluationRepository implements EvaluationRepository {
             deliveryStatus: Value(evaluation.deliveryStatus),
             achievement: Value(evaluation.achievement),
             observation: Value(evaluation.observation),
+            deletedAt: const Value(null),
+            updatedAt: SyncMetadataValues.updated(timestamp),
+            updatedByDeviceId: deviceId,
           ),
         );
   }

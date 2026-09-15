@@ -94,6 +94,12 @@ final class StudentRosterController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshAfterSync() async {
+    final group = _group;
+    if (group == null || _isSaving || _isLoading) return;
+    await load(group);
+  }
+
   Future<bool> createStudent({
     required String givenNames,
     required String firstSurname,

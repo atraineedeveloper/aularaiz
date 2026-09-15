@@ -7,6 +7,7 @@ void main() {
     () {
       final payload = buildPortableBackupTransferQrPayload(
         downloadUrl: 'http://192.168.1.10:1234/aularaiz-transfer?token=test',
+        uploadUrl: 'http://192.168.1.10:1234/aularaiz-transfer-sync?token=test',
         transferCode: 'ABCD-EFGH-JKLM-NPQR',
         sourceDeviceId: 'device-1',
         sourceDeviceName: 'PC Otilio',
@@ -18,6 +19,10 @@ void main() {
       expect(
         parsed!.downloadUrl,
         'http://192.168.1.10:1234/aularaiz-transfer?token=test',
+      );
+      expect(
+        parsed.uploadUrl,
+        'http://192.168.1.10:1234/aularaiz-transfer-sync?token=test',
       );
       expect(parsed.transferCode, 'ABCD-EFGH-JKLM-NPQR');
       expect(parsed.sourceDeviceId, 'device-1');

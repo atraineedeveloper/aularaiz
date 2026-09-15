@@ -86,4 +86,10 @@ final class StudentRecordsController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> refreshAfterSync() async {
+    final group = _group;
+    if (group == null || _isLoading) return;
+    await load(group);
+  }
 }

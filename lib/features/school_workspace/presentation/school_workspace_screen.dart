@@ -45,6 +45,7 @@ import 'package:aularaiz/features/student_record/presentation/student_records_sc
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/sync/sync_refresh_listener.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -115,271 +116,327 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   .firstOrNull ??
               groups.first);
     final compactWorkspace = MediaQuery.sizeOf(context).width < 600;
-    return SchoolWorkspaceShell(
-      schoolName: setup.school.name,
-      schoolYearLabel: setup.schoolYear.label,
-      groupName: group?.name ?? _label(context, 'Sin grupo', 'No class'),
-      selectedIndex: _selectedDestination,
-      groupChoices: [
-        for (final candidate in groups)
-          SchoolWorkspaceGroupChoice(
-            id: candidate.id,
-            name: candidate.name,
-            subtitle: _contractSubtitle(context, candidate),
-          ),
-      ],
-      activeGroupId: group?.id,
-      onChooseGroup: groups.isEmpty
-          ? null
-          : (groupId) {
-              setState(() => _activeGroupId = groupId);
-            },
-      onChooseSchool: widget.onChooseSchool,
-      onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
-      onOpenSettings: () => context.push('/settings'),
-      destinations: group == null
-          ? const <SchoolWorkspaceDestination>[]
-          : <SchoolWorkspaceDestination>[
-              SchoolWorkspaceDestination(
-                label: _label(context, 'Inicio', 'Home'),
-                icon: Icons.home_outlined,
-                onSelect: () => _selectDestination(0),
-              ),
-              SchoolWorkspaceDestination(
-                label: l10n.openStudents,
-                icon: Icons.groups_outlined,
-                onSelect: () => _selectDestination(1),
-              ),
-              SchoolWorkspaceDestination(
-                label: _label(context, 'Asistencia', 'Attendance'),
-                icon: Icons.fact_check_outlined,
-                onSelect: () => _selectDestination(2),
-              ),
-              SchoolWorkspaceDestination(
-                label: l10n.openProjects,
-                icon: Icons.auto_awesome_motion_outlined,
-                onSelect: () => _selectDestination(3),
-              ),
-              SchoolWorkspaceDestination(
-                label: _label(context, 'Evaluación', 'Evaluation'),
-                icon: Icons.assignment_turned_in_outlined,
-                onSelect: () => _selectDestination(4),
-              ),
-              SchoolWorkspaceDestination(
-                label: l10n.openStudentRecords,
-                icon: Icons.folder_shared_outlined,
-                onSelect: _openRecordsList,
-              ),
-              SchoolWorkspaceDestination(
-                label: l10n.openReports,
-                icon: Icons.summarize_outlined,
-                onSelect: () => _selectDestination(6),
-              ),
-            ],
-      child: group != null && _selectedStudentRecord != null
-          ? ChangeNotifierProvider(
-              create: (context) => StudentRecordController(
-                studentRecordRepository: context
-                    .read<StudentRecordRepository>(),
-                attendanceRepository: context.read<AttendanceRepository>(),
-                evaluationRepository: context.read<EvaluationRepository>(),
-                activityRepository: context.read<ActivityRepository>(),
-                literacyAssessmentRepository: context
-                    .read<LiteracyAssessmentRepository>(),
-                updateStudentRecord: context.read<UpdateStudentRecord>(),
-                addStudentRecordEntry: context.read<AddStudentRecordEntry>(),
-                saveLiteracyAssessment: context.read<SaveLiteracyAssessment>(),
-                updateLiteracyAssessment: context
-                    .read<UpdateLiteracyAssessment>(),
-                deleteLiteracyAssessment: context
-                    .read<DeleteLiteracyAssessment>(),
-              ),
-              child: StudentRecordScreen(
-                group: group,
-                student: _selectedStudentRecord!.student,
-                embedded: true,
-                onBackToRecords: _openRecordsList,
-              ),
-            )
-          : group != null && _selectedDestination == 1
-          ? ChangeNotifierProvider(
-              create: (context) => StudentRosterController(
-                studentRepository: context.read<StudentRepository>(),
-                enrollmentRepository: context.read<EnrollmentRepository>(),
-                createStudentInGroup: context.read<CreateStudentInGroup>(),
-                reactivateStudentInGroup: context
-                    .read<ReactivateStudentInGroup>(),
-              ),
-              child: StudentRosterScreen(group: group, embedded: true),
-            )
-          : group != null && _selectedDestination == 2
-          ? ChangeNotifierProvider(
-              create: (context) => AttendanceController(
-                attendanceRepository: context.read<AttendanceRepository>(),
-                enrollmentRepository: context.read<EnrollmentRepository>(),
-                studentRepository: context.read<StudentRepository>(),
-                buildDailyAttendance: context.read<BuildDailyAttendance>(),
-              ),
-              child: AttendanceScreen(
-                group: group,
-                embedded: true,
-                onLeaveGuardChanged: (guard) => _activeLeaveGuard = guard,
-              ),
-            )
-          : group != null && _selectedDestination == 3
-          ? ChangeNotifierProvider(
-              create: (context) => ProjectsController(
-                projectRepository: context.read<ProjectRepository>(),
-                activityRepository: context.read<ActivityRepository>(),
-                createProject: context.read<CreateProject>(),
-                createActivity: context.read<CreateActivity>(),
-              ),
-              child: ProjectsScreen(
-                group: group,
-                embedded: true,
-                onEvaluateActivity: (activity) => _openExternalDestination(
-                  () => _openEvaluation(group, initialActivityId: activity.id),
+    return SyncRefreshListener(
+      onRefresh: () =>
+          context.read<SchoolWorkspaceController>().refreshAfterSync(),
+      child: SchoolWorkspaceShell(
+        schoolName: setup.school.name,
+        schoolYearLabel: setup.schoolYear.label,
+        groupName: group?.name ?? _label(context, 'Sin grupo', 'No class'),
+        selectedIndex: _selectedDestination,
+        groupChoices: [
+          for (final candidate in groups)
+            SchoolWorkspaceGroupChoice(
+              id: candidate.id,
+              name: candidate.name,
+              subtitle: _contractSubtitle(context, candidate),
+            ),
+        ],
+        activeGroupId: group?.id,
+        onChooseGroup: groups.isEmpty
+            ? null
+            : (groupId) {
+                setState(() => _activeGroupId = groupId);
+              },
+        onChooseSchool: widget.onChooseSchool,
+        onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
+        onOpenSettings: () => context.push('/settings'),
+        destinations: group == null
+            ? const <SchoolWorkspaceDestination>[]
+            : <SchoolWorkspaceDestination>[
+                SchoolWorkspaceDestination(
+                  label: _label(context, 'Inicio', 'Home'),
+                  icon: Icons.home_outlined,
+                  onSelect: () => _selectDestination(0),
                 ),
-              ),
-            )
-          : group != null && _selectedDestination == 4
-          ? ChangeNotifierProvider(
-              create: (context) => EvaluationController(
-                attendanceRepository: context.read<AttendanceRepository>(),
-                projectRepository: context.read<ProjectRepository>(),
-                activityRepository: context.read<ActivityRepository>(),
-                studentRepository: context.read<StudentRepository>(),
-                enrollmentRepository: context.read<EnrollmentRepository>(),
-                evaluationRepository: context.read<EvaluationRepository>(),
-                saveActivityEvaluation: context.read<SaveActivityEvaluation>(),
-              ),
-              child: EvaluationScreen(group: group, embedded: true),
-            )
-          : group != null && _selectedDestination == 5
-          ? ChangeNotifierProvider(
-              create: (context) => StudentRecordsController(
-                enrollmentRepository: context.read<EnrollmentRepository>(),
-                studentRepository: context.read<StudentRepository>(),
-              ),
-              child: StudentRecordsScreen(
-                group: group,
-                embedded: true,
-                onOpenRecord: (entry) {
-                  setState(() => _selectedStudentRecord = entry);
-                },
-              ),
-            )
-          : group != null && _selectedDestination == 6
-          ? ChangeNotifierProvider(
-              create: (context) => ReportsController(
-                projectionBuilder: context.read<ReportProjectionBuilder>(),
-                publicationService: context.read<ReportPublicationService>(),
-              ),
-              child: ReportsScreen(group: group, embedded: true),
-            )
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1120),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        _label(context, 'Mi grupo', 'My class'),
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      if (!compactWorkspace) const SizedBox(height: 8),
-                      if (!compactWorkspace)
-                        Text(
-                          _label(
-                            context,
-                            'Cada grupo es una asignación con sus propias fechas de contratación. Puedes registrar otro grupo en el mismo ciclo si tu contratación cambia, o iniciar el siguiente ciclo escolar cuando te recontraten.',
-                            'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: controller.isSaving
-                                ? null
-                                : _showCreateGroupDialog,
-                            icon: const Icon(Icons.add_rounded),
-                            label: Text(
-                              _label(context, 'Agregar grupo', 'Add class'),
+                SchoolWorkspaceDestination(
+                  label: l10n.openStudents,
+                  icon: Icons.groups_outlined,
+                  onSelect: () => _selectDestination(1),
+                ),
+                SchoolWorkspaceDestination(
+                  label: _label(context, 'Asistencia', 'Attendance'),
+                  icon: Icons.fact_check_outlined,
+                  onSelect: () => _selectDestination(2),
+                ),
+                SchoolWorkspaceDestination(
+                  label: l10n.openProjects,
+                  icon: Icons.auto_awesome_motion_outlined,
+                  onSelect: () => _selectDestination(3),
+                ),
+                SchoolWorkspaceDestination(
+                  label: _label(context, 'Evaluación', 'Evaluation'),
+                  icon: Icons.assignment_turned_in_outlined,
+                  onSelect: () => _selectDestination(4),
+                ),
+                SchoolWorkspaceDestination(
+                  label: l10n.openStudentRecords,
+                  icon: Icons.folder_shared_outlined,
+                  onSelect: _openRecordsList,
+                ),
+                SchoolWorkspaceDestination(
+                  label: l10n.openReports,
+                  icon: Icons.summarize_outlined,
+                  onSelect: () => _selectDestination(6),
+                ),
+              ],
+        child: group != null && _selectedStudentRecord != null
+            ? ChangeNotifierProvider(
+                create: (context) => StudentRecordController(
+                  studentRecordRepository: context
+                      .read<StudentRecordRepository>(),
+                  attendanceRepository: context.read<AttendanceRepository>(),
+                  evaluationRepository: context.read<EvaluationRepository>(),
+                  activityRepository: context.read<ActivityRepository>(),
+                  literacyAssessmentRepository: context
+                      .read<LiteracyAssessmentRepository>(),
+                  updateStudentRecord: context.read<UpdateStudentRecord>(),
+                  addStudentRecordEntry: context.read<AddStudentRecordEntry>(),
+                  saveLiteracyAssessment: context
+                      .read<SaveLiteracyAssessment>(),
+                  updateLiteracyAssessment: context
+                      .read<UpdateLiteracyAssessment>(),
+                  deleteLiteracyAssessment: context
+                      .read<DeleteLiteracyAssessment>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () => context
+                        .read<StudentRecordController>()
+                        .refreshAfterSync(),
+                    child: StudentRecordScreen(
+                      group: group,
+                      student: _selectedStudentRecord!.student,
+                      embedded: true,
+                      onBackToRecords: _openRecordsList,
+                    ),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 1
+            ? ChangeNotifierProvider(
+                create: (context) => StudentRosterController(
+                  studentRepository: context.read<StudentRepository>(),
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  createStudentInGroup: context.read<CreateStudentInGroup>(),
+                  reactivateStudentInGroup: context
+                      .read<ReactivateStudentInGroup>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () => context
+                        .read<StudentRosterController>()
+                        .refreshAfterSync(),
+                    child: StudentRosterScreen(group: group, embedded: true),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 2
+            ? ChangeNotifierProvider(
+                create: (context) => AttendanceController(
+                  attendanceRepository: context.read<AttendanceRepository>(),
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  studentRepository: context.read<StudentRepository>(),
+                  buildDailyAttendance: context.read<BuildDailyAttendance>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () =>
+                        context.read<AttendanceController>().refreshAfterSync(),
+                    child: AttendanceScreen(
+                      group: group,
+                      embedded: true,
+                      onLeaveGuardChanged: (guard) => _activeLeaveGuard = guard,
+                    ),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 3
+            ? ChangeNotifierProvider(
+                create: (context) => ProjectsController(
+                  projectRepository: context.read<ProjectRepository>(),
+                  activityRepository: context.read<ActivityRepository>(),
+                  createProject: context.read<CreateProject>(),
+                  createActivity: context.read<CreateActivity>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () =>
+                        context.read<ProjectsController>().refreshAfterSync(),
+                    child: ProjectsScreen(
+                      group: group,
+                      embedded: true,
+                      onEvaluateActivity: (activity) =>
+                          _openExternalDestination(
+                            () => _openEvaluation(
+                              group,
+                              initialActivityId: activity.id,
                             ),
                           ),
-                          OutlinedButton.icon(
-                            onPressed: controller.isSaving
-                                ? null
-                                : _showStartSchoolYearDialog,
-                            icon: const Icon(Icons.event_repeat_rounded),
-                            label: Text(
-                              _label(
-                                context,
-                                'Iniciar nuevo ciclo',
-                                'Start new school year',
+                    ),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 4
+            ? ChangeNotifierProvider(
+                create: (context) => EvaluationController(
+                  attendanceRepository: context.read<AttendanceRepository>(),
+                  projectRepository: context.read<ProjectRepository>(),
+                  activityRepository: context.read<ActivityRepository>(),
+                  studentRepository: context.read<StudentRepository>(),
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  evaluationRepository: context.read<EvaluationRepository>(),
+                  saveActivityEvaluation: context
+                      .read<SaveActivityEvaluation>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () =>
+                        context.read<EvaluationController>().refreshAfterSync(),
+                    child: EvaluationScreen(group: group, embedded: true),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 5
+            ? ChangeNotifierProvider(
+                create: (context) => StudentRecordsController(
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  studentRepository: context.read<StudentRepository>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () => context
+                        .read<StudentRecordsController>()
+                        .refreshAfterSync(),
+                    child: StudentRecordsScreen(
+                      group: group,
+                      embedded: true,
+                      onOpenRecord: (entry) {
+                        setState(() => _selectedStudentRecord = entry);
+                      },
+                    ),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 6
+            ? ChangeNotifierProvider(
+                create: (context) => ReportsController(
+                  projectionBuilder: context.read<ReportProjectionBuilder>(),
+                  publicationService: context.read<ReportPublicationService>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () =>
+                        context.read<ReportsController>().refreshAfterSync(),
+                    child: ReportsScreen(group: group, embedded: true),
+                  ),
+                ),
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1120),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          _label(context, 'Mi grupo', 'My class'),
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        if (!compactWorkspace) const SizedBox(height: 8),
+                        if (!compactWorkspace)
+                          Text(
+                            _label(
+                              context,
+                              'Cada grupo es una asignación con sus propias fechas de contratación. Puedes registrar otro grupo en el mismo ciclo si tu contratación cambia, o iniciar el siguiente ciclo escolar cuando te recontraten.',
+                              'Each class is an assignment with its own contract dates. You can register another class in the same school year if your contract changes, or start the next school year when you are rehired.',
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: controller.isSaving
+                                  ? null
+                                  : _showCreateGroupDialog,
+                              icon: const Icon(Icons.add_rounded),
+                              label: Text(
+                                _label(context, 'Agregar grupo', 'Add class'),
                               ),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: controller.isSaving
+                                  ? null
+                                  : _showStartSchoolYearDialog,
+                              icon: const Icon(Icons.event_repeat_rounded),
+                              label: Text(
+                                _label(
+                                  context,
+                                  'Iniciar nuevo ciclo',
+                                  'Start new school year',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (controller.error != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            _label(
+                              context,
+                              'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
+                              'The change could not be saved. Check the data and try again.',
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
                             ),
                           ),
                         ],
-                      ),
-                      if (controller.error != null) ...[
-                        const SizedBox(height: 12),
-                        Text(
-                          _label(
-                            context,
-                            'No se pudo guardar el cambio. Revisa los datos e inténtalo de nuevo.',
-                            'The change could not be saved. Check the data and try again.',
-                          ),
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: controller.groups.isEmpty
+                              ? _EmptyGroup(
+                                  isSaving: controller.isSaving,
+                                  onCreate: _showCreateGroupDialog,
+                                )
+                              : ListView.separated(
+                                  itemCount: controller.groups.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final group = controller.groups[index];
+                                    return _GroupCard(
+                                      group: group,
+                                      onEdit: () => _showEditGroupDialog(group),
+                                      onDelete: () =>
+                                          _confirmDeleteGroup(group),
+                                      onDashboard: () => _openDashboard(group),
+                                      onStudents: () =>
+                                          _openGroupDestination(group, 1),
+                                      onAttendance: () =>
+                                          _openGroupDestination(group, 2),
+                                      onProjects: () =>
+                                          _openGroupDestination(group, 3),
+                                      onEvaluation: () =>
+                                          _openGroupDestination(group, 4),
+                                      onRecords: () =>
+                                          _openGroupDestination(group, 5),
+                                      onReports: () =>
+                                          _openGroupDestination(group, 6),
+                                      modernOverview: true,
+                                    );
+                                  },
+                                ),
                         ),
                       ],
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: controller.groups.isEmpty
-                            ? _EmptyGroup(
-                                isSaving: controller.isSaving,
-                                onCreate: _showCreateGroupDialog,
-                              )
-                            : ListView.separated(
-                                itemCount: controller.groups.length,
-                                separatorBuilder: (_, _) =>
-                                    const SizedBox(height: 16),
-                                itemBuilder: (context, index) {
-                                  final group = controller.groups[index];
-                                  return _GroupCard(
-                                    group: group,
-                                    onEdit: () => _showEditGroupDialog(group),
-                                    onDelete: () => _confirmDeleteGroup(group),
-                                    onDashboard: () => _openDashboard(group),
-                                    onStudents: () =>
-                                        _openGroupDestination(group, 1),
-                                    onAttendance: () =>
-                                        _openGroupDestination(group, 2),
-                                    onProjects: () =>
-                                        _openGroupDestination(group, 3),
-                                    onEvaluation: () =>
-                                        _openGroupDestination(group, 4),
-                                    onRecords: () =>
-                                        _openGroupDestination(group, 5),
-                                    onReports: () =>
-                                        _openGroupDestination(group, 6),
-                                    modernOverview: true,
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -626,7 +683,13 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             activityRepository: activityRepository,
             evaluationRepository: evaluationRepository,
           ),
-          child: GroupDashboardScreen(group: group),
+          child: Builder(
+            builder: (context) => SyncRefreshListener(
+              onRefresh: () =>
+                  context.read<GroupDashboardController>().refresh(),
+              child: GroupDashboardScreen(group: group),
+            ),
+          ),
         ),
       ),
     );
@@ -657,7 +720,13 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
             saveActivityEvaluation: saveActivityEvaluation,
             initialActivityId: initialActivityId,
           ),
-          child: EvaluationScreen(group: group),
+          child: Builder(
+            builder: (context) => SyncRefreshListener(
+              onRefresh: () =>
+                  context.read<EvaluationController>().refreshAfterSync(),
+              child: EvaluationScreen(group: group),
+            ),
+          ),
         ),
       ),
     );
@@ -761,14 +830,19 @@ class _GroupCard extends StatelessWidget {
           activityRepository: context.read<ActivityRepository>(),
           evaluationRepository: context.read<EvaluationRepository>(),
         ),
-        child: GroupDashboardOverview(
-          group: group,
-          onEditGroup: onEdit,
-          onDeleteGroup: onDelete,
-          onOpenStudents: onStudents,
-          onOpenAttendance: onAttendance,
-          onOpenEvaluation: onEvaluation,
-          onOpenDetailedDashboard: onDashboard,
+        child: Builder(
+          builder: (context) => SyncRefreshListener(
+            onRefresh: () => context.read<GroupDashboardController>().refresh(),
+            child: GroupDashboardOverview(
+              group: group,
+              onEditGroup: onEdit,
+              onDeleteGroup: onDelete,
+              onOpenStudents: onStudents,
+              onOpenAttendance: onAttendance,
+              onOpenEvaluation: onEvaluation,
+              onOpenDetailedDashboard: onDashboard,
+            ),
+          ),
         ),
       );
     }

@@ -1,7 +1,8 @@
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/data/local/schema/teaching_groups.dart';
 import 'package:drift/drift.dart';
 
-class AttendanceDays extends Table {
+class AttendanceDays extends Table with SyncMetadataColumns {
   late final id = text()();
   late final groupId = text().references(
     TeachingGroups,

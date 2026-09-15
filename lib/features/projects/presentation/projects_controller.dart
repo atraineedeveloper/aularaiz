@@ -62,6 +62,23 @@ final class ProjectsController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshAfterSync() async {
+    final group = _group;
+    if (group == null || _isSaving || _isLoading) return;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _reload();
+    } catch (error) {
+      _error = error;
+      SafeLog.operationFailure('load_projects', error);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> createProject({
     required String title,
     String? description,

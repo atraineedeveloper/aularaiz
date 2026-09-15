@@ -1,13 +1,18 @@
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/student_record/student_record.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry.dart';
 import 'package:drift/drift.dart';
 
 final class DriftStudentRecordRepository implements StudentRecordRepository {
-  DriftStudentRecordRepository(this.database);
+  DriftStudentRecordRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<StudentRecord?> find(String studentId) async {
@@ -27,6 +32,8 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
 
   @override
   Future<void> save(StudentRecord record) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database
         .into(database.studentRecords)
         .insertOnConflictUpdate(
@@ -35,6 +42,8 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
             strengths: Value(record.strengths),
             difficulties: Value(record.difficulties),
             supports: Value(record.supports),
+            updatedAt: SyncMetadataValues.updated(timestamp),
+            updatedByDeviceId: deviceId,
           ),
         );
   }
@@ -61,6 +70,8 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
 
   @override
   Future<void> addEntry(StudentRecordEntry entry) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database
         .into(database.studentRecordEntries)
         .insert(
@@ -70,6 +81,9 @@ final class DriftStudentRecordRepository implements StudentRecordRepository {
             kind: Value(entry.kind),
             occurredAt: Value(entry.occurredAt),
             content: Value(entry.text),
+            createdAt: SyncMetadataValues.created(timestamp),
+            updatedAt: SyncMetadataValues.updated(timestamp),
+            updatedByDeviceId: deviceId,
           ),
         );
   }

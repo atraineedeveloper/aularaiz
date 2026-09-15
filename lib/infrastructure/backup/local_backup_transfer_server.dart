@@ -7,10 +7,17 @@ import 'dart:typed_data';
 import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/contracts/database_snapshotter.dart';
 import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
+import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
+
+typedef PortableBackupUploadHandler = Future<RecordLevelSyncSummary> Function({
+  required Uint8List bytes,
+  required String transferCode,
+});
 
 final class PortableBackupTransferSession {
   const PortableBackupTransferSession({
     required this.downloadUrl,
+    this.uploadUrl,
     required this.transferCode,
     this.sourceDeviceId,
     this.sourceDeviceName,
@@ -18,6 +25,7 @@ final class PortableBackupTransferSession {
   }) : _stop = stop;
 
   final String downloadUrl;
+  final String? uploadUrl;
   final String transferCode;
   final String? sourceDeviceId;
   final String? sourceDeviceName;
@@ -29,12 +37,14 @@ final class PortableBackupTransferSession {
 final class PortableBackupTransferPayload {
   const PortableBackupTransferPayload({
     required this.downloadUrl,
+    this.uploadUrl,
     required this.transferCode,
     this.sourceDeviceId,
     this.sourceDeviceName,
   });
 
   final String downloadUrl;
+  final String? uploadUrl;
   final String transferCode;
   final String? sourceDeviceId;
   final String? sourceDeviceName;
@@ -45,17 +55,20 @@ final class LocalBackupTransferServer {
     required DatabaseSnapshotter snapshotter,
     required int schemaVersion,
     required String storageProfile,
+    PortableBackupUploadHandler? uploadHandler,
     String? sourceDeviceId,
     String? sourceDeviceName,
   }) : _snapshotter = snapshotter,
        _schemaVersion = schemaVersion,
        _storageProfile = storageProfile,
+       _uploadHandler = uploadHandler,
        _sourceDeviceId = sourceDeviceId,
        _sourceDeviceName = sourceDeviceName;
 
   final DatabaseSnapshotter _snapshotter;
   final int _schemaVersion;
   final String _storageProfile;
+  final PortableBackupUploadHandler? _uploadHandler;
   final String? _sourceDeviceId;
   final String? _sourceDeviceName;
 
@@ -79,11 +92,21 @@ final class LocalBackupTransferServer {
       path: '/aularaiz-transfer',
       queryParameters: <String, String>{'token': token},
     ).toString();
+    final uploadUrl = _uploadHandler == null
+        ? null
+        : Uri(
+            scheme: 'http',
+            host: host.address,
+            port: server.port,
+            path: '/aularaiz-transfer-sync',
+            queryParameters: <String, String>{'token': token},
+          ).toString();
 
     final subscription = server.listen(
       (request) => _handleRequest(
         request: request,
         expectedToken: token,
+        transferCode: transferCode,
         bytes: bytes,
         fileName: fileName,
       ),
@@ -91,6 +114,7 @@ final class LocalBackupTransferServer {
 
     return PortableBackupTransferSession(
       downloadUrl: downloadUrl,
+      uploadUrl: uploadUrl,
       transferCode: transferCode,
       sourceDeviceId: _sourceDeviceId,
       sourceDeviceName: _sourceDeviceName,
@@ -104,13 +128,25 @@ final class LocalBackupTransferServer {
   Future<void> _handleRequest({
     required HttpRequest request,
     required String expectedToken,
+    required String transferCode,
     required Uint8List bytes,
     required String fileName,
   }) async {
     final response = request.response;
-    if (request.method != 'GET' ||
-        request.uri.path != '/aularaiz-transfer' ||
-        request.uri.queryParameters['token'] != expectedToken) {
+    final validToken = request.uri.queryParameters['token'] == expectedToken;
+    if (!validToken) {
+      response.statusCode = HttpStatus.notFound;
+      await response.close();
+      return;
+    }
+
+    if (request.method == 'POST' &&
+        request.uri.path == '/aularaiz-transfer-sync') {
+      await _handleUpload(request: request, transferCode: transferCode);
+      return;
+    }
+
+    if (request.method != 'GET' || request.uri.path != '/aularaiz-transfer') {
       response.statusCode = HttpStatus.notFound;
       await response.close();
       return;
@@ -124,6 +160,51 @@ final class LocalBackupTransferServer {
     response.headers.contentLength = bytes.length;
     response.add(bytes);
     await response.close();
+  }
+
+  Future<void> _handleUpload({
+    required HttpRequest request,
+    required String transferCode,
+  }) async {
+    final response = request.response;
+    final handler = _uploadHandler;
+    if (handler == null) {
+      response.statusCode = HttpStatus.methodNotAllowed;
+      await response.close();
+      return;
+    }
+
+    try {
+      const maxBytes = 250 * 1024 * 1024;
+      final builder = BytesBuilder(copy: false);
+      var total = 0;
+      await for (final chunk in request) {
+        total += chunk.length;
+        if (total > maxBytes) {
+          response.statusCode = HttpStatus.requestEntityTooLarge;
+          await response.close();
+          return;
+        }
+        builder.add(chunk);
+      }
+
+      final summary = await handler(
+        bytes: builder.takeBytes(),
+        transferCode: transferCode,
+      );
+      response.headers.contentType = ContentType.json;
+      response.write(
+        jsonEncode(<String, Object>{
+          'inserted': summary.inserted,
+          'updated': summary.updated,
+          'skipped': summary.skipped,
+        }),
+      );
+      await response.close();
+    } on Object {
+      response.statusCode = HttpStatus.badRequest;
+      await response.close();
+    }
   }
 
   Future<InternetAddress> _localIPv4Address() async {
@@ -161,6 +242,7 @@ String buildAulaRaizPortableTransferFileName(DateTime createdAtUtc) {
 
 String buildPortableBackupTransferQrPayload({
   required String downloadUrl,
+  String? uploadUrl,
   required String transferCode,
   String? sourceDeviceId,
   String? sourceDeviceName,
@@ -170,6 +252,8 @@ String buildPortableBackupTransferQrPayload({
     host: 'local',
     queryParameters: <String, String>{
       'url': downloadUrl,
+      if (uploadUrl != null && uploadUrl.trim().isNotEmpty)
+        'uploadUrl': uploadUrl,
       'code': transferCode,
       if (sourceDeviceId != null && sourceDeviceId.trim().isNotEmpty)
         'deviceId': sourceDeviceId,
@@ -187,6 +271,7 @@ PortableBackupTransferPayload? parsePortableBackupTransferQrPayload(
     return null;
   }
   final downloadUrl = uri.queryParameters['url']?.trim();
+  final uploadUrl = uri.queryParameters['uploadUrl']?.trim();
   final transferCode = uri.queryParameters['code']?.trim();
   if (downloadUrl == null ||
       downloadUrl.isEmpty ||
@@ -196,6 +281,7 @@ PortableBackupTransferPayload? parsePortableBackupTransferQrPayload(
   }
   return PortableBackupTransferPayload(
     downloadUrl: downloadUrl,
+    uploadUrl: uploadUrl == null || uploadUrl.isEmpty ? null : uploadUrl,
     transferCode: transferCode,
     sourceDeviceId: uri.queryParameters['deviceId']?.trim(),
     sourceDeviceName: uri.queryParameters['deviceName']?.trim(),

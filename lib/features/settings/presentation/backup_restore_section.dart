@@ -277,6 +277,7 @@ class _BackupRestoreSectionState extends State<BackupRestoreSection> {
     final activeSession = session!;
     final qrPayload = buildPortableBackupTransferQrPayload(
       downloadUrl: activeSession.downloadUrl,
+      uploadUrl: activeSession.uploadUrl,
       transferCode: activeSession.transferCode,
       sourceDeviceId: activeSession.sourceDeviceId,
       sourceDeviceName: activeSession.sourceDeviceName,

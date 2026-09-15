@@ -1,8 +1,9 @@
 import 'package:aularaiz/data/local/schema/activities.dart';
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
-class ActivityGrades extends Table {
+class ActivityGrades extends Table with SyncMetadataColumns {
   late final activityId = text().references(
     Activities,
     #id,

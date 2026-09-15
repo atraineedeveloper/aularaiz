@@ -170,6 +170,13 @@ final class StudentRecordController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshAfterSync() async {
+    final group = _group;
+    final student = _student;
+    if (group == null || student == null || _isSaving || _isLoading) return;
+    await load(group: group, student: student);
+  }
+
   Future<bool> saveProfile({
     String? strengths,
     String? difficulties,

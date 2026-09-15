@@ -61,6 +61,12 @@ final class SchoolWorkspaceController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshAfterSync() async {
+    final setup = _setup;
+    if (setup == null || _isSaving || _isLoading) return;
+    await load(setup.school.id);
+  }
+
   Future<bool> createGroup({
     required String name,
     required Set<PrimaryGrade> grades,

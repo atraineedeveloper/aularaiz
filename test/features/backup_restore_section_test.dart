@@ -6,6 +6,7 @@ import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/features/settings/presentation/backup_restore_section.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
+import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -291,5 +292,21 @@ final class _FakeBackupRestoreGateway implements BackupRestoreGateway {
   Future<StagedRestore> stageRestore(BackupSelection selection) async {
     stageCalls += 1;
     return StagedRestore(requestId: 'test-request', preview: selection.preview);
+  }
+
+  @override
+  Future<RecordLevelSyncSummary> mergeIncomingBackup(
+    BackupSelection selection,
+  ) async {
+    stageCalls += 1;
+    return const RecordLevelSyncSummary(inserted: 1, updated: 2, skipped: 3);
+  }
+
+  @override
+  Future<RecordLevelSyncSummary?> pushCurrentBackupToUrl({
+    required String uploadUrl,
+    required String transferCode,
+  }) async {
+    return const RecordLevelSyncSummary(inserted: 0, updated: 1, skipped: 2);
   }
 }

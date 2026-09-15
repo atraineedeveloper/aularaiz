@@ -52,12 +52,15 @@ import 'package:aularaiz/data/repositories/drift_student_record_repository.dart'
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teacher_profile_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/device_backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/drift_database_snapshotter.dart';
 import 'package:aularaiz/infrastructure/backup/restore_staging_service.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
 import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
+import 'package:aularaiz/infrastructure/sync/sync_refresh_notifier.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
@@ -83,61 +86,117 @@ class AppDependencies extends StatelessWidget {
           dispose: (_, database) => database.close(),
         ),
         Provider<IdGenerator>(create: (_) => UuidIdGenerator()),
+        Provider<SyncDeviceRegistry>(create: (_) => SyncDeviceRegistry()),
+        ChangeNotifierProvider<SyncRefreshNotifier>(
+          create: (_) => SyncRefreshNotifier(),
+        ),
         Provider<SchoolSetupRepository>(
-          create: (context) =>
-              DriftSchoolSetupRepository(context.read<AppDatabase>()),
+          create: (context) => DriftSchoolSetupRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<SchoolYearRepository>(
           create: (context) =>
               DriftSchoolYearRepository(context.read<AppDatabase>()),
         ),
         Provider<TeachingGroupRepository>(
-          create: (context) =>
-              DriftTeachingGroupRepository(context.read<AppDatabase>()),
+          create: (context) => DriftTeachingGroupRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<StudentRepository>(
-          create: (context) =>
-              DriftStudentRepository(context.read<AppDatabase>()),
+          create: (context) => DriftStudentRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<EnrollmentRepository>(
-          create: (context) =>
-              DriftEnrollmentRepository(context.read<AppDatabase>()),
+          create: (context) => DriftEnrollmentRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<AttendanceRepository>(
-          create: (context) =>
-              DriftAttendanceRepository(context.read<AppDatabase>()),
+          create: (context) => DriftAttendanceRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<ProjectRepository>(
-          create: (context) =>
-              DriftProjectRepository(context.read<AppDatabase>()),
+          create: (context) => DriftProjectRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<ActivityRepository>(
-          create: (context) =>
-              DriftActivityRepository(context.read<AppDatabase>()),
+          create: (context) => DriftActivityRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<EvaluationRepository>(
-          create: (context) =>
-              DriftEvaluationRepository(context.read<AppDatabase>()),
+          create: (context) => DriftEvaluationRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<StudentRecordRepository>(
-          create: (context) =>
-              DriftStudentRecordRepository(context.read<AppDatabase>()),
+          create: (context) => DriftStudentRecordRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<LiteracyAssessmentRepository>(
-          create: (context) =>
-              DriftLiteracyAssessmentRepository(context.read<AppDatabase>()),
+          create: (context) => DriftLiteracyAssessmentRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<TeacherProfileRepository>(
-          create: (context) =>
-              DriftTeacherProfileRepository(context.read<AppDatabase>()),
+          create: (context) => DriftTeacherProfileRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<StudentEnrollmentWriter>(
-          create: (context) =>
-              DriftStudentEnrollmentWriter(context.read<AppDatabase>()),
+          create: (context) => DriftStudentEnrollmentWriter(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<StudentEnrollmentBatchWriter>(
-          create: (context) =>
-              DriftStudentEnrollmentBatchWriter(context.read<AppDatabase>()),
+          create: (context) => DriftStudentEnrollmentBatchWriter(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<ReportProjectionBuilder>(
           create: (context) => ReportProjectionBuilder(
@@ -160,7 +219,6 @@ class AppDependencies extends StatelessWidget {
         Provider<ReportPublicationService>(
           create: (_) => const ReportPublicationService(),
         ),
-        Provider<SyncDeviceRegistry>(create: (_) => SyncDeviceRegistry()),
         Provider<BackupProtector>(
           create: (_) => DeviceBackupProtector(
             keyStore: const SecureBackupEncryptionKeyStore(),
@@ -187,7 +245,13 @@ class AppDependencies extends StatelessWidget {
                 protector: context.read<BackupProtector>(),
               ),
               publicationService: context.read<ReportPublicationService>(),
+              recordLevelSyncService: RecordLevelSyncService(
+                database: context.read<AppDatabase>(),
+                profile: storageProfile,
+                currentSchemaVersion: AppDatabase.currentSchemaVersion,
+              ),
               syncDeviceRegistry: context.read<SyncDeviceRegistry>(),
+              syncRefreshNotifier: context.read<SyncRefreshNotifier>(),
             );
           },
         ),
@@ -211,8 +275,12 @@ class AppDependencies extends StatelessWidget {
           ),
         ),
         Provider<SchoolYearStarterRepository>(
-          create: (context) =>
-              DriftSchoolSetupRepository(context.read<AppDatabase>()),
+          create: (context) => DriftSchoolSetupRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
         ),
         Provider<StartSchoolYear>(
           create: (context) => StartSchoolYear(
@@ -320,4 +388,8 @@ class AppDependencies extends StatelessWidget {
       child: child,
     );
   }
+}
+
+SyncDeviceIdProvider _syncDeviceIdProvider(SyncDeviceRegistry registry) {
+  return () async => (await registry.identity()).id;
 }

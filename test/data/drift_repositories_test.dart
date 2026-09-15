@@ -18,6 +18,7 @@ import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/school/school_organization.dart';
 import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/enrollment_policy.dart';
+import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/features/attendance/presentation/attendance_controller.dart';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
@@ -96,7 +97,15 @@ void main() {
         hasLength(2),
       );
       expect(
-        await database.select(database.attendanceEntries).get(),
+        await (database.select(
+          database.attendanceEntries,
+        )..where((table) => table.deletedAt.isNull())).get(),
+        hasLength(2),
+      );
+      expect(
+        await (database.select(
+          database.attendanceEntries,
+        )..where((table) => table.deletedAt.isNotNull())).get(),
         hasLength(2),
       );
       expect(await studentRepository.findById('student-1'), isNotNull);
@@ -107,7 +116,7 @@ void main() {
   test('failed delete rolls back attendance entries', () async {
     final repository = await seedAttendance();
     await database.customStatement(
-      "CREATE TRIGGER reject_day_delete BEFORE DELETE ON attendance_days BEGIN SELECT RAISE(ABORT, 'test failure'); END",
+      "CREATE TRIGGER reject_day_delete BEFORE UPDATE OF deleted_at ON attendance_days BEGIN SELECT RAISE(ABORT, 'test failure'); END",
     );
     await expectLater(
       repository.deleteByGroupAndDate('group-1', DateTime(2026, 9, 1)),
@@ -250,7 +259,62 @@ void main() {
     expect(byGroup.map((item) => item.id), contains(candidate.id));
     expect(rawRow, isA<EnrollmentRow>());
     expect(rawRow.listNumber, 7);
+    expect(rawRow.updatedAt, isNotNull);
   });
+
+  test(
+    'repository writes stamp sync metadata for future record sync',
+    () async {
+      final deviceStudentRepository = DriftStudentRepository(
+        database,
+        deviceIdProvider: () async => 'device-test',
+      );
+      final deviceAttendanceRepository = DriftAttendanceRepository(
+        database,
+        deviceIdProvider: () async => 'device-test',
+      );
+
+      await deviceStudentRepository.save(
+        Student(
+          id: 'metadata-student',
+          givenNames: 'Meta',
+          firstSurname: 'Datos',
+        ),
+      );
+
+      final studentRow = await (database.select(
+        database.students,
+      )..where((table) => table.id.equals('metadata-student'))).getSingle();
+      expect(studentRow.updatedAt, isNotNull);
+      expect(studentRow.updatedByDeviceId, 'device-test');
+
+      final attendance = DailyAttendance(
+        id: 'metadata-attendance',
+        groupId: 'group-1',
+        date: DateTime(2026, 10, 1),
+        entries: [
+          AttendanceEntry(
+            studentId: 'student-1',
+            status: AttendanceStatus.present,
+          ),
+        ],
+      );
+      await deviceAttendanceRepository.save(attendance);
+
+      final attendanceDay = await (database.select(
+        database.attendanceDays,
+      )..where((table) => table.id.equals(attendance.id))).getSingle();
+      final attendanceEntry =
+          await (database.select(database.attendanceEntries)
+                ..where((table) => table.attendanceDayId.equals(attendance.id)))
+              .getSingle();
+      expect(attendanceDay.updatedAt, isNotNull);
+      expect(attendanceDay.updatedByDeviceId, 'device-test');
+      expect(attendanceEntry.createdAt, isNotNull);
+      expect(attendanceEntry.updatedAt, isNotNull);
+      expect(attendanceEntry.updatedByDeviceId, 'device-test');
+    },
+  );
 
   test(
     'literacy assessment repository saves history and latest level',

@@ -1,8 +1,9 @@
 import 'package:aularaiz/data/local/schema/students.dart';
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('StudentRecordRow')
-class StudentRecords extends Table {
+class StudentRecords extends Table with SyncMetadataColumns {
   late final studentId = text().references(
     Students,
     #id,

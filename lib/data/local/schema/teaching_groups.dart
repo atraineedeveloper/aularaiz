@@ -1,10 +1,11 @@
 import 'package:aularaiz/data/local/schema/school_years.dart';
 import 'package:aularaiz/data/local/schema/schools.dart';
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/domain/teacher/teaching_role.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('TeachingGroupRow')
-class TeachingGroups extends Table {
+class TeachingGroups extends Table with SyncMetadataColumns {
   late final id = text()();
   late final schoolId = text().references(
     Schools,

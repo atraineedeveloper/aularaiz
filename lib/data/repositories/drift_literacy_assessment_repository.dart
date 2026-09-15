@@ -1,16 +1,23 @@
 import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/literacy/literacy_assessment.dart';
 import 'package:drift/drift.dart';
 
 final class DriftLiteracyAssessmentRepository
     implements LiteracyAssessmentRepository {
-  DriftLiteracyAssessmentRepository(this.database);
+  DriftLiteracyAssessmentRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<void> save(LiteracyAssessment assessment) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database
         .into(database.literacyAssessments)
         .insertOnConflictUpdate(
@@ -21,15 +28,26 @@ final class DriftLiteracyAssessmentRepository
             writingLevel: Value(assessment.writingLevel),
             readingLevel: Value(assessment.readingLevel),
             notes: Value(assessment.notes),
+            deletedAt: const Value(null),
+            updatedAt: SyncMetadataValues.updated(timestamp),
+            updatedByDeviceId: deviceId,
           ),
         );
   }
 
   @override
   Future<void> delete(String id) async {
-    await (database.delete(
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
+    await (database.update(
       database.literacyAssessments,
-    )..where((table) => table.id.equals(id))).go();
+    )..where((table) => table.id.equals(id))).write(
+      LiteracyAssessmentsCompanion(
+        deletedAt: SyncMetadataValues.deleted(timestamp),
+        updatedAt: SyncMetadataValues.updated(timestamp),
+        updatedByDeviceId: deviceId,
+      ),
+    );
   }
 
   @override
@@ -37,6 +55,7 @@ final class DriftLiteracyAssessmentRepository
     final row =
         await (database.select(database.literacyAssessments)
               ..where((table) => table.id.equals(id))
+              ..where((table) => table.deletedAt.isNull())
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _toDomain(row);
@@ -47,6 +66,7 @@ final class DriftLiteracyAssessmentRepository
     final rows =
         await (database.select(database.literacyAssessments)
               ..where((table) => table.studentId.equals(studentId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([
                 (table) => OrderingTerm.desc(table.assessedAt),
                 (table) => OrderingTerm.desc(table.id),
@@ -60,6 +80,7 @@ final class DriftLiteracyAssessmentRepository
     final row =
         await (database.select(database.literacyAssessments)
               ..where((table) => table.studentId.equals(studentId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([
                 (table) => OrderingTerm.desc(table.assessedAt),
                 (table) => OrderingTerm.desc(table.id),

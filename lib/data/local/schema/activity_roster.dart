@@ -3,10 +3,11 @@ import 'package:aularaiz/data/local/schema/activities.dart';
 // ignore: unused_import
 import 'package:aularaiz/data/local/schema/activity_grades.dart';
 import 'package:aularaiz/data/local/schema/students.dart';
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:drift/drift.dart';
 
-class ActivityRoster extends Table {
+class ActivityRoster extends Table with SyncMetadataColumns {
   late final activityId = text().references(
     Activities,
     #id,

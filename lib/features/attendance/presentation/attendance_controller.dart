@@ -320,6 +320,11 @@ final class AttendanceController extends ChangeNotifier {
     await _loadMonth();
   }
 
+  Future<void> refreshAfterSync() async {
+    if (_isSaving || _isLoading || isDirty) return;
+    await _loadMonth();
+  }
+
   Future<DailyAttendance?> _ensureDraft(DateTime date) async {
     final group = _group;
     if (group == null) return null;

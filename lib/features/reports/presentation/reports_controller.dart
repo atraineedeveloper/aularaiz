@@ -47,6 +47,11 @@ final class ReportsController extends ChangeNotifier {
     await _reloadGroupReport();
   }
 
+  Future<void> refreshAfterSync() async {
+    if (_isPublishing || _isLoading || _group == null) return;
+    await _reloadGroupReport();
+  }
+
   Future<void> previousMonth() async {
     _referenceMonth = DateTime(_referenceMonth.year, _referenceMonth.month - 1);
     await _reloadGroupReport();

@@ -65,7 +65,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 9;
+  static const int currentSchemaVersion = 10;
 
   final StorageProfile? storageProfile;
 
@@ -205,9 +205,53 @@ final class AppDatabase extends _$AppDatabase {
           await migrator.createTable(literacyAssessments);
         }
       }
+      if (from < 10 && to >= 10) {
+        for (final tableName in _syncMetadataTables) {
+          await _addSyncMetadataColumnsIfMissing(tableName);
+        }
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
   );
+
+  static const List<String> _syncMetadataTables = <String>[
+    'schools',
+    'school_years',
+    'school_contexts',
+    'teaching_groups',
+    'group_grades',
+    'students',
+    'enrollments',
+    'attendance_days',
+    'attendance_entries',
+    'projects',
+    'project_grades',
+    'project_formative_fields',
+    'project_articulating_axes',
+    'activities',
+    'activity_grades',
+    'activity_formative_fields',
+    'activity_roster',
+    'activity_evaluations',
+    'student_records',
+    'student_record_entries',
+    'literacy_assessments',
+    'teacher_profiles',
+  ];
+
+  Future<void> _addSyncMetadataColumnsIfMissing(String tableName) async {
+    final columns = await customSelect("PRAGMA table_info('$tableName')").get();
+    final names = columns.map((row) => row.read<String>('name')).toSet();
+    Future<void> addColumn(String name, String type) async {
+      if (names.contains(name)) return;
+      await customStatement('ALTER TABLE $tableName ADD COLUMN $name $type');
+    }
+
+    await addColumn('created_at', 'INTEGER');
+    await addColumn('updated_at', 'INTEGER');
+    await addColumn('deleted_at', 'INTEGER');
+    await addColumn('updated_by_device_id', 'TEXT');
+  }
 }

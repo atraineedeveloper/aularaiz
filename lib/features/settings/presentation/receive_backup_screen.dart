@@ -4,6 +4,7 @@ import 'package:aularaiz/application/backup/restore_models.dart';
 import 'package:aularaiz/application/contracts/backup_protector.dart';
 import 'package:aularaiz/infrastructure/backup/backup_restore_gateway.dart';
 import 'package:aularaiz/infrastructure/backup/local_backup_transfer_server.dart';
+import 'package:aularaiz/infrastructure/sync/record_level_sync_service.dart';
 import 'package:aularaiz/infrastructure/sync/sync_device_registry.dart';
 import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:flutter/material.dart';
@@ -154,6 +155,7 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
     if (payload != null) {
       await _receiveWithTransferCode(
         downloadUrl: payload.downloadUrl,
+        uploadUrl: payload.uploadUrl,
         transferCode: payload.transferCode,
         sourceDeviceId: payload.sourceDeviceId,
         sourceDeviceName: payload.sourceDeviceName,
@@ -204,6 +206,7 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
 
   Future<void> _receiveWithTransferCode({
     required String downloadUrl,
+    String? uploadUrl,
     required String transferCode,
     String? sourceDeviceId,
     String? sourceDeviceName,
@@ -249,7 +252,13 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
         }
       }
 
-      await gateway.stageRestore(selection);
+      final syncSummary = await gateway.mergeIncomingBackup(selection);
+      final returnedSummary = uploadUrl == null || uploadUrl.trim().isEmpty
+          ? null
+          : await gateway.pushCurrentBackupToUrl(
+              uploadUrl: uploadUrl,
+              transferCode: transferCode,
+            );
       if (!mounted) return;
       final normalizedDeviceId = sourceDeviceId?.trim();
       if (normalizedDeviceId != null && normalizedDeviceId.isNotEmpty) {
@@ -261,17 +270,14 @@ class _ReceiveBackupScreenState extends State<ReceiveBackupScreen> {
       }
       if (!mounted) return;
       setState(() {
-        _status = autoApply ? strings.autoPrepared : strings.prepared;
+        _status = strings.syncApplied(syncSummary.changed, returnedSummary);
         _statusIsError = false;
       });
       await showDialog<void>(
         context: context,
-        barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          title: Text(strings.preparedTitle),
-          content: Text(
-            autoApply ? strings.autoPreparedBody : strings.preparedBody,
-          ),
+          title: Text(strings.syncAppliedTitle),
+          content: Text(strings.syncAppliedBody(syncSummary, returnedSummary)),
           actions: [
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
@@ -599,8 +605,9 @@ final class _ReceiveBackupStrings {
   String get manualOnlyBody => spanish
       ? 'Este equipo recibirá los datos pegando la liga de descarga. Si el otro dispositivo muestra un QR, también muestra la misma liga debajo del código.'
       : 'This device receives data by pasting the download link. If the other device shows a QR, it also shows the same link below the code.';
-  String get processing =>
-      spanish ? 'Recibiendo y validando copia…' : 'Receiving and validating…';
+  String get processing => spanish
+      ? 'Recibiendo y sincronizando datos…'
+      : 'Receiving and syncing data…';
   String get manualLink =>
       spanish ? 'Pegar liga manualmente' : 'Paste link manually';
   String get manualLinkTitle =>
@@ -632,6 +639,43 @@ final class _ReceiveBackupStrings {
   String get autoPrepared => spanish
       ? 'Sincronización preparada automáticamente.'
       : 'Sync was prepared automatically.';
+  String get syncAppliedTitle =>
+      spanish ? 'Sincronización aplicada' : 'Sync applied';
+  String syncApplied(int changed, RecordLevelSyncSummary? returnedSummary) {
+    final returned = returnedSummary;
+    if (returned == null) {
+      return spanish
+          ? 'Sincronización aplicada: $changed cambios incorporados.'
+          : 'Sync applied: $changed changes merged.';
+    }
+    return spanish
+        ? 'Sincronización bidireccional aplicada: $changed cambios aquí y ${returned.changed} en el otro dispositivo.'
+        : 'Two-way sync applied: $changed changes here and ${returned.changed} on the other device.';
+  }
+
+  String syncAppliedBody(
+    RecordLevelSyncSummary summary,
+    RecordLevelSyncSummary? returnedSummary,
+  ) {
+    final returned = returnedSummary;
+    final returnedText = returned == null
+        ? (spanish
+              ? 'El otro dispositivo no confirmó devolución automática; si necesitas actualizarlo, repite la sincronización desde allá.'
+              : 'The other device did not confirm the automatic return; repeat sync from there if you need to update it.')
+        : (spanish
+              ? 'Además, el otro dispositivo incorporó ${returned.inserted} nuevos y actualizó ${returned.updated}.'
+              : 'Also, the other device inserted ${returned.inserted} and updated ${returned.updated}.');
+    return spanish
+        ? 'AulaRaíz comparó los registros recibidos con este dispositivo. '
+              'Agregó ${summary.inserted}, actualizó ${summary.updated} '
+              'y omitió ${summary.skipped} que no eran más recientes. '
+              '$returnedText No necesitas reiniciar.'
+        : 'AulaRaíz compared the received records with this device. '
+              'It inserted ${summary.inserted}, updated ${summary.updated}, '
+              'and skipped ${summary.skipped} that were not newer. '
+              '$returnedText No restart is required.';
+  }
+
   String get confirmTitle =>
       spanish ? 'Confirmar sincronización' : 'Confirm sync';
   String get comparisonTitle =>

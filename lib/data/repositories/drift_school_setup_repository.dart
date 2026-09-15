@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/school/school.dart';
 import 'package:aularaiz/domain/school/school_year.dart';
 import 'package:drift/drift.dart';
@@ -10,9 +11,13 @@ final class DriftSchoolSetupRepository
         EditableSchoolSetupRepository,
         DeletableSchoolSetupRepository,
         SchoolYearStarterRepository {
-  DriftSchoolSetupRepository(this.database);
+  DriftSchoolSetupRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<bool> hasInitialSetup() async => (await listSetups()).isNotEmpty;
@@ -25,7 +30,9 @@ final class DriftSchoolSetupRepository
 
   @override
   Future<List<InitialSchoolSetup>> listSetups() async {
-    final contexts = await database.select(database.schoolContexts).get();
+    final contexts = await (database.select(
+      database.schoolContexts,
+    )..where((table) => table.deletedAt.isNull())).get();
     final result = <InitialSchoolSetup>[];
     for (final context in contexts) {
       final setup = await _loadContext(
@@ -43,6 +50,7 @@ final class DriftSchoolSetupRepository
     final context =
         await (database.select(database.schoolContexts)
               ..where((table) => table.schoolId.equals(schoolId))
+              ..where((table) => table.deletedAt.isNull())
               ..limit(1))
             .getSingleOrNull();
     if (context == null) return null;
@@ -57,6 +65,8 @@ final class DriftSchoolSetupRepository
     required School school,
     required SchoolYear schoolYear,
   }) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database.transaction(() async {
       await database
           .into(database.schools)
@@ -74,6 +84,9 @@ final class DriftSchoolSetupRepository
               supervisorName: Value(school.supervisorName),
               leadershipName: Value(school.leadershipName),
               leadershipRole: Value(school.leadershipRole),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
 
@@ -85,6 +98,9 @@ final class DriftSchoolSetupRepository
               label: Value(schoolYear.label),
               startsOn: Value(schoolYear.startsOn),
               endsOn: Value(schoolYear.endsOn),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
 
@@ -94,6 +110,9 @@ final class DriftSchoolSetupRepository
             SchoolContextsCompanion(
               schoolId: Value(school.id),
               schoolYearId: Value(schoolYear.id),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
     });
@@ -104,6 +123,8 @@ final class DriftSchoolSetupRepository
     required String schoolId,
     required SchoolYear schoolYear,
   }) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database.transaction(() async {
       await database
           .into(database.schoolYears)
@@ -113,6 +134,9 @@ final class DriftSchoolSetupRepository
               label: Value(schoolYear.label),
               startsOn: Value(schoolYear.startsOn),
               endsOn: Value(schoolYear.endsOn),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
 
@@ -122,6 +146,8 @@ final class DriftSchoolSetupRepository
             SchoolContextsCompanion(
               schoolId: Value(schoolId),
               schoolYearId: Value(schoolYear.id),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
     });
@@ -129,6 +155,8 @@ final class DriftSchoolSetupRepository
 
   @override
   Future<void> updateSchool(School school) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     final updated =
         await (database.update(
           database.schools,
@@ -145,6 +173,8 @@ final class DriftSchoolSetupRepository
             supervisorName: Value(school.supervisorName),
             leadershipName: Value(school.leadershipName),
             leadershipRole: Value(school.leadershipRole),
+            updatedAt: SyncMetadataValues.updated(timestamp),
+            updatedByDeviceId: deviceId,
           ),
         );
     if (updated != 1) {
@@ -155,16 +185,26 @@ final class DriftSchoolSetupRepository
   @override
   Future<void> deleteSchool(String schoolId) async {
     await database.transaction(() async {
+      final timestamp = SyncMetadataValues.now();
+      final deletedAt = timestamp.millisecondsSinceEpoch;
+      final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
+      final deviceIdValue = deviceId.value;
       final school =
           await (database.select(database.schools)
-                ..where((table) => table.id.equals(schoolId))
+                ..where(
+                  (table) =>
+                      table.id.equals(schoolId) & table.deletedAt.isNull(),
+                )
                 ..limit(1))
               .getSingleOrNull();
       if (school == null) throw StateError('School does not exist.');
 
-      final contextRows = await (database.select(
-        database.schoolContexts,
-      )..where((table) => table.schoolId.equals(schoolId))).get();
+      final contextRows =
+          await (database.select(database.schoolContexts)..where(
+                (table) =>
+                    table.schoolId.equals(schoolId) & table.deletedAt.isNull(),
+              ))
+              .get();
       final schoolYearIds = contextRows.map((row) => row.schoolYearId).toSet();
 
       const groupIds = 'SELECT id FROM teaching_groups WHERE school_id = ?';
@@ -184,13 +224,17 @@ final class DriftSchoolSetupRepository
         'activity_formative_fields',
       ]) {
         await database.customStatement(
-          'DELETE FROM $table WHERE activity_id IN ($activityIds)',
-          <Object?>[schoolId],
+          'UPDATE $table SET deleted_at = ?, updated_at = ?, '
+          'updated_by_device_id = ? '
+          'WHERE activity_id IN ($activityIds)',
+          <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
         );
       }
       await database.customStatement(
-        'DELETE FROM activities WHERE project_id IN ($projectIds)',
-        <Object?>[schoolId],
+        'UPDATE activities SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE project_id IN ($projectIds)',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
       for (final table in <String>[
         'project_articulating_axes',
@@ -198,85 +242,145 @@ final class DriftSchoolSetupRepository
         'project_grades',
       ]) {
         await database.customStatement(
-          'DELETE FROM $table WHERE project_id IN ($projectIds)',
-          <Object?>[schoolId],
+          'UPDATE $table SET deleted_at = ?, updated_at = ?, '
+          'updated_by_device_id = ? '
+          'WHERE project_id IN ($projectIds)',
+          <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
         );
       }
       await database.customStatement(
-        'DELETE FROM projects WHERE group_id IN ($groupIds)',
-        <Object?>[schoolId],
+        'UPDATE projects SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE group_id IN ($groupIds)',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
       await database.customStatement(
-        'DELETE FROM attendance_days WHERE group_id IN ($groupIds)',
-        <Object?>[schoolId],
+        'UPDATE attendance_entries SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE attendance_day_id IN (SELECT id FROM attendance_days WHERE group_id IN ($groupIds))',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
       await database.customStatement(
-        'DELETE FROM enrollments WHERE group_id IN ($groupIds)',
-        <Object?>[schoolId],
+        'UPDATE attendance_days SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE group_id IN ($groupIds)',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
       await database.customStatement(
-        'DELETE FROM group_grades WHERE group_id IN ($groupIds)',
-        <Object?>[schoolId],
+        'UPDATE enrollments SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE group_id IN ($groupIds)',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
       await database.customStatement(
-        'DELETE FROM teaching_groups WHERE school_id = ?',
-        <Object?>[schoolId],
+        'UPDATE group_grades SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? '
+        'WHERE group_id IN ($groupIds)',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
       );
-      await (database.delete(
+      await database.customStatement(
+        'UPDATE teaching_groups SET deleted_at = ?, updated_at = ?, '
+        'updated_by_device_id = ? WHERE school_id = ?',
+        <Object?>[deletedAt, deletedAt, deviceIdValue, schoolId],
+      );
+      await (database.update(
         database.schoolContexts,
-      )..where((table) => table.schoolId.equals(schoolId))).go();
-      await (database.delete(
+      )..where((table) => table.schoolId.equals(schoolId))).write(
+        SchoolContextsCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.schools,
-      )..where((table) => table.id.equals(schoolId))).go();
+      )..where((table) => table.id.equals(schoolId))).write(
+        SchoolsCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
 
-      await _deleteOrphanStudents();
+      await _deleteOrphanStudents(timestamp, deviceIdValue);
       for (final schoolYearId in schoolYearIds) {
         final contextReference =
             await (database.select(database.schoolContexts)
-                  ..where((table) => table.schoolYearId.equals(schoolYearId))
+                  ..where(
+                    (table) =>
+                        table.schoolYearId.equals(schoolYearId) &
+                        table.deletedAt.isNull(),
+                  )
                   ..limit(1))
                 .getSingleOrNull();
         final groupReference =
             await (database.select(database.teachingGroups)
-                  ..where((table) => table.schoolYearId.equals(schoolYearId))
+                  ..where(
+                    (table) =>
+                        table.schoolYearId.equals(schoolYearId) &
+                        table.deletedAt.isNull(),
+                  )
                   ..limit(1))
                 .getSingleOrNull();
         if (contextReference == null && groupReference == null) {
-          await (database.delete(
+          await (database.update(
             database.schoolYears,
-          )..where((table) => table.id.equals(schoolYearId))).go();
+          )..where((table) => table.id.equals(schoolYearId))).write(
+            SchoolYearsCompanion(
+              deletedAt: SyncMetadataValues.deleted(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
+            ),
+          );
         }
       }
     });
   }
 
-  Future<void> _deleteOrphanStudents() async {
+  Future<void> _deleteOrphanStudents(
+    DateTime timestamp,
+    String? deviceId,
+  ) async {
+    final deletedAt = timestamp.millisecondsSinceEpoch;
     const orphanStudents = '''
       SELECT s.id FROM students s
       WHERE NOT EXISTS (
-        SELECT 1 FROM enrollments e WHERE e.student_id = s.id
+        SELECT 1 FROM enrollments e WHERE e.student_id = s.id AND e.deleted_at IS NULL
       )
       AND NOT EXISTS (
-        SELECT 1 FROM attendance_entries ae WHERE ae.student_id = s.id
+        SELECT 1 FROM attendance_entries ae WHERE ae.student_id = s.id AND ae.deleted_at IS NULL
       )
       AND NOT EXISTS (
-        SELECT 1 FROM activity_roster ar WHERE ar.student_id = s.id
+        SELECT 1 FROM activity_roster ar WHERE ar.student_id = s.id AND ar.deleted_at IS NULL
       )
       AND NOT EXISTS (
-        SELECT 1 FROM activity_evaluations av WHERE av.student_id = s.id
+        SELECT 1 FROM activity_evaluations av WHERE av.student_id = s.id AND av.deleted_at IS NULL
       )
+      AND s.deleted_at IS NULL
     ''';
     await database.customStatement(
-      'DELETE FROM student_record_entries WHERE student_id IN ($orphanStudents)',
+      'UPDATE student_record_entries SET deleted_at = ?, updated_at = ?, '
+      'updated_by_device_id = ? '
+      'WHERE student_id IN ($orphanStudents)',
+      <Object?>[deletedAt, deletedAt, deviceId],
     );
     await database.customStatement(
-      'DELETE FROM literacy_assessments WHERE student_id IN ($orphanStudents)',
+      'UPDATE literacy_assessments SET deleted_at = ?, updated_at = ?, '
+      'updated_by_device_id = ? '
+      'WHERE student_id IN ($orphanStudents)',
+      <Object?>[deletedAt, deletedAt, deviceId],
     );
     await database.customStatement(
-      'DELETE FROM student_records WHERE student_id IN ($orphanStudents)',
+      'UPDATE student_records SET deleted_at = ?, updated_at = ?, '
+      'updated_by_device_id = ? '
+      'WHERE student_id IN ($orphanStudents)',
+      <Object?>[deletedAt, deletedAt, deviceId],
     );
     await database.customStatement(
-      'DELETE FROM students WHERE id IN ($orphanStudents)',
+      'UPDATE students SET deleted_at = ?, updated_at = ?, '
+      'updated_by_device_id = ? '
+      'WHERE id IN ($orphanStudents)',
+      <Object?>[deletedAt, deletedAt, deviceId],
     );
   }
 
@@ -286,12 +390,17 @@ final class DriftSchoolSetupRepository
   }) async {
     final schoolRow =
         await (database.select(database.schools)
-              ..where((table) => table.id.equals(schoolId))
+              ..where(
+                (table) => table.id.equals(schoolId) & table.deletedAt.isNull(),
+              )
               ..limit(1))
             .getSingleOrNull();
     final schoolYearRow =
         await (database.select(database.schoolYears)
-              ..where((table) => table.id.equals(schoolYearId))
+              ..where(
+                (table) =>
+                    table.id.equals(schoolYearId) & table.deletedAt.isNull(),
+              )
               ..limit(1))
             .getSingleOrNull();
     if (schoolRow == null || schoolYearRow == null) return null;

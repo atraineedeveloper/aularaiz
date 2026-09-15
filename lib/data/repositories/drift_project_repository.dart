@@ -1,19 +1,25 @@
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
 import 'package:drift/drift.dart';
 
 final class DriftProjectRepository implements ProjectRepository {
-  DriftProjectRepository(this.database);
+  DriftProjectRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<Project?> findById(String id) async {
     final row =
         await (database.select(database.projects)
               ..where((table) => table.id.equals(id))
+              ..where((table) => table.deletedAt.isNull())
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _toDomain(row);
@@ -24,6 +30,7 @@ final class DriftProjectRepository implements ProjectRepository {
     final rows =
         await (database.select(database.projects)
               ..where((table) => table.groupId.equals(groupId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([(table) => OrderingTerm.asc(table.title)]))
             .get();
     final result = <Project>[];
@@ -35,6 +42,8 @@ final class DriftProjectRepository implements ProjectRepository {
 
   @override
   Future<void> save(Project project) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database.transaction(() async {
       await database
           .into(database.projects)
@@ -50,17 +59,38 @@ final class DriftProjectRepository implements ProjectRepository {
               lifecycle: Value(project.lifecycle),
               methodology: Value(project.methodology),
               formativeField: const Value(FormativeField.unspecified),
+              deletedAt: const Value(null),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
-      await (database.delete(
+      await (database.update(
         database.projectGrades,
-      )..where((table) => table.projectId.equals(project.id))).go();
-      await (database.delete(
+      )..where((table) => table.projectId.equals(project.id))).write(
+        ProjectGradesCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.projectFormativeFields,
-      )..where((table) => table.projectId.equals(project.id))).go();
-      await (database.delete(
+      )..where((table) => table.projectId.equals(project.id))).write(
+        ProjectFormativeFieldsCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.projectArticulatingAxes,
-      )..where((table) => table.projectId.equals(project.id))).go();
+      )..where((table) => table.projectId.equals(project.id))).write(
+        ProjectArticulatingAxesCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
       await database.batch((batch) {
         for (final grade in project.targetGrades) {
           batch.insert(
@@ -68,7 +98,12 @@ final class DriftProjectRepository implements ProjectRepository {
             ProjectGradesCompanion(
               projectId: Value(project.id),
               grade: Value(grade),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              deletedAt: const Value(null),
+              updatedByDeviceId: deviceId,
             ),
+            mode: InsertMode.insertOrReplace,
           );
         }
         for (final axis in project.articulatingAxes) {
@@ -77,7 +112,12 @@ final class DriftProjectRepository implements ProjectRepository {
             ProjectArticulatingAxesCompanion(
               projectId: Value(project.id),
               articulatingAxis: Value(axis),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              deletedAt: const Value(null),
+              updatedByDeviceId: deviceId,
             ),
+            mode: InsertMode.insertOrReplace,
           );
         }
       });
@@ -85,12 +125,18 @@ final class DriftProjectRepository implements ProjectRepository {
   }
 
   Future<Project> _toDomain(ProjectRow row) async {
-    final grades = await (database.select(
-      database.projectGrades,
-    )..where((table) => table.projectId.equals(row.id))).get();
-    final axes = await (database.select(
-      database.projectArticulatingAxes,
-    )..where((table) => table.projectId.equals(row.id))).get();
+    final grades =
+        await (database.select(database.projectGrades)..where(
+              (table) =>
+                  table.projectId.equals(row.id) & table.deletedAt.isNull(),
+            ))
+            .get();
+    final axes =
+        await (database.select(database.projectArticulatingAxes)..where(
+              (table) =>
+                  table.projectId.equals(row.id) & table.deletedAt.isNull(),
+            ))
+            .get();
     return Project(
       id: row.id,
       groupId: row.groupId,

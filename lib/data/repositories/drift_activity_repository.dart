@@ -1,5 +1,6 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/data/local/app_database.dart';
+import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/activity_participant.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
@@ -7,15 +8,20 @@ import 'package:drift/drift.dart';
 
 final class DriftActivityRepository
     implements ActivityRepository, DeletableActivityRepository {
-  DriftActivityRepository(this.database);
+  DriftActivityRepository(
+    this.database, {
+    SyncDeviceIdProvider? deviceIdProvider,
+  }) : _deviceIdProvider = deviceIdProvider;
 
   final AppDatabase database;
+  final SyncDeviceIdProvider? _deviceIdProvider;
 
   @override
   Future<Activity?> findById(String id) async {
     final row =
         await (database.select(database.activities)
               ..where((table) => table.id.equals(id))
+              ..where((table) => table.deletedAt.isNull())
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _toDomain(row);
@@ -26,6 +32,7 @@ final class DriftActivityRepository
     final rows =
         await (database.select(database.activities)
               ..where((table) => table.projectId.equals(projectId))
+              ..where((table) => table.deletedAt.isNull())
               ..orderBy([
                 (table) => OrderingTerm.asc(table.occursOn),
                 (table) => OrderingTerm.asc(table.identifier),
@@ -41,6 +48,8 @@ final class DriftActivityRepository
 
   @override
   Future<void> save(Activity activity) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database.transaction(() async {
       await database
           .into(database.activities)
@@ -53,6 +62,9 @@ final class DriftActivityRepository
               description: Value(activity.description),
               occursOn: Value(activity.occursOn),
               generalObservations: Value(activity.generalObservations),
+              deletedAt: const Value(null),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
       await database
@@ -61,14 +73,29 @@ final class DriftActivityRepository
             ActivityFormativeFieldsCompanion(
               activityId: Value(activity.id),
               formativeField: Value(activity.formativeField),
+              deletedAt: const Value(null),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
             ),
           );
-      await (database.delete(
+      await (database.update(
         database.activityRoster,
-      )..where((table) => table.activityId.equals(activity.id))).go();
-      await (database.delete(
+      )..where((table) => table.activityId.equals(activity.id))).write(
+        ActivityRosterCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.activityGrades,
-      )..where((table) => table.activityId.equals(activity.id))).go();
+      )..where((table) => table.activityId.equals(activity.id))).write(
+        ActivityGradesCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
       await database.batch((batch) {
         for (final grade in activity.targetGrades) {
           batch.insert(
@@ -76,7 +103,12 @@ final class DriftActivityRepository
             ActivityGradesCompanion(
               activityId: Value(activity.id),
               grade: Value(grade),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              deletedAt: const Value(null),
+              updatedByDeviceId: deviceId,
             ),
+            mode: InsertMode.insertOrReplace,
           );
         }
         for (final participant in activity.roster.values) {
@@ -86,7 +118,12 @@ final class DriftActivityRepository
               activityId: Value(activity.id),
               studentId: Value(participant.studentId),
               grade: Value(participant.grade),
+              createdAt: SyncMetadataValues.created(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              deletedAt: const Value(null),
+              updatedByDeviceId: deviceId,
             ),
+            mode: InsertMode.insertOrReplace,
           );
         }
       });
@@ -95,22 +132,55 @@ final class DriftActivityRepository
 
   @override
   Future<void> deleteActivity(String activityId) async {
+    final timestamp = SyncMetadataValues.now();
+    final deviceId = await SyncMetadataValues.deviceId(_deviceIdProvider);
     await database.transaction(() async {
-      await (database.delete(
+      await (database.update(
         database.activityEvaluations,
-      )..where((table) => table.activityId.equals(activityId))).go();
-      await (database.delete(
+      )..where((table) => table.activityId.equals(activityId))).write(
+        ActivityEvaluationsCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.activityRoster,
-      )..where((table) => table.activityId.equals(activityId))).go();
-      await (database.delete(
+      )..where((table) => table.activityId.equals(activityId))).write(
+        ActivityRosterCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.activityGrades,
-      )..where((table) => table.activityId.equals(activityId))).go();
-      await (database.delete(
+      )..where((table) => table.activityId.equals(activityId))).write(
+        ActivityGradesCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      await (database.update(
         database.activityFormativeFields,
-      )..where((table) => table.activityId.equals(activityId))).go();
-      final deleted = await (database.delete(
-        database.activities,
-      )..where((table) => table.id.equals(activityId))).go();
+      )..where((table) => table.activityId.equals(activityId))).write(
+        ActivityFormativeFieldsCompanion(
+          deletedAt: SyncMetadataValues.deleted(timestamp),
+          updatedAt: SyncMetadataValues.updated(timestamp),
+          updatedByDeviceId: deviceId,
+        ),
+      );
+      final deleted =
+          await (database.update(
+            database.activities,
+          )..where((table) => table.id.equals(activityId))).write(
+            ActivitiesCompanion(
+              deletedAt: SyncMetadataValues.deleted(timestamp),
+              updatedAt: SyncMetadataValues.updated(timestamp),
+              updatedByDeviceId: deviceId,
+            ),
+          );
       if (deleted != 1) {
         throw StateError('Activity does not exist.');
       }
@@ -118,15 +188,22 @@ final class DriftActivityRepository
   }
 
   Future<Activity> _toDomain(ActivityRow row) async {
-    final grades = await (database.select(
-      database.activityGrades,
-    )..where((table) => table.activityId.equals(row.id))).get();
-    final roster = await (database.select(
-      database.activityRoster,
-    )..where((table) => table.activityId.equals(row.id))).get();
+    final grades =
+        await (database.select(database.activityGrades)..where(
+              (table) =>
+                  table.activityId.equals(row.id) & table.deletedAt.isNull(),
+            ))
+            .get();
+    final roster =
+        await (database.select(database.activityRoster)..where(
+              (table) =>
+                  table.activityId.equals(row.id) & table.deletedAt.isNull(),
+            ))
+            .get();
     final fieldRow =
         await (database.select(database.activityFormativeFields)
               ..where((table) => table.activityId.equals(row.id))
+              ..where((table) => table.deletedAt.isNull())
               ..limit(1))
             .getSingleOrNull();
     final formativeField = fieldRow?.formativeField ?? await _legacyField(row);

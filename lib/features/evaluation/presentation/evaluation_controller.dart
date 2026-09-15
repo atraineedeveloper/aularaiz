@@ -339,6 +339,12 @@ final class EvaluationController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshAfterSync() async {
+    final group = _group;
+    if (group == null || _isSaving || _isLoading) return;
+    await load(group);
+  }
+
   Future<void> selectActivity(String activityId) async {
     final matches = _options.where((o) => o.activity.id == activityId);
     if (matches.isEmpty) return;

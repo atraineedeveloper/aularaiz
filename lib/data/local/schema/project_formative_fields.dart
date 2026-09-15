@@ -1,9 +1,10 @@
 import 'package:aularaiz/data/local/schema/projects.dart';
+import 'package:aularaiz/data/local/schema/sync_metadata_columns.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:drift/drift.dart';
 
 @DataClassName('ProjectFormativeFieldRow')
-class ProjectFormativeFields extends Table {
+class ProjectFormativeFields extends Table with SyncMetadataColumns {
   late final projectId = text().references(
     Projects,
     #id,

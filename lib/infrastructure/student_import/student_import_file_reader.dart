@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:aularaiz/application/student_import/student_import_models.dart';
-import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:csv/csv.dart';
 import 'package:excel/excel.dart';
 
@@ -23,21 +22,11 @@ final class StudentImportFileReader {
       throw const StudentImportFormatException(
         StudentImportFormatProblem.unsupportedFile,
       );
-    } on StudentImportFormatException catch (error) {
-      SafeLog.operationFailure(
-        'parse_student_import',
-        error,
-        code: error.problem.name,
-      );
+    } on StudentImportFormatException {
       rethrow;
-    } catch (error) {
+    } catch (_) {
       const formatError = StudentImportFormatException(
         StudentImportFormatProblem.unreadableFile,
-      );
-      SafeLog.operationFailure(
-        'parse_student_import',
-        error,
-        code: formatError.problem.name,
       );
       throw formatError;
     }

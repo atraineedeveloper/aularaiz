@@ -34,6 +34,19 @@ final class AgentInvocation {
       'date',
       'text',
       'status',
+      'delivery-status',
+      'achievement',
+      'observation',
+      'assessment',
+      'writing-level',
+      'reading-level',
+      'notes',
+      'strengths',
+      'difficulties',
+      'supports',
+      'file',
+      'output',
+      'transfer-code',
       'grade',
       'list-number',
       'school',
@@ -100,7 +113,7 @@ final class AgentInvocation {
         continue;
       }
       if (!valueOptions.contains(name)) {
-        throw AgentUsageFailure('Opción desconocida: --$name');
+        throw AgentUsageFailure('Opci\u00F3n desconocida: --$name');
       }
       if (index + 1 >= arguments.length ||
           arguments[index + 1].startsWith('--')) {
@@ -114,7 +127,13 @@ final class AgentInvocation {
         !{'table', 'json'}.contains(options['format'])) {
       throw AgentUsageFailure('--format debe ser table o json.');
     }
-    const destructive = {'school-delete', 'group-delete', 'activity-delete'};
+    const destructive = {
+      'school-delete',
+      'group-delete',
+      'activity-delete',
+      'attendance-day-delete',
+      'literacy-delete',
+    };
     if (flags.contains('apply') &&
         destructive.contains(command) &&
         !flags.contains('confirm-delete')) {

@@ -34,6 +34,8 @@ import 'package:aularaiz/features/dashboard/presentation/group_dashboard_control
 import 'package:aularaiz/features/dashboard/presentation/group_dashboard_screen.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_controller.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart';
+import 'package:aularaiz/features/literacy/presentation/literacy_controller.dart';
+import 'package:aularaiz/features/literacy/presentation/literacy_screen.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
 import 'package:aularaiz/features/projects/presentation/projects_screen.dart';
 import 'package:aularaiz/features/reports/presentation/reports_controller.dart';
@@ -177,9 +179,14 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   onSelect: _openRecordsList,
                 ),
                 SchoolWorkspaceDestination(
+                  label: _label(context, 'Lectoescritura', 'Literacy'),
+                  icon: Icons.menu_book_outlined,
+                  onSelect: () => _selectDestination(6),
+                ),
+                SchoolWorkspaceDestination(
                   label: l10n.openReports,
                   icon: Icons.summarize_outlined,
-                  onSelect: () => _selectDestination(6),
+                  onSelect: () => _selectDestination(7),
                 ),
               ],
         child: group != null && _selectedStudentRecord != null
@@ -322,6 +329,26 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
               )
             : group != null && _selectedDestination == 6
             ? ChangeNotifierProvider(
+                create: (context) => LiteracyController(
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  studentRepository: context.read<StudentRepository>(),
+                  literacyAssessmentRepository: context
+                      .read<LiteracyAssessmentRepository>(),
+                  saveLiteracyAssessment: context
+                      .read<SaveLiteracyAssessment>(),
+                  updateLiteracyAssessment: context
+                      .read<UpdateLiteracyAssessment>(),
+                ),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () =>
+                        context.read<LiteracyController>().refreshAfterSync(),
+                    child: LiteracyScreen(group: group, embedded: true),
+                  ),
+                ),
+              )
+            : group != null && _selectedDestination == 7
+            ? ChangeNotifierProvider(
                 create: (context) => ReportsController(
                   projectionBuilder: context.read<ReportProjectionBuilder>(),
                   publicationService: context.read<ReportPublicationService>(),
@@ -426,8 +453,10 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                                           _openGroupDestination(group, 4),
                                       onRecords: () =>
                                           _openGroupDestination(group, 5),
-                                      onReports: () =>
+                                      onLiteracy: () =>
                                           _openGroupDestination(group, 6),
+                                      onReports: () =>
+                                          _openGroupDestination(group, 7),
                                       modernOverview: true,
                                     );
                                   },
@@ -804,6 +833,7 @@ class _GroupCard extends StatelessWidget {
     required this.onProjects,
     required this.onEvaluation,
     required this.onRecords,
+    required this.onLiteracy,
     required this.onReports,
     required this.modernOverview,
   });
@@ -817,6 +847,7 @@ class _GroupCard extends StatelessWidget {
   final VoidCallback onProjects;
   final VoidCallback onEvaluation;
   final VoidCallback onRecords;
+  final VoidCallback onLiteracy;
   final VoidCallback onReports;
   final bool modernOverview;
 
@@ -842,6 +873,7 @@ class _GroupCard extends StatelessWidget {
               onOpenStudents: onStudents,
               onOpenAttendance: onAttendance,
               onOpenEvaluation: onEvaluation,
+              onOpenLiteracy: onLiteracy,
               onOpenDetailedDashboard: onDashboard,
             ),
           ),
@@ -963,6 +995,11 @@ class _GroupCard extends StatelessWidget {
                   onPressed: onRecords,
                   icon: const Icon(Icons.folder_shared_outlined),
                   label: Text(l10n.openStudentRecords),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onLiteracy,
+                  icon: const Icon(Icons.menu_book_outlined),
+                  label: Text(_label(context, 'Lectoescritura', 'Literacy')),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: onReports,

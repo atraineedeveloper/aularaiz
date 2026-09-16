@@ -317,6 +317,7 @@ class GroupDashboardOverview extends StatefulWidget {
     required this.onOpenStudents,
     required this.onOpenAttendance,
     required this.onOpenEvaluation,
+    required this.onOpenLiteracy,
     required this.onOpenDetailedDashboard,
     super.key,
   });
@@ -327,6 +328,7 @@ class GroupDashboardOverview extends StatefulWidget {
   final VoidCallback onOpenStudents;
   final VoidCallback onOpenAttendance;
   final VoidCallback onOpenEvaluation;
+  final VoidCallback onOpenLiteracy;
   final VoidCallback onOpenDetailedDashboard;
 
   @override
@@ -483,6 +485,13 @@ class _GroupDashboardOverviewState extends State<GroupDashboardOverview> {
                           icon: const Icon(Icons.groups_outlined),
                           label: Text(
                             _label(context, 'Ver alumnos', 'View students'),
+                          ),
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: widget.onOpenLiteracy,
+                          icon: const Icon(Icons.menu_book_outlined),
+                          label: Text(
+                            _label(context, 'Lectoescritura', 'Literacy'),
                           ),
                         ),
                       ],

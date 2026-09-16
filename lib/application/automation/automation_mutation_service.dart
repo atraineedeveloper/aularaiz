@@ -1,22 +1,40 @@
+import 'dart:io';
+
 import 'package:aularaiz/application/attendance/set_student_attendance_status.dart';
 import 'package:aularaiz/application/automation/automation_models.dart';
+import 'package:aularaiz/application/backup/create_backup.dart';
 import 'package:aularaiz/application/contracts/activity_repository.dart';
+import 'package:aularaiz/application/contracts/attendance_repository.dart';
+import 'package:aularaiz/application/contracts/database_snapshotter.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
+import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
+import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
+import 'package:aularaiz/application/literacy/update_literacy_assessment.dart';
 import 'package:aularaiz/application/project/create_activity.dart';
 import 'package:aularaiz/application/project/create_project.dart';
 import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
 import 'package:aularaiz/application/student/create_student_in_group.dart';
 import 'package:aularaiz/application/student/deactivate_student_in_group.dart';
 import 'package:aularaiz/application/student/reactivate_student_in_group.dart';
+import 'package:aularaiz/application/student_import/import_students.dart';
+import 'package:aularaiz/application/student_import/student_import_models.dart';
+import 'package:aularaiz/application/student_import/student_import_parser.dart';
+import 'package:aularaiz/application/student_import/student_import_preview_builder.dart';
+import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/application/teacher/save_teacher_profile.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/evaluation/achievement_level.dart';
+import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/project/activity.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project.dart';
@@ -30,6 +48,8 @@ import 'package:aularaiz/domain/student/enrollment.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student/student_sex.dart';
 import 'package:aularaiz/domain/teacher/teaching_role.dart';
+import 'package:aularaiz/infrastructure/backup/portable_backup_protector.dart';
+import 'package:aularaiz/infrastructure/student_import/student_import_file_reader.dart';
 
 typedef AutomationMutationClock = DateTime Function();
 
@@ -38,7 +58,9 @@ final class AutomationMutationService {
     required TeachingGroupRepository teachingGroupRepository,
     required StudentRepository studentRepository,
     required EnrollmentRepository enrollmentRepository,
+    required AttendanceRepository attendanceRepository,
     required SetStudentAttendanceStatus setStudentAttendanceStatus,
+    required SaveActivityEvaluation saveActivityEvaluation,
     required DeactivateStudentInGroup deactivateStudentInGroup,
     required ReactivateStudentInGroup reactivateStudentInGroup,
     required SchoolSetupRepository schoolSetupRepository,
@@ -50,11 +72,22 @@ final class AutomationMutationService {
     required ProjectRepository projectRepository,
     required ActivityRepository activityRepository,
     required SaveTeacherProfile saveTeacherProfile,
+    required SaveLiteracyAssessment saveLiteracyAssessment,
+    required UpdateLiteracyAssessment updateLiteracyAssessment,
+    required DeleteLiteracyAssessment deleteLiteracyAssessment,
+    required UpdateStudentRecord updateStudentRecord,
+    required ImportStudents importStudents,
+    required StudentImportPreviewBuilder studentImportPreviewBuilder,
+    required DatabaseSnapshotter backupSnapshotter,
+    required int backupSchemaVersion,
+    required String backupStorageProfile,
     AutomationMutationClock? clock,
   }) : _teachingGroupRepository = teachingGroupRepository,
        _studentRepository = studentRepository,
        _enrollmentRepository = enrollmentRepository,
+       _attendanceRepository = attendanceRepository,
        _setStudentAttendanceStatus = setStudentAttendanceStatus,
+       _saveActivityEvaluation = saveActivityEvaluation,
        _deactivateStudentInGroup = deactivateStudentInGroup,
        _reactivateStudentInGroup = reactivateStudentInGroup,
        _schoolSetupRepository = schoolSetupRepository,
@@ -66,12 +99,23 @@ final class AutomationMutationService {
        _projectRepository = projectRepository,
        _activityRepository = activityRepository,
        _saveTeacherProfile = saveTeacherProfile,
+       _saveLiteracyAssessment = saveLiteracyAssessment,
+       _updateLiteracyAssessment = updateLiteracyAssessment,
+       _deleteLiteracyAssessment = deleteLiteracyAssessment,
+       _updateStudentRecord = updateStudentRecord,
+       _importStudents = importStudents,
+       _studentImportPreviewBuilder = studentImportPreviewBuilder,
+       _backupSnapshotter = backupSnapshotter,
+       _backupSchemaVersion = backupSchemaVersion,
+       _backupStorageProfile = backupStorageProfile,
        _clock = clock ?? DateTime.now;
 
   final TeachingGroupRepository _teachingGroupRepository;
   final StudentRepository _studentRepository;
   final EnrollmentRepository _enrollmentRepository;
+  final AttendanceRepository _attendanceRepository;
   final SetStudentAttendanceStatus _setStudentAttendanceStatus;
+  final SaveActivityEvaluation _saveActivityEvaluation;
   final DeactivateStudentInGroup _deactivateStudentInGroup;
   final ReactivateStudentInGroup _reactivateStudentInGroup;
   final SchoolSetupRepository _schoolSetupRepository;
@@ -83,6 +127,15 @@ final class AutomationMutationService {
   final ProjectRepository _projectRepository;
   final ActivityRepository _activityRepository;
   final SaveTeacherProfile _saveTeacherProfile;
+  final SaveLiteracyAssessment _saveLiteracyAssessment;
+  final UpdateLiteracyAssessment _updateLiteracyAssessment;
+  final DeleteLiteracyAssessment _deleteLiteracyAssessment;
+  final UpdateStudentRecord _updateStudentRecord;
+  final ImportStudents _importStudents;
+  final StudentImportPreviewBuilder _studentImportPreviewBuilder;
+  final DatabaseSnapshotter _backupSnapshotter;
+  final int _backupSchemaVersion;
+  final String _backupStorageProfile;
   final AutomationMutationClock _clock;
 
   Future<AutomationEnvelope> createWorkspace({
@@ -486,6 +539,50 @@ final class AutomationMutationService {
     );
   }
 
+  Future<AutomationEnvelope> updateActivity({
+    required String activityId,
+    required String title,
+    required FormativeField formativeField,
+    required Set<PrimaryGrade> grades,
+    DateTime? occursOn,
+    bool apply = false,
+  }) async {
+    final current = await _activityRepository.findById(activityId);
+    if (current == null) throw StateError('Activity does not exist.');
+    final project = await _projectRepository.findById(current.projectId);
+    if (project == null) throw StateError('Project does not exist.');
+    if (!project.allowsActivityGrades(grades)) {
+      throw StateError('Activity grades must be inside project scope.');
+    }
+    final updated = Activity(
+      id: current.id,
+      projectId: current.projectId,
+      title: title,
+      description: current.description,
+      generalObservations: current.generalObservations,
+      formativeField: formativeField,
+      identifier: current.identifier,
+      occursOn: occursOn ?? current.occursOn,
+      targetGrades: grades,
+      roster: current.roster.values,
+    );
+    if (apply) await _activityRepository.save(updated);
+    return _envelope(
+      kind: 'activity-update',
+      privacy: const AutomationPrivacy(),
+      data: {
+        'dry_run': !apply,
+        'applied': apply,
+        'activity_id': activityId,
+        'project_id': current.projectId,
+        'title': updated.title,
+        'grades': updated.targetGrades.map((grade) => grade.number).toList()
+          ..sort(),
+        if (updated.occursOn != null) 'date': _dateLabel(updated.occursOn!),
+      },
+    );
+  }
+
   Future<AutomationEnvelope> deleteActivity({
     required String activityId,
     bool apply = false,
@@ -497,6 +594,53 @@ final class AutomationMutationService {
       kind: 'activity-delete',
       privacy: const AutomationPrivacy(),
       data: {'dry_run': !apply, 'applied': apply, 'activity_id': activityId},
+    );
+  }
+
+  Future<AutomationEnvelope> setEvaluation({
+    required String activityId,
+    required String studentId,
+    required DeliveryStatus deliveryStatus,
+    AchievementLevel? achievement,
+    String? observation,
+    bool apply = false,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
+    final student = await _requireStudent(studentId);
+    if (deliveryStatus != DeliveryStatus.delivered && achievement != null) {
+      throw StateError('Achievement is valid only for delivered work.');
+    }
+    if (apply) {
+      await _saveActivityEvaluation(
+        activityId: activityId,
+        studentId: student.id,
+        deliveryStatus: deliveryStatus,
+        achievement: achievement,
+        observation: observation,
+      );
+    } else {
+      final activity = await _activityRepository.findById(activityId);
+      if (activity == null) throw StateError('Activity does not exist.');
+      if (!activity.isApplicableTo(student.id)) {
+        throw StateError(
+          'Student is not part of the historical activity roster.',
+        );
+      }
+    }
+    return _envelope(
+      kind: 'evaluation-set',
+      privacy: privacy,
+      data: <String, Object?>{
+        'operation': 'set-activity-evaluation',
+        'dry_run': !apply,
+        'applied': apply,
+        'activity_id': activityId,
+        'delivery_status': _deliveryStatusLabel(deliveryStatus),
+        if (achievement != null)
+          'achievement': _achievementLevelLabel(achievement),
+        if (privacy.includePersonalData)
+          'student': _personalStudentIdentity(student),
+      },
     );
   }
 
@@ -537,6 +681,268 @@ final class AutomationMutationService {
         'status': _attendanceStatusLabel(change.status),
         if (privacy.includePersonalData)
           'student': _personalStudentIdentity(student),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> deleteAttendanceDay({
+    required String groupId,
+    required DateTime date,
+    bool apply = false,
+  }) async {
+    final group = await _requireGroup(groupId);
+    final existing = await _attendanceRepository.findByGroupAndDate(
+      group.id,
+      date,
+    );
+    if (apply) {
+      final repository = _attendanceRepository;
+      if (repository is! DeletableAttendanceRepository) {
+        throw UnsupportedError(
+          'This attendance repository does not support deletion.',
+        );
+      }
+      await (repository as DeletableAttendanceRepository).deleteByGroupAndDate(
+        group.id,
+        date,
+      );
+    }
+    return _envelope(
+      kind: 'attendance-day-delete',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'operation': 'delete-attendance-day',
+        'dry_run': !apply,
+        'applied': apply,
+        'group': _groupProjection(group),
+        'date': _dateLabel(date),
+        'existing_day': existing != null,
+        if (existing != null) 'entry_count': existing.entries.length,
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> updateTeacherProfile({
+    required String fullName,
+    bool apply = false,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
+    final normalized = _normalizedOptional(fullName);
+    if (normalized == null) {
+      throw StateError('Teacher full name cannot be empty.');
+    }
+    if (apply) await _saveTeacherProfile(fullName: normalized);
+    return _envelope(
+      kind: 'teacher-profile-update',
+      privacy: privacy,
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        if (privacy.includePersonalData) 'teacher_name': normalized,
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> saveLiteracy({
+    required String studentId,
+    required DateTime assessedAt,
+    required WritingLevel writingLevel,
+    required ReadingLevel readingLevel,
+    String? notes,
+    bool apply = false,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
+    final student = await _requireStudent(studentId);
+    final assessment = apply
+        ? await _saveLiteracyAssessment(
+            studentId: student.id,
+            assessedAt: assessedAt,
+            writingLevel: writingLevel,
+            readingLevel: readingLevel,
+            notes: notes,
+          )
+        : null;
+    return _envelope(
+      kind: 'literacy-set',
+      privacy: privacy,
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        if (assessment != null) 'assessment_id': assessment.id,
+        'assessed_at': _dateLabel(assessedAt),
+        'writing_level': writingLevel.name,
+        'reading_level': readingLevel.name,
+        if (privacy.includePersonalData)
+          'student': _personalStudentIdentity(student),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> updateLiteracy({
+    required String assessmentId,
+    required DateTime assessedAt,
+    required WritingLevel writingLevel,
+    required ReadingLevel readingLevel,
+    String? notes,
+    bool apply = false,
+  }) async {
+    if (apply) {
+      await _updateLiteracyAssessment(
+        id: assessmentId,
+        assessedAt: assessedAt,
+        writingLevel: writingLevel,
+        readingLevel: readingLevel,
+        notes: notes,
+      );
+    }
+    return _envelope(
+      kind: 'literacy-update',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        'assessment_id': assessmentId,
+        'assessed_at': _dateLabel(assessedAt),
+        'writing_level': writingLevel.name,
+        'reading_level': readingLevel.name,
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> deleteLiteracy({
+    required String assessmentId,
+    bool apply = false,
+  }) async {
+    if (apply) await _deleteLiteracyAssessment(assessmentId);
+    return _envelope(
+      kind: 'literacy-delete',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        'assessment_id': assessmentId,
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> updateStudentRecordSummary({
+    required String studentId,
+    String? strengths,
+    String? difficulties,
+    String? supports,
+    bool apply = false,
+    AutomationPrivacy privacy = const AutomationPrivacy(),
+  }) async {
+    final student = await _requireStudent(studentId);
+    if (apply) {
+      await _updateStudentRecord(
+        studentId: student.id,
+        strengths: strengths,
+        difficulties: difficulties,
+        supports: supports,
+      );
+    }
+    return _envelope(
+      kind: 'student-record-update',
+      privacy: privacy,
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        'updated_fields': <String>[
+          if (_normalizedOptional(strengths) != null) 'strengths',
+          if (_normalizedOptional(difficulties) != null) 'difficulties',
+          if (_normalizedOptional(supports) != null) 'supports',
+        ],
+        if (privacy.includePersonalData)
+          'student': _personalStudentIdentity(student),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> importStudentsFromFile({
+    required String groupId,
+    required String filePath,
+    bool apply = false,
+  }) async {
+    final group = await _requireGroup(groupId);
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw StateError('Import file does not exist.');
+    }
+    final table = const StudentImportFileReader().read(
+      fileName: file.uri.pathSegments.isEmpty
+          ? file.path
+          : file.uri.pathSegments.last,
+      bytes: await file.readAsBytes(),
+    );
+    const parser = StudentImportParser();
+    final mapping = parser.suggestMapping(table);
+    final drafts = parser.parseDrafts(table, mapping);
+    StudentImportPreview? preview;
+    StudentImportResult? result;
+    try {
+      if (apply) {
+        result = await _importStudents(
+          group: group,
+          sourceName: table.sourceName,
+          sheetName: table.sheetName,
+          drafts: drafts,
+        );
+      } else {
+        preview = await _studentImportPreviewBuilder.build(
+          group: group,
+          sourceName: table.sourceName,
+          sheetName: table.sheetName,
+          drafts: drafts,
+        );
+      }
+    } on StudentImportValidationException catch (error) {
+      preview = error.preview;
+    }
+    return _envelope(
+      kind: 'students-import',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply && result != null,
+        'group': _groupProjection(group),
+        'source_name': table.sourceName,
+        if (table.sheetName != null) 'sheet_name': table.sheetName,
+        'mapped_required_fields': mapping.hasRequiredFields,
+        if (result != null) 'imported_count': result.importedCount,
+        if (preview != null) ..._importPreviewProjection(preview),
+      },
+    );
+  }
+
+  Future<AutomationEnvelope> createPortableBackup({
+    required String outputPath,
+    required String transferCode,
+    bool apply = false,
+  }) async {
+    final normalizedOutput = outputPath.trim();
+    if (normalizedOutput.isEmpty) throw StateError('Output path is required.');
+    final createdAtUtc = DateTime.now().toUtc();
+    if (apply) {
+      final bytes = await CreateBackup(
+        snapshotter: _backupSnapshotter,
+        schemaVersion: _backupSchemaVersion,
+        storageProfile: _backupStorageProfile,
+        protector: PortableBackupProtector(transferCode: transferCode),
+      )(createdAtUtc: createdAtUtc);
+      final file = File(normalizedOutput);
+      await file.parent.create(recursive: true);
+      await file.writeAsBytes(bytes, flush: true);
+    }
+    return _envelope(
+      kind: 'backup-create',
+      privacy: const AutomationPrivacy(),
+      data: <String, Object?>{
+        'dry_run': !apply,
+        'applied': apply,
+        'output': normalizedOutput,
+        'portable': true,
+        'created_at': createdAtUtc.toIso8601String(),
       },
     );
   }
@@ -732,11 +1138,41 @@ String? _override(String? provided, String? stored) =>
 Map<String, Object?> _personalStudentIdentity(Student student) =>
     <String, Object?>{'student_id': student.id, 'name': student.displayName};
 
+Map<String, Object?> _importPreviewProjection(StudentImportPreview preview) {
+  final issueCounts = <String, int>{};
+  for (final row in preview.rows) {
+    for (final issue in row.issues) {
+      issueCounts.update(issue.name, (value) => value + 1, ifAbsent: () => 1);
+    }
+  }
+  return <String, Object?>{
+    'included_count': preview.includedCount,
+    'ready_count': preview.readyCount,
+    'error_count': preview.errorCount,
+    'warning_count': preview.warningCount,
+    'can_confirm': preview.canConfirm,
+    if (issueCounts.isNotEmpty) 'issues': issueCounts,
+  };
+}
+
 String _attendanceStatusLabel(AttendanceStatus status) => switch (status) {
   AttendanceStatus.present => 'present',
   AttendanceStatus.absent => 'absent',
   AttendanceStatus.late => 'late',
   AttendanceStatus.justifiedAbsence => 'justified-absence',
+};
+
+String _deliveryStatusLabel(DeliveryStatus status) => switch (status) {
+  DeliveryStatus.pending => 'pending',
+  DeliveryStatus.delivered => 'delivered',
+  DeliveryStatus.notDelivered => 'not-delivered',
+};
+
+String _achievementLevelLabel(AchievementLevel level) => switch (level) {
+  AchievementLevel.mastered => 'mastered',
+  AchievementLevel.sufficient => 'sufficient',
+  AchievementLevel.inProgress => 'in-progress',
+  AchievementLevel.requiresSupport => 'requires-support',
 };
 
 DateTime _date(DateTime value) => DateTime(value.year, value.month, value.day);

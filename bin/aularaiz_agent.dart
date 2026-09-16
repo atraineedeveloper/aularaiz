@@ -5,6 +5,10 @@ import 'package:aularaiz/application/automation/automation_models.dart';
 import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
+import 'package:aularaiz/domain/evaluation/achievement_level.dart';
+import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/literacy/reading_level.dart';
+import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/project/formative_field.dart';
 import 'package:aularaiz/domain/project/project_methodology.dart';
 import 'package:aularaiz/domain/school/school_leadership_role.dart';
@@ -235,9 +239,34 @@ Future<void> main(List<String> arguments) async {
           occursOn: _parseDate(invocation.requireOption('date')),
           apply: invocation.apply,
         ),
+        'activity-update' => await runtime.mutations.updateActivity(
+          activityId: invocation.requireOption('activity'),
+          title: invocation.requireOption('title'),
+          formativeField: _parseFormativeField(
+            invocation.requireOption('formative-field'),
+          ),
+          grades: _parseGrades(invocation.requireOption('grades')),
+          occursOn: invocation.options['date'] == null
+              ? null
+              : _parseDate(invocation.options['date']!),
+          apply: invocation.apply,
+        ),
         'activity-delete' => await runtime.mutations.deleteActivity(
           activityId: invocation.requireOption('activity'),
           apply: invocation.apply,
+        ),
+        'evaluation-set' => await runtime.mutations.setEvaluation(
+          activityId: invocation.requireOption('activity'),
+          studentId: invocation.requireOption('student'),
+          deliveryStatus: _parseDeliveryStatus(
+            invocation.requireOption('delivery-status'),
+          ),
+          achievement: _parseAchievementLevel(
+            invocation.options['achievement'],
+          ),
+          observation: invocation.options['observation'],
+          apply: invocation.apply,
+          privacy: privacy,
         ),
         'database-diagnose' => await _diagnoseDatabase(runtime),
         'student-note' => await runtime.service.studentNote(
@@ -257,6 +286,65 @@ Future<void> main(List<String> arguments) async {
           status: _parseAttendanceStatus(invocation.requireOption('status')),
           apply: invocation.apply,
           privacy: privacy,
+        ),
+        'attendance-day-delete' => await runtime.mutations.deleteAttendanceDay(
+          groupId: invocation.requireOption('group'),
+          date: _parseDate(invocation.requireOption('date')),
+          apply: invocation.apply,
+        ),
+        'teacher-profile-update' =>
+          await runtime.mutations.updateTeacherProfile(
+            fullName: invocation.requireOption('teacher-name'),
+            apply: invocation.apply,
+            privacy: privacy,
+          ),
+        'literacy-set' => await runtime.mutations.saveLiteracy(
+          studentId: invocation.requireOption('student'),
+          assessedAt: _parseDate(invocation.requireOption('date')),
+          writingLevel: _parseWritingLevel(
+            invocation.requireOption('writing-level'),
+          ),
+          readingLevel: _parseReadingLevel(
+            invocation.requireOption('reading-level'),
+          ),
+          notes: invocation.options['notes'],
+          apply: invocation.apply,
+          privacy: privacy,
+        ),
+        'literacy-update' => await runtime.mutations.updateLiteracy(
+          assessmentId: invocation.requireOption('assessment'),
+          assessedAt: _parseDate(invocation.requireOption('date')),
+          writingLevel: _parseWritingLevel(
+            invocation.requireOption('writing-level'),
+          ),
+          readingLevel: _parseReadingLevel(
+            invocation.requireOption('reading-level'),
+          ),
+          notes: invocation.options['notes'],
+          apply: invocation.apply,
+        ),
+        'literacy-delete' => await runtime.mutations.deleteLiteracy(
+          assessmentId: invocation.requireOption('assessment'),
+          apply: invocation.apply,
+        ),
+        'student-record-update' =>
+          await runtime.mutations.updateStudentRecordSummary(
+            studentId: invocation.requireOption('student'),
+            strengths: invocation.options['strengths'],
+            difficulties: invocation.options['difficulties'],
+            supports: invocation.options['supports'],
+            apply: invocation.apply,
+            privacy: privacy,
+          ),
+        'students-import' => await runtime.mutations.importStudentsFromFile(
+          groupId: invocation.requireOption('group'),
+          filePath: invocation.requireOption('file'),
+          apply: invocation.apply,
+        ),
+        'backup-create' => await runtime.mutations.createPortableBackup(
+          outputPath: invocation.requireOption('output'),
+          transferCode: invocation.requireOption('transfer-code'),
+          apply: invocation.apply,
         ),
         'student-deactivate' => await runtime.mutations.deactivateStudent(
           groupId: invocation.requireOption('group'),
@@ -417,6 +505,56 @@ AttendanceStatus _parseAttendanceStatus(String value) {
     'justifiedAbsence' => AttendanceStatus.justifiedAbsence,
     _ => throw const FormatException(
       '--status debe ser present, absent, late o justified-absence.',
+    ),
+  };
+}
+
+DeliveryStatus _parseDeliveryStatus(String value) {
+  return switch (value) {
+    'pending' => DeliveryStatus.pending,
+    'delivered' => DeliveryStatus.delivered,
+    'not-delivered' || 'notDelivered' => DeliveryStatus.notDelivered,
+    _ => throw const FormatException(
+      '--delivery-status debe ser pending, delivered o not-delivered.',
+    ),
+  };
+}
+
+AchievementLevel? _parseAchievementLevel(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  return switch (value.trim()) {
+    'mastered' => AchievementLevel.mastered,
+    'sufficient' => AchievementLevel.sufficient,
+    'in-progress' || 'inProgress' => AchievementLevel.inProgress,
+    'requires-support' || 'requiresSupport' => AchievementLevel.requiresSupport,
+    _ => throw const FormatException(
+      '--achievement debe ser mastered, sufficient, in-progress o requires-support.',
+    ),
+  };
+}
+
+WritingLevel _parseWritingLevel(String value) {
+  return switch (value.trim()) {
+    'presyllabic' => WritingLevel.presyllabic,
+    'syllabic' => WritingLevel.syllabic,
+    'syllabic-alphabetic' ||
+    'syllabicAlphabetic' => WritingLevel.syllabicAlphabetic,
+    'alphabetic' => WritingLevel.alphabetic,
+    _ => throw const FormatException(
+      '--writing-level debe ser presyllabic, syllabic, syllabic-alphabetic o alphabetic.',
+    ),
+  };
+}
+
+ReadingLevel _parseReadingLevel(String value) {
+  return switch (value.trim()) {
+    'does-not-read' || 'doesNotRead' => ReadingLevel.doesNotRead,
+    'syllabic' => ReadingLevel.syllabic,
+    'word-by-word' || 'wordByWord' => ReadingLevel.wordByWord,
+    'sentence' => ReadingLevel.sentence,
+    'fluent' => ReadingLevel.fluent,
+    _ => throw const FormatException(
+      '--reading-level debe ser does-not-read, syllabic, word-by-word, sentence o fluent.',
     ),
   };
 }
@@ -663,8 +801,33 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{
+        'name': 'activity-update',
+        'required': <String>[
+          '--activity',
+          '--title',
+          '--formative-field',
+          '--grades',
+        ],
+        'optional': <String>['--date'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
         'name': 'activity-delete',
         'required': <String>['--activity'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'evaluation-set',
+        'required': <String>[
+          '--activity',
+          '--student',
+          '--delivery-status pending|delivered|not-delivered',
+        ],
+        'optional': <String>[
+          '--achievement mastered|sufficient|in-progress|requires-support',
+          '--observation',
+          '--include-personal-data',
+        ],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{'name': 'database-diagnose'},
@@ -693,6 +856,65 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
           '--date YYYY-MM-DD',
           '--status present|absent|late|justified-absence',
         ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'attendance-day-delete',
+        'required': <String>['--group', '--date YYYY-MM-DD'],
+        'mutation': 'dry-run unless --apply --confirm-delete are present',
+      },
+      <String, Object?>{
+        'name': 'teacher-profile-update',
+        'required': <String>['--teacher-name'],
+        'optional': <String>['--include-personal-data'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'literacy-set',
+        'required': <String>[
+          '--student',
+          '--date YYYY-MM-DD',
+          '--writing-level presyllabic|syllabic|syllabic-alphabetic|alphabetic',
+          '--reading-level does-not-read|syllabic|word-by-word|sentence|fluent',
+        ],
+        'optional': <String>['--notes', '--include-personal-data'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'literacy-update',
+        'required': <String>[
+          '--assessment',
+          '--date YYYY-MM-DD',
+          '--writing-level presyllabic|syllabic|syllabic-alphabetic|alphabetic',
+          '--reading-level does-not-read|syllabic|word-by-word|sentence|fluent',
+        ],
+        'optional': <String>['--notes'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'literacy-delete',
+        'required': <String>['--assessment'],
+        'mutation': 'dry-run unless --apply --confirm-delete are present',
+      },
+      <String, Object?>{
+        'name': 'student-record-update',
+        'required': <String>['--student'],
+        'optional': <String>[
+          '--strengths',
+          '--difficulties',
+          '--supports',
+          '--include-personal-data',
+        ],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'students-import',
+        'required': <String>['--group', '--file <csv|xlsx|xlsm>'],
+        'mutation': 'dry-run unless --apply is present',
+      },
+      <String, Object?>{
+        'name': 'backup-create',
+        'required': <String>['--output <file.aularaiz>', '--transfer-code'],
         'mutation': 'dry-run unless --apply is present',
       },
       <String, Object?>{

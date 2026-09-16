@@ -198,9 +198,23 @@ Actualiza título/metodología/grados. `project-delete` **no existe**; se requie
 
 Crea actividad con roster congelado de alumnos activos. `--formative-field` según el catálogo del dominio.
 
+### `activity-update --activity <id> --title <v> --formative-field <v> --grades 1..6 [--date YYYY-MM-DD]`
+
+Actualiza título, campo formativo, grados objetivo y fecha de una actividad. Conserva el roster histórico; si los nuevos grados no son compatibles con el proyecto o con el roster, el dominio rechaza la operación.
+
 ### `activity-delete --activity <id>`
 
 Elimina la actividad con sus evaluaciones y roster. Con `--apply` requiere `--confirm-delete`.
+
+### `evaluation-set --activity <id> --student <id> --delivery-status pending|delivered|not-delivered`
+
+Registra evaluación formativa de un alumno para una actividad. Opciones:
+
+- `--achievement mastered|sufficient|in-progress|requires-support` sólo cuando `--delivery-status delivered`.
+- `--observation <v>` para observación breve.
+- `--include-personal-data` para incluir identidad del alumno en la salida.
+
+Valida que el alumno pertenezca al roster histórico de la actividad.
 
 ### `student-note --student <id> --kind <v> --text <v> | --text-stdin`
 
@@ -209,6 +223,43 @@ Agrega una entrada de seguimiento. `--kind` según catálogo (`observation`, `fa
 ### `attendance-set --group <id> --student <id> --date YYYY-MM-DD --status present|absent|late|justified-absence`
 
 Marca asistencia de un alumno. Devuelve estado anterior/nuevo y `dry_run`/`applied`.
+
+### `attendance-day-delete --group <id> --date YYYY-MM-DD`
+
+Elimina un día completo de asistencia del grupo. Con `--apply` requiere también `--confirm-delete`. En dry-run indica si existía el día y cuántas entradas tenía.
+
+### `teacher-profile-update --teacher-name <v>`
+
+Actualiza el perfil docente local usado en reportes. El nombre sólo aparece en la salida con `--include-personal-data`.
+
+### `literacy-set --student <id> --date YYYY-MM-DD --writing-level <v> --reading-level <v>`
+
+Registra una evaluación de lectoescritura para el alumno. Catálogos:
+
+- `--writing-level presyllabic|syllabic|syllabic-alphabetic|alphabetic`
+- `--reading-level does-not-read|syllabic|word-by-word|sentence|fluent`
+
+Opción: `--notes <v>`. La identidad del alumno sólo aparece con `--include-personal-data`.
+
+### `literacy-update --assessment <id> --date YYYY-MM-DD --writing-level <v> --reading-level <v>`
+
+Actualiza una evaluación de lectoescritura existente. Opción: `--notes <v>`.
+
+### `literacy-delete --assessment <id>`
+
+Elimina una evaluación de lectoescritura. Con `--apply` requiere también `--confirm-delete`.
+
+### `student-record-update --student <id>`
+
+Actualiza el resumen pedagógico del expediente. Opciones: `--strengths`, `--difficulties`, `--supports`. No edita entradas históricas individuales; esas siguen siendo sólo agregables con `student-note`.
+
+### `students-import --group <id> --file <csv|xlsx|xlsm>`
+
+Lee un archivo CSV/XLSX/XLSM, detecta encabezados, valida grados/números de lista y hace dry-run por defecto. Con `--apply` importa los renglones válidos si no hay errores bloqueantes.
+
+### `backup-create --output <file.aularaiz> --transfer-code <v>`
+
+Crea un respaldo portátil cifrado con código de transferencia. Es la variante recomendada para CLI porque no depende de la clave local de Flutter. Sin `--apply` sólo simula la operación.
 
 ### `student-deactivate --group <id> --student <id> [--date YYYY-MM-DD]`
 
@@ -227,6 +278,8 @@ Reinscribe al alumno con nueva matrícula (respeta la política de solapamiento 
 
 ## Limitaciones conocidas
 
-- **Sin PDF ni respaldos desde el CLI:** `PdfReportRenderer` y `DeviceBackupProtector` dependen de Flutter (`dart:ui`) y no se pueden importar en un ejecutable Dart puro. Si se requiere, implementar un renderizador/respaldo puro o un coordinador Flutter separado, conservando PDF Unicode y respaldo cifrado.
+- **Sin PDF desde el CLI:** `PdfReportRenderer` depende de Flutter (`dart:ui`) y no se puede importar en un ejecutable Dart puro. El CLI sí puede crear respaldos portátiles cifrados con `backup-create`.
+- **Sin restore/sync desde CLI todavía:** crear respaldos portátiles está soportado; restaurar o sincronizar sigue pasando por la app para preservar validaciones visuales y el flujo seguro de reinicio.
 - **Sin `project-delete`:** el dominio no expone una eliminación segura de proyectos con sus relaciones hijas. No se inventa en el CLI hasta que exista un caso de uso transaccional.
+- **Sin borrado definitivo de alumno:** no existe aún un caso de uso de dominio dedicado. Usar `student-deactivate` para bajas/histórico.
 - **`.xls` binario no soportado** en importación (usar `.xlsx`, `.xlsm` o `.csv`).

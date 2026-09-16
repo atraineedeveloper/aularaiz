@@ -122,9 +122,19 @@ final class AutomationCapabilityCatalog {
       'personal_data': false,
     },
     <String, Object?>{
+      'id': 'activity-update',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
       'id': 'activity-delete',
       'mode': 'dry-run-default-with-confirm',
       'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'evaluation-set',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
     },
     <String, Object?>{
       'id': 'student-note',
@@ -137,6 +147,11 @@ final class AutomationCapabilityCatalog {
       'personal_data': 'opt-in-output',
     },
     <String, Object?>{
+      'id': 'attendance-day-delete',
+      'mode': 'dry-run-default-with-confirm',
+      'personal_data': false,
+    },
+    <String, Object?>{
       'id': 'student-deactivate',
       'mode': 'dry-run-default',
       'personal_data': 'opt-in-output',
@@ -145,6 +160,41 @@ final class AutomationCapabilityCatalog {
       'id': 'student-reactivate',
       'mode': 'dry-run-default',
       'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'teacher-profile-update',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'literacy-set',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'literacy-update',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'literacy-delete',
+      'mode': 'dry-run-default-with-confirm',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'student-record-update',
+      'mode': 'dry-run-default',
+      'personal_data': 'opt-in-output',
+    },
+    <String, Object?>{
+      'id': 'students-import',
+      'mode': 'dry-run-default',
+      'personal_data': false,
+    },
+    <String, Object?>{
+      'id': 'backup-create',
+      'mode': 'dry-run-default',
+      'personal_data': false,
     },
   ];
 }

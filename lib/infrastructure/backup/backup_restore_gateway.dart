@@ -174,7 +174,7 @@ final class PlatformBackupRestoreGateway implements BackupRestoreGateway {
                   id: normalizedDeviceId,
                   name: sourceDeviceName?.trim().isNotEmpty == true
                       ? sourceDeviceName!.trim()
-                      : 'Dispositivo AulaRaÃ­z',
+                      : 'Dispositivo AulaRa\u00EDz',
                 );
               }
               _notifySyncChanged(summary);

@@ -102,6 +102,28 @@ void main() {
       ]),
       throwsA(isA<AgentUsageFailure>()),
     );
+
+    expect(
+      () => AgentInvocation.parse(const [
+        'attendance-day-delete',
+        '--group',
+        'group-1',
+        '--date',
+        '2026-09-21',
+        '--apply',
+      ]),
+      throwsA(isA<AgentUsageFailure>()),
+    );
+
+    expect(
+      () => AgentInvocation.parse(const [
+        'literacy-delete',
+        '--assessment',
+        'literacy-1',
+        '--apply',
+      ]),
+      throwsA(isA<AgentUsageFailure>()),
+    );
   });
 
   test('delete with --apply and --confirm-delete is accepted', () {
@@ -142,5 +164,68 @@ void main() {
     ]);
 
     expect(invocation.apply, isTrue);
+  });
+
+  test('parses evaluation mutation options', () {
+    final invocation = AgentInvocation.parse(const [
+      'evaluation-set',
+      '--activity',
+      'activity-1',
+      '--student',
+      'student-1',
+      '--delivery-status',
+      'delivered',
+      '--achievement',
+      'sufficient',
+      '--observation',
+      'Buen avance',
+      '--apply',
+    ]);
+
+    expect(invocation.command, 'evaluation-set');
+    expect(invocation.options['delivery-status'], 'delivered');
+    expect(invocation.options['achievement'], 'sufficient');
+    expect(invocation.options['observation'], 'Buen avance');
+    expect(invocation.apply, isTrue);
+  });
+
+  test('parses literacy, import and backup options', () {
+    final literacy = AgentInvocation.parse(const [
+      'literacy-set',
+      '--student',
+      'student-1',
+      '--date',
+      '2026-09-21',
+      '--writing-level',
+      'alphabetic',
+      '--reading-level',
+      'fluent',
+      '--notes',
+      'Lee con seguridad',
+      '--apply',
+    ]);
+    expect(literacy.options['writing-level'], 'alphabetic');
+    expect(literacy.options['reading-level'], 'fluent');
+    expect(literacy.options['notes'], 'Lee con seguridad');
+
+    final import = AgentInvocation.parse(const [
+      'students-import',
+      '--group',
+      'group-1',
+      '--file',
+      'alumnos.xlsx',
+    ]);
+    expect(import.command, 'students-import');
+    expect(import.options['file'], 'alumnos.xlsx');
+
+    final backup = AgentInvocation.parse(const [
+      'backup-create',
+      '--output',
+      'respaldo.aularaiz',
+      '--transfer-code',
+      'ABCD-EFGH-JKLM-NPQR',
+    ]);
+    expect(backup.command, 'backup-create');
+    expect(backup.options['transfer-code'], 'ABCD-EFGH-JKLM-NPQR');
   });
 }

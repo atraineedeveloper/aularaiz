@@ -418,11 +418,15 @@ Future<void> main(List<String> arguments) async {
       pretty: pretty,
     );
     exitCode = 3;
-  } catch (_) {
+  } catch (error) {
     writeOutput(
       _errorEnvelope(
         'automation-failed',
         'La operación de automatización no pudo completarse.',
+        details: <String, Object?>{
+          'type': error.runtimeType.toString(),
+          'message': error.toString(),
+        },
       ),
       pretty: pretty,
     );
@@ -948,13 +952,20 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
   },
 };
 
-Map<String, Object?> _errorEnvelope(String code, String message) =>
-    <String, Object?>{
-      'schema': AutomationEnvelope.schema,
-      'kind': 'error',
-      'privacy': const AutomationPrivacy().toJson(),
-      'data': <String, Object?>{'code': code, 'message': message},
-    };
+Map<String, Object?> _errorEnvelope(
+  String code,
+  String message, {
+  Map<String, Object?>? details,
+}) => <String, Object?>{
+  'schema': AutomationEnvelope.schema,
+  'kind': 'error',
+  'privacy': const AutomationPrivacy().toJson(),
+  'data': <String, Object?>{
+    'code': code,
+    'message': message,
+    ...?details == null ? null : <String, Object?>{'details': details},
+  },
+};
 
 void _writeJson(Map<String, Object?> value, {required bool pretty}) {
   final encoded = pretty

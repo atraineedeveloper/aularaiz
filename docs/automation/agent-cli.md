@@ -49,7 +49,8 @@ Por defecto, todos los comandos muestran tablas o mensajes legibles, incluso al 
 | `database-not-found` | 3 | No se encontró la base local y no se indicó `--database`. |
 | `database-open-failed` | 3 | La base existe pero no se pudo abrir. |
 | `data-state` | 4 | La operación violó una regla del dominio (referencia inexistente, solapamiento de contratos, etc.). |
-| `automation-failed` | 1 | Fallo inesperado y genérico. |
+| `database-readonly` | 5 | SQLite abrió la base como solo lectura. Revisa permisos del archivo/carpeta o ejecuta el CLI con el mismo usuario que usa la app. |
+| `automation-failed` | 1 | Fallo inesperado. La salida JSON incluye `data.details.type` y `data.details.message` para diagnóstico. |
 
 ## Opciones globales
 
@@ -133,9 +134,12 @@ Señales con evidencia (inasistencias, retardos, apoyo requerido, no entregados,
 
 ```powershell
 aularaiz-agent.exe database-diagnose --format json --pretty
+aularaiz-agent.exe database-diagnose --write-probe --format json --pretty
 ```
 
-Diagnóstico **de sólo lectura**: `integrity` (resultado de `PRAGMA integrity_check`), `foreign_key_violation_count`, `user_version` y `expected_version`. No repara nada; la reparación sigue siendo manual y respaldada.
+Diagnóstico **de sólo lectura** por defecto: `integrity` (resultado de `PRAGMA integrity_check`), `foreign_key_violation_count`, `user_version`, `expected_version`, `database_path`, `database_size_bytes` y `database_list`.
+
+Con `--write-probe`, el CLI prueba si SQLite puede escribir en la base principal mediante una transacción que se revierte. No deja cambios persistentes. Úsalo antes de pedir a un agente que aplique mutaciones. Si falla por permisos, `write_probe.writable` será `false` y `write_probe.code` será `database-readonly`.
 
 ## Comandos de mutación
 

@@ -88,6 +88,7 @@ final class AgentInvocation {
       'help',
       'text-stdin',
       'confirm-delete',
+      'write-probe',
     };
 
     String? command;
@@ -154,6 +155,7 @@ final class AgentInvocation {
   bool get jsonOutput => options['format'] == 'json';
   bool get help => flags.contains('help');
   bool get textFromStdin => flags.contains('text-stdin');
+  bool get writeProbe => flags.contains('write-probe');
   String? get databasePath => options['database'];
 
   StorageProfile get profile {

@@ -189,6 +189,19 @@ void main() {
     expect(invocation.apply, isTrue);
   });
 
+  test('parses database write probe flag', () {
+    final invocation = AgentInvocation.parse(const [
+      'database-diagnose',
+      '--write-probe',
+      '--format',
+      'json',
+    ]);
+
+    expect(invocation.command, 'database-diagnose');
+    expect(invocation.writeProbe, isTrue);
+    expect(invocation.jsonOutput, isTrue);
+  });
+
   test('parses literacy, import and backup options', () {
     final literacy = AgentInvocation.parse(const [
       'literacy-set',

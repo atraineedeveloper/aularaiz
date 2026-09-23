@@ -48,9 +48,9 @@ final class SyncDeviceRegistry {
       await _preferences.setString(_deviceIdKey, id);
     }
 
-    var name = await _preferences.getString(_deviceNameKey);
-    if (name == null || name.trim().isEmpty) {
-      name = _defaultDeviceName ?? _defaultName();
+    var name = friendlyDeviceName(await _preferences.getString(_deviceNameKey));
+    if (name == null) {
+      name = friendlyDeviceName(_defaultDeviceName) ?? _defaultName();
       await _preferences.setString(_deviceNameKey, name);
     }
 
@@ -64,7 +64,7 @@ final class SyncDeviceRegistry {
   }) async {
     final normalizedId = id.trim();
     if (normalizedId.isEmpty) return;
-    final safeName = name.trim().isEmpty ? 'Dispositivo AulaRaíz' : name.trim();
+    final safeName = friendlyDeviceName(name) ?? 'Dispositivo AulaRaíz';
     final now = DateTime.now().toUtc();
     final key = '$_linkedPrefix$normalizedId';
     final value = [
@@ -103,9 +103,7 @@ final class SyncDeviceRegistry {
   LinkedSyncDevice? _decodeLinkedDevice(String id, String value) {
     final parts = value.split('\n');
     if (parts.length < 2) return null;
-    final name = parts[0].trim().isEmpty
-        ? 'Dispositivo AulaRaíz'
-        : parts[0].trim();
+    final name = friendlyDeviceName(parts[0]) ?? 'Dispositivo AulaRaíz';
     final lastSeenAtUtc = DateTime.tryParse(parts[1])?.toUtc();
     if (lastSeenAtUtc == null) return null;
     final lastReceived = parts.length >= 3 && parts[2].trim().isNotEmpty
@@ -120,12 +118,37 @@ final class SyncDeviceRegistry {
   }
 
   String _defaultName() {
-    try {
-      final hostname = Platform.localHostname.trim();
-      if (hostname.isNotEmpty) return hostname;
-    } on Object {
-      // A friendly fallback is enough; identity remains stable through id.
+    for (final candidate in <String?>[
+      Platform.environment['COMPUTERNAME'],
+      Platform.environment['HOSTNAME'],
+      _localHostname(),
+    ]) {
+      final friendly = friendlyDeviceName(candidate);
+      if (friendly != null) return friendly;
     }
     return 'Dispositivo AulaRaíz';
+  }
+
+  static String? friendlyDeviceName(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+    final comparable = normalized.toLowerCase();
+    if (comparable == 'localhost' ||
+        comparable == 'localhost.localdomain' ||
+        comparable == 'loopback' ||
+        comparable == '127.0.0.1' ||
+        comparable == '::1' ||
+        comparable == '0.0.0.0') {
+      return null;
+    }
+    return normalized;
+  }
+
+  String? _localHostname() {
+    try {
+      return Platform.localHostname;
+    } on Object {
+      return null;
+    }
   }
 }

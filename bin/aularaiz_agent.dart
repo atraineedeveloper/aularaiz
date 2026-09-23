@@ -268,7 +268,11 @@ Future<void> main(List<String> arguments) async {
           apply: invocation.apply,
           privacy: privacy,
         ),
-        'database-diagnose' => await _diagnoseDatabase(runtime),
+        'database-diagnose' => await _diagnoseDatabase(
+          runtime,
+          databaseFile: databaseFile,
+          writeProbe: invocation.writeProbe,
+        ),
         'student-note' => await runtime.service.studentNote(
           studentId: invocation.requireOption('student'),
           kind: _parseEntryKind(invocation.requireOption('kind')),
@@ -419,14 +423,25 @@ Future<void> main(List<String> arguments) async {
     );
     exitCode = 3;
   } catch (error) {
+    if (_isReadonlyDatabaseError(error)) {
+      writeOutput(
+        _errorEnvelope(
+          'database-readonly',
+          'SQLite abrió la base local como solo lectura. Revisa permisos de '
+              'la carpeta de datos de AulaRaíz o ejecuta el CLI con el mismo '
+              'usuario que usa la app.',
+          details: _errorDetails(error),
+        ),
+        pretty: pretty,
+      );
+      exitCode = 5;
+      return;
+    }
     writeOutput(
       _errorEnvelope(
         'automation-failed',
         'La operación de automatización no pudo completarse.',
-        details: <String, Object?>{
-          'type': error.runtimeType.toString(),
-          'message': error.toString(),
-        },
+        details: _errorDetails(error),
       ),
       pretty: pretty,
     );
@@ -450,7 +465,11 @@ Future<String> _resolveNoteText(AgentInvocation invocation) async {
   return text;
 }
 
-Future<AutomationEnvelope> _diagnoseDatabase(AutomationRuntime runtime) async {
+Future<AutomationEnvelope> _diagnoseDatabase(
+  AutomationRuntime runtime, {
+  required File databaseFile,
+  required bool writeProbe,
+}) async {
   final integrity = await runtime.database
       .customSelect('PRAGMA integrity_check')
       .get();
@@ -460,16 +479,63 @@ Future<AutomationEnvelope> _diagnoseDatabase(AutomationRuntime runtime) async {
   final version = await runtime.database
       .customSelect('PRAGMA user_version')
       .getSingle();
+  final databaseList = await runtime.database
+      .customSelect('PRAGMA database_list')
+      .get();
+  final writeProbeResult = writeProbe
+      ? await _probeDatabaseWrite(runtime)
+      : const <String, Object?>{'requested': false};
   return AutomationEnvelope(
     kind: 'database-diagnose',
     privacy: const AutomationPrivacy(),
     data: {
+      'database_path': databaseFile.path,
+      'database_exists': await databaseFile.exists(),
+      'database_size_bytes': databaseFile.existsSync()
+          ? databaseFile.statSync().size
+          : null,
+      'database_list': [
+        for (final row in databaseList)
+          {'name': row.read<String>('name'), 'file': row.read<String>('file')},
+      ],
       'integrity': integrity.map((row) => row.data.values.first).toList(),
       'foreign_key_violation_count': foreignKeys.length,
       'user_version': version.read<int>('user_version'),
       'expected_version': AppDatabase.currentSchemaVersion,
+      'write_probe': writeProbeResult,
     },
   );
+}
+
+Future<Map<String, Object?>> _probeDatabaseWrite(
+  AutomationRuntime runtime,
+) async {
+  try {
+    await runtime.database.transaction(() async {
+      await runtime.database.customStatement(
+        'CREATE TABLE __aularaiz_cli_write_probe (id INTEGER PRIMARY KEY)',
+      );
+      await runtime.database.customStatement(
+        'DROP TABLE __aularaiz_cli_write_probe',
+      );
+      throw const _RollbackWriteProbe();
+    });
+  } on _RollbackWriteProbe {
+    return const <String, Object?>{'requested': true, 'writable': true};
+  } catch (error) {
+    return <String, Object?>{
+      'requested': true,
+      'writable': false,
+      'code': _isReadonlyDatabaseError(error)
+          ? 'database-readonly'
+          : 'write-probe-failed',
+      'details': _errorDetails(error),
+    };
+  }
+}
+
+final class _RollbackWriteProbe implements Exception {
+  const _RollbackWriteProbe();
 }
 
 DateTime _parseMonth(String value) {
@@ -834,7 +900,10 @@ Map<String, Object?> _helpEnvelope() => <String, Object?>{
         ],
         'mutation': 'dry-run unless --apply is present',
       },
-      <String, Object?>{'name': 'database-diagnose'},
+      <String, Object?>{
+        'name': 'database-diagnose',
+        'optional': <String>['--write-probe'],
+      },
       <String, Object?>{
         'name': 'group-summary',
         'required': <String>['--group', '--month YYYY-MM'],
@@ -966,6 +1035,22 @@ Map<String, Object?> _errorEnvelope(
     ...?details == null ? null : <String, Object?>{'details': details},
   },
 };
+
+Map<String, Object?> _errorDetails(Object error) {
+  return <String, Object?>{
+    'type': error.runtimeType.toString(),
+    'message': error.toString(),
+  };
+}
+
+bool _isReadonlyDatabaseError(Object error) {
+  final detail = error.toString().toLowerCase();
+  return detail.contains('readonly database') ||
+      detail.contains('read-only database') ||
+      detail.contains('attempt to write a readonly database') ||
+      detail.contains('sqlite_error_readonly') ||
+      detail.contains('sqlite_readonly');
+}
 
 void _writeJson(Map<String, Object?> value, {required bool pretty}) {
   final encoded = pretty

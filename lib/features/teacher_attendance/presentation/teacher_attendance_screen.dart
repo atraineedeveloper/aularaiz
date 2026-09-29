@@ -1,14 +1,19 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:aularaiz/app/errors/friendly_error_message.dart';
 import 'package:aularaiz/app/layout/responsive_layout.dart';
+import 'package:aularaiz/application/contracts/teacher_attendance_repository.dart';
 import 'package:aularaiz/domain/teacher/teacher_attendance_record.dart';
 import 'package:aularaiz/domain/teacher/teacher_attendance_schedule.dart';
 import 'package:aularaiz/features/teacher_attendance/presentation/teacher_attendance_controller.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
+import 'package:aularaiz/infrastructure/widgets/teacher_attendance_widget_service.dart';
 import 'package:csv/csv.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:provider/provider.dart';
 
 class TeacherAttendanceScreen extends StatefulWidget {
@@ -16,12 +21,14 @@ class TeacherAttendanceScreen extends StatefulWidget {
     required this.schoolId,
     required this.schoolName,
     this.embedded = false,
+    this.initialQuickAction,
     super.key,
   });
 
   final String schoolId;
   final String schoolName;
   final bool embedded;
+  final String? initialQuickAction;
 
   @override
   State<TeacherAttendanceScreen> createState() =>
@@ -30,6 +37,7 @@ class TeacherAttendanceScreen extends StatefulWidget {
 
 class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
   bool _loadStarted = false;
+  bool _quickActionHandled = false;
 
   @override
   void didChangeDependencies() {
@@ -38,9 +46,180 @@ class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
     _loadStarted = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<TeacherAttendanceController>().load(widget.schoolId);
+        unawaited(_loadAndRefresh());
       }
     });
+  }
+
+  Future<void> _loadAndRefresh() async {
+    final controller = context.read<TeacherAttendanceController>();
+    await controller.load(widget.schoolId);
+    if (!mounted) return;
+    await _refreshWidget();
+    if (!mounted || _quickActionHandled) return;
+    _quickActionHandled = true;
+    final action = widget.initialQuickAction;
+    if (action == 'arrival') {
+      await _confirmWidgetArrival(controller);
+    } else if (action == 'departure') {
+      await _confirmWidgetDeparture(controller);
+    }
+  }
+
+  Future<void> _confirmWidgetArrival(
+    TeacherAttendanceController controller,
+  ) async {
+    if (controller.error != null) return;
+    if (controller.todayRecord != null) {
+      _showWidgetMessage(
+        _t(
+          context,
+          'La entrada de hoy ya está registrada.',
+          'Today’s arrival is already recorded.',
+        ),
+      );
+      return;
+    }
+    final now = DateTime.now();
+    final confirmed = await _confirmWidgetAction(
+      title: _t(context, 'Registrar entrada', 'Record arrival'),
+      message: _t(
+        context,
+        '¿Registrar tu entrada a las ${_time(context, now)} en ${widget.schoolName}?',
+        'Record your arrival at ${_time(context, now)} at ${widget.schoolName}?',
+      ),
+    );
+    if (!confirmed || !mounted) return;
+    final saved = await controller.registerArrival();
+    await _refreshWidget();
+    if (!mounted) return;
+    _showWidgetMessage(
+      saved
+          ? _t(context, 'Entrada registrada.', 'Arrival recorded.')
+          : _t(
+              context,
+              'No se pudo registrar la entrada.',
+              'Could not record arrival.',
+            ),
+    );
+  }
+
+  Future<void> _confirmWidgetDeparture(
+    TeacherAttendanceController controller,
+  ) async {
+    if (controller.error != null) return;
+    final record = controller.todayRecord;
+    if (record == null || !record.isOpen) {
+      _showWidgetMessage(
+        _t(
+          context,
+          'No hay una jornada abierta para registrar salida.',
+          'There is no open workday to record a departure.',
+        ),
+      );
+      return;
+    }
+    final now = DateTime.now();
+    final confirmed = await _confirmWidgetAction(
+      title: _t(context, 'Registrar salida', 'Record departure'),
+      message: _t(
+        context,
+        '¿Registrar tu salida a las ${_time(context, now)} de ${widget.schoolName}?',
+        'Record your departure at ${_time(context, now)} from ${widget.schoolName}?',
+      ),
+    );
+    if (!confirmed || !mounted) return;
+    final saved = await controller.registerDeparture();
+    await _refreshWidget();
+    if (!mounted) return;
+    _showWidgetMessage(
+      saved
+          ? _t(context, 'Salida registrada.', 'Departure recorded.')
+          : _t(
+              context,
+              'No se pudo registrar la salida.',
+              'Could not record departure.',
+            ),
+    );
+  }
+
+  Future<bool> _confirmWidgetAction({
+    required String title,
+    required String message,
+  }) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(_t(context, 'Cancelar', 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(_t(context, 'Confirmar', 'Confirm')),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+
+  Future<void> _refreshWidget() async {
+    try {
+      await TeacherAttendanceWidgetService.refresh(
+        schoolId: widget.schoolId,
+        schoolName: widget.schoolName,
+        repository: context.read<TeacherAttendanceRepository>(),
+      );
+    } catch (_) {
+      // Optional widget refresh must not block attendance registration.
+    }
+  }
+
+  void _showWidgetMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<bool> _registerArrival() async {
+    final saved = await context
+        .read<TeacherAttendanceController>()
+        .registerArrival();
+    if (saved) await _refreshWidget();
+    return saved;
+  }
+
+  Future<bool> _registerDeparture() async {
+    final saved = await context
+        .read<TeacherAttendanceController>()
+        .registerDeparture();
+    if (saved) await _refreshWidget();
+    return saved;
+  }
+
+  Future<void> _pinWidget() async {
+    try {
+      await HomeWidget.requestPinWidget(
+        qualifiedAndroidName:
+            'com.mindtzijib.aularaiz.TeacherAttendanceWidgetProvider',
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _t(
+              context,
+              'No se pudo agregar desde este launcher. Busca AulaRaíz en la lista de widgets de Android.',
+              'This launcher could not add it. Find AulaRaíz in Android’s widget picker.',
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -98,6 +277,23 @@ class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
                         widget.schoolName,
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
+                      if (Platform.isAndroid) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _pinWidget,
+                            icon: const Icon(Icons.widgets_outlined),
+                            label: Text(
+                              _t(
+                                context,
+                                'Agregar widget a inicio',
+                                'Add home screen widget',
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _TodayCard(
                         record: record,
@@ -107,8 +303,8 @@ class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
                             controller.isIncomplete(record!),
                         isSaving: controller.isSaving,
                         schoolName: widget.schoolName,
-                        onArrival: controller.registerArrival,
-                        onDeparture: controller.registerDeparture,
+                        onArrival: _registerArrival,
+                        onDeparture: _registerDeparture,
                       ),
                       const SizedBox(height: 12),
                       _ScheduleCard(

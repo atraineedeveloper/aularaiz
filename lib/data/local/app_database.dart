@@ -6,6 +6,8 @@ import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/evaluation/achievement_level.dart';
 import 'package:aularaiz/domain/evaluation/delivery_status.dart';
+import 'package:aularaiz/domain/incident/incident_category.dart';
+import 'package:aularaiz/domain/incident/incident_status.dart';
 import 'package:aularaiz/domain/literacy/reading_level.dart';
 import 'package:aularaiz/domain/literacy/writing_level.dart';
 import 'package:aularaiz/domain/project/articulating_axis.dart';
@@ -47,6 +49,8 @@ part 'app_database.g.dart';
     TeacherProfiles,
     TeacherAttendanceRecords,
     TeacherAttendanceSchedules,
+    IncidentReports,
+    IncidentParticipants,
   ],
 )
 final class AppDatabase extends _$AppDatabase {
@@ -67,7 +71,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 12;
+  static const int currentSchemaVersion = 13;
 
   final StorageProfile? storageProfile;
 
@@ -218,6 +222,10 @@ final class AppDatabase extends _$AppDatabase {
       if (from < 12 && to >= 12) {
         await _addTeacherAttendanceSnapshotColumnsIfMissing();
         await migrator.createTable(teacherAttendanceSchedules);
+      }
+      if (from < 13 && to >= 13) {
+        await migrator.createTable(incidentReports);
+        await migrator.createTable(incidentParticipants);
       }
     },
     beforeOpen: (details) async {

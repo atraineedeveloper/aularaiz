@@ -10,6 +10,7 @@ import 'package:aularaiz/domain/school/teaching_group.dart';
 import 'package:aularaiz/domain/student/student.dart';
 import 'package:aularaiz/domain/student_record/student_record_entry_kind.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_localization.dart';
+import 'package:aularaiz/features/incidents/presentation/incident_localization.dart';
 import 'package:aularaiz/features/student_record/presentation/student_record_controller.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,7 @@ class StudentRecordScreen extends StatefulWidget {
     required this.student,
     this.embedded = false,
     this.onBackToRecords,
+    this.onAddIncident,
     super.key,
   });
 
@@ -28,6 +30,7 @@ class StudentRecordScreen extends StatefulWidget {
   final Student student;
   final bool embedded;
   final VoidCallback? onBackToRecords;
+  final Future<void> Function()? onAddIncident;
 
   @override
   State<StudentRecordScreen> createState() => _StudentRecordScreenState();
@@ -150,6 +153,9 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
                         const SizedBox(height: 24),
                         _TimelineSection(
                           controller: controller,
+                          onIncident: widget.onAddIncident == null
+                              ? null
+                              : _openIncident,
                           onObservation: () =>
                               _addEntry(StudentRecordEntryKind.observation),
                           onAgreement: () =>
@@ -162,6 +168,12 @@ class _StudentRecordScreenState extends State<StudentRecordScreen> {
               ),
       ),
     );
+  }
+
+  Future<void> _openIncident() async {
+    await widget.onAddIncident?.call();
+    if (!mounted) return;
+    await context.read<StudentRecordController>().refreshAfterSync();
   }
 
   Future<void> _editProfile() async {
@@ -759,11 +771,13 @@ class _TimelineSection extends StatelessWidget {
     required this.controller,
     required this.onObservation,
     required this.onAgreement,
+    this.onIncident,
   });
 
   final StudentRecordController controller;
   final VoidCallback onObservation;
   final VoidCallback onAgreement;
+  final VoidCallback? onIncident;
 
   @override
   Widget build(BuildContext context) {
@@ -797,14 +811,26 @@ class _TimelineSection extends StatelessWidget {
                       icon: const Icon(Icons.family_restroom_outlined),
                       label: Text(l10n.studentRecordAddAgreement),
                     ),
+                    if (onIncident != null)
+                      FilledButton.tonalIcon(
+                        onPressed: controller.isSaving ? null : onIncident,
+                        icon: const Icon(Icons.report_outlined),
+                        label: Text(
+                          _incidentText(
+                            context,
+                            'Registrar incidencia',
+                            'New incident',
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            if (controller.entries.isEmpty)
+            if (controller.entries.isEmpty && controller.incidents.isEmpty)
               Text(l10n.studentRecordTimelineEmpty)
-            else
+            else ...[
               for (final entry in controller.entries)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -824,12 +850,33 @@ class _TimelineSection extends StatelessWidget {
                         .formatCompactDate(entry.occurredAt.toLocal()),
                   ),
                 ),
+              for (final incident in controller.incidents)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.report_outlined),
+                  title: Text(
+                    incidentCategoryLabel(context, incident.category),
+                  ),
+                  subtitle: Text(
+                    '${MaterialLocalizations.of(context).formatMediumDate(incident.occurredAt.toLocal())} · ${incident.description}',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: Chip(
+                    visualDensity: VisualDensity.compact,
+                    label: Text(incidentStatusLabel(context, incident.status)),
+                  ),
+                ),
+            ],
           ],
         ),
       ),
     );
   }
 }
+
+String _incidentText(BuildContext context, String spanish, String english) =>
+    Localizations.localeOf(context).languageCode == 'en' ? english : spanish;
 
 class _ProfileDialog extends StatefulWidget {
   const _ProfileDialog({

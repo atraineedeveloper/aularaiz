@@ -7,6 +7,13 @@ import 'package:go_router/go_router.dart';
 final GoRouter appRouter = GoRouter(
   routes: [
     GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
+    GoRoute(
+      path: '/widget/teacher-attendance/:action',
+      builder: (context, state) => HomeScreen(
+        widgetAttendanceAction: state.pathParameters['action'],
+        widgetSchoolId: state.uri.queryParameters['schoolId'],
+      ),
+    ),
     GoRoute(path: '/about', builder: (context, state) => const AboutScreen()),
     GoRoute(
       path: '/settings',

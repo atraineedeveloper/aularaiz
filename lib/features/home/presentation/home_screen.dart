@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:aularaiz/app/layout/app_state_panel.dart';
 import 'package:aularaiz/application/contracts/school_setup_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_attendance_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/group/create_teaching_group.dart';
 import 'package:aularaiz/application/school_setup/create_initial_workspace.dart';
@@ -16,6 +17,7 @@ import 'package:aularaiz/features/school_workspace/presentation/school_workspace
 import 'package:aularaiz/features/school_workspace/presentation/school_workspace_screen.dart';
 import 'package:aularaiz/infrastructure/sync/sync_refresh_listener.dart';
 import 'package:aularaiz/infrastructure/update/github_update_service.dart';
+import 'package:aularaiz/infrastructure/widgets/teacher_attendance_widget_service.dart';
 import 'package:aularaiz/infrastructure/window/window_title_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +25,14 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({
+    this.widgetAttendanceAction,
+    this.widgetSchoolId,
+    super.key,
+  });
+
+  final String? widgetAttendanceAction;
+  final String? widgetSchoolId;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -34,6 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedSchoolId;
   bool _creatingSchool = false;
   bool _startupUpdateCheckStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSchoolId = widget.widgetSchoolId;
+  }
 
   @override
   void didChangeDependencies() {
@@ -116,7 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
-          final selectedSchoolId = _selectedSchoolId;
+          final selectedSchoolId =
+              _selectedSchoolId ??
+              (widget.widgetAttendanceAction != null && setups.length == 1
+                  ? setups.single.school.id
+                  : null);
           if (setups.isEmpty ||
               selectedSchoolId == null ||
               !setups.any((setup) => setup.school.id == selectedSchoolId)) {
@@ -152,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             child: SchoolWorkspaceScreen(
               schoolId: selectedSchoolId,
+              widgetAttendanceAction: widget.widgetAttendanceAction,
               onChooseSchool: () {
                 setState(() => _selectedSchoolId = null);
               },
@@ -205,6 +225,23 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _refreshAfterSync() async {
     if (!mounted || _creatingSchool) return;
+    final selectedSchoolId = _selectedSchoolId ?? widget.widgetSchoolId;
+    if (selectedSchoolId != null) {
+      try {
+        final setup = await context.read<SchoolSetupRepository>().loadForSchool(
+          selectedSchoolId,
+        );
+        if (setup != null && mounted) {
+          await TeacherAttendanceWidgetService.refresh(
+            schoolId: setup.school.id,
+            schoolName: setup.school.name,
+            repository: context.read<TeacherAttendanceRepository>(),
+          );
+        }
+      } catch (_) {
+        // Widget refresh is best-effort and never blocks completed sync.
+      }
+    }
     setState(() {
       _setupsFuture = context.read<SchoolSetupRepository>().listSetups();
     });

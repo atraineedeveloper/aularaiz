@@ -6,6 +6,7 @@ import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/enrollment_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/incident_repository.dart';
 import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
@@ -25,6 +26,7 @@ import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/catalogs/mexico_geography_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_shift_catalog.dart';
 import 'package:aularaiz/core/catalogs/school_year_catalog.dart';
+import 'package:aularaiz/core/id/id_generator.dart';
 import 'package:aularaiz/domain/education/primary_grade.dart';
 import 'package:aularaiz/domain/school/school_leadership_role.dart';
 import 'package:aularaiz/domain/school/teaching_contract.dart';
@@ -35,6 +37,8 @@ import 'package:aularaiz/features/dashboard/presentation/group_dashboard_control
 import 'package:aularaiz/features/dashboard/presentation/group_dashboard_screen.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_controller.dart';
 import 'package:aularaiz/features/evaluation/presentation/evaluation_screen.dart';
+import 'package:aularaiz/features/incidents/presentation/incident_reports_controller.dart';
+import 'package:aularaiz/features/incidents/presentation/incident_reports_screen.dart';
 import 'package:aularaiz/features/literacy/presentation/literacy_controller.dart';
 import 'package:aularaiz/features/literacy/presentation/literacy_screen.dart';
 import 'package:aularaiz/features/projects/presentation/projects_controller.dart';
@@ -52,6 +56,7 @@ import 'package:aularaiz/features/teacher_attendance/presentation/teacher_attend
 import 'package:aularaiz/features/teacher_attendance/presentation/teacher_attendance_screen.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:aularaiz/infrastructure/sync/sync_refresh_listener.dart';
+import 'package:aularaiz/infrastructure/widgets/teacher_attendance_widget_service.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -61,11 +66,13 @@ class SchoolWorkspaceScreen extends StatefulWidget {
   const SchoolWorkspaceScreen({
     required this.schoolId,
     required this.onChooseSchool,
+    this.widgetAttendanceAction,
     super.key,
   });
 
   final String schoolId;
   final VoidCallback onChooseSchool;
+  final String? widgetAttendanceAction;
 
   @override
   State<SchoolWorkspaceScreen> createState() => _SchoolWorkspaceScreenState();
@@ -77,15 +84,33 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
   String? _activeGroupId;
   Future<bool> Function()? _activeLeaveGuard;
   StudentRecordRosterEntry? _selectedStudentRecord;
+  bool _widgetActionHandled = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_loadStarted) return;
     _loadStarted = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      context.read<SchoolWorkspaceController>().load(widget.schoolId);
+      final controller = context.read<SchoolWorkspaceController>();
+      await controller.load(widget.schoolId);
+      if (!mounted) return;
+      final setup = controller.setup;
+      if (setup != null) {
+        try {
+          await TeacherAttendanceWidgetService.refresh(
+            schoolId: setup.school.id,
+            schoolName: setup.school.name,
+            repository: context.read<TeacherAttendanceRepository>(),
+          );
+        } catch (_) {
+          // Updating an optional home-screen widget cannot block app startup.
+        }
+      }
+      if (widget.widgetAttendanceAction == null || _widgetActionHandled) return;
+      _widgetActionHandled = true;
+      setState(() => _selectedDestination = controller.groups.isEmpty ? 1 : 8);
     });
   }
 
@@ -171,6 +196,11 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         icon: Icons.badge_outlined,
         onSelect: () => _selectDestination(group == null ? 1 : 8),
       ),
+      SchoolWorkspaceDestination(
+        label: _label(context, 'Incidencias', 'Incidents'),
+        icon: Icons.report_outlined,
+        onSelect: () => _selectDestination(group == null ? 2 : 9),
+      ),
     ];
     return SyncRefreshListener(
       onRefresh: () =>
@@ -204,13 +234,47 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                   repository: context.read<TeacherAttendanceRepository>(),
                 ),
                 child: Builder(
+                  builder: (context) {
+                    final attendanceController = context
+                        .read<TeacherAttendanceController>();
+                    final attendanceRepository = context
+                        .read<TeacherAttendanceRepository>();
+                    return SyncRefreshListener(
+                      onRefresh: () async {
+                        await attendanceController.refreshAfterSync();
+                        await TeacherAttendanceWidgetService.refresh(
+                          schoolId: setup.school.id,
+                          schoolName: setup.school.name,
+                          repository: attendanceRepository,
+                        );
+                      },
+                      child: TeacherAttendanceScreen(
+                        schoolId: setup.school.id,
+                        schoolName: setup.school.name,
+                        initialQuickAction: widget.widgetAttendanceAction,
+                        embedded: true,
+                      ),
+                    );
+                  },
+                ),
+              )
+            : _selectedDestination == (group == null ? 2 : 9)
+            ? ChangeNotifierProvider(
+                create: (context) => IncidentReportsController(
+                  incidentRepository: context.read<IncidentRepository>(),
+                  studentRepository: context.read<StudentRepository>(),
+                  enrollmentRepository: context.read<EnrollmentRepository>(),
+                  idGenerator: context.read<IdGenerator>(),
+                ),
+                child: Builder(
                   builder: (context) => SyncRefreshListener(
                     onRefresh: () => context
-                        .read<TeacherAttendanceController>()
+                        .read<IncidentReportsController>()
                         .refreshAfterSync(),
-                    child: TeacherAttendanceScreen(
+                    child: IncidentReportsScreen(
                       schoolId: setup.school.id,
                       schoolName: setup.school.name,
+                      groups: groups,
                       embedded: true,
                     ),
                   ),
@@ -234,6 +298,7 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                       .read<UpdateLiteracyAssessment>(),
                   deleteLiteracyAssessment: context
                       .read<DeleteLiteracyAssessment>(),
+                  incidentRepository: context.read<IncidentRepository>(),
                 ),
                 child: Builder(
                   builder: (context) => SyncRefreshListener(
@@ -245,6 +310,13 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
                       student: _selectedStudentRecord!.student,
                       embedded: true,
                       onBackToRecords: _openRecordsList,
+                      onAddIncident: () => _openIncidentsFromStudent(
+                        schoolId: setup.school.id,
+                        schoolName: setup.school.name,
+                        group: group,
+                        studentId: _selectedStudentRecord!.student.id,
+                        groups: groups,
+                      ),
                     ),
                   ),
                 ),
@@ -515,6 +587,45 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
       _selectedDestination = index;
       _selectedStudentRecord = null;
     });
+  }
+
+  Future<void> _openIncidentsFromStudent({
+    required String schoolId,
+    required String schoolName,
+    required TeachingGroup group,
+    required String studentId,
+    required List<TeachingGroup> groups,
+  }) async {
+    if (!await _canLeaveActiveDestination() || !mounted) return;
+    final incidentRepository = context.read<IncidentRepository>();
+    final studentRepository = context.read<StudentRepository>();
+    final enrollmentRepository = context.read<EnrollmentRepository>();
+    final idGenerator = context.read<IdGenerator>();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider(
+          create: (_) => IncidentReportsController(
+            incidentRepository: incidentRepository,
+            studentRepository: studentRepository,
+            enrollmentRepository: enrollmentRepository,
+            idGenerator: idGenerator,
+          ),
+          child: Builder(
+            builder: (context) => SyncRefreshListener(
+              onRefresh: () =>
+                  context.read<IncidentReportsController>().refreshAfterSync(),
+              child: IncidentReportsScreen(
+                schoolId: schoolId,
+                schoolName: schoolName,
+                groups: groups,
+                initialStudentId: studentId,
+                initialGroupId: group.id,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   String? _contractSubtitle(BuildContext context, TeachingGroup group) {

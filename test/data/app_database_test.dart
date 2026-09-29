@@ -51,6 +51,8 @@ void main() {
           'teacher_profiles',
           'teacher_attendance_records',
           'teacher_attendance_schedules',
+          'incident_reports',
+          'incident_participants',
         ]),
       );
     },

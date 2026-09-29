@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:aularaiz/app/accessibility/app_accessibility_frame.dart';
 import 'package:aularaiz/app/routing/app_router.dart';
 import 'package:aularaiz/app/runtime/app_runtime_config.dart';
@@ -7,10 +10,62 @@ import 'package:aularaiz/app/theme/app_theme.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:provider/provider.dart';
 
-class AulaRaizApp extends StatelessWidget {
+class AulaRaizApp extends StatefulWidget {
   const AulaRaizApp({super.key});
+
+  @override
+  State<AulaRaizApp> createState() => _AulaRaizAppState();
+}
+
+class _AulaRaizAppState extends State<AulaRaizApp> {
+  StreamSubscription<Uri?>? _widgetClickSubscription;
+  String? _lastWidgetUri;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!Platform.isAndroid) return;
+    _widgetClickSubscription = HomeWidget.widgetClicked.listen(
+      _handleWidgetLaunch,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_checkInitialWidgetLaunch());
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_widgetClickSubscription?.cancel());
+    super.dispose();
+  }
+
+  Future<void> _checkInitialWidgetLaunch() async {
+    try {
+      final uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
+      if (mounted) _handleWidgetLaunch(uri);
+    } catch (_) {
+      // Widget launch support must not interrupt normal startup.
+    }
+  }
+
+  void _handleWidgetLaunch(Uri? uri) {
+    if (uri == null || uri.toString() == _lastWidgetUri) return;
+    final action = uri.queryParameters['action'];
+    if (!const {'arrival', 'departure', 'open'}.contains(action)) return;
+    _lastWidgetUri = uri.toString();
+    final schoolId = uri.queryParameters['schoolId'];
+    final path = '/widget/teacher-attendance/$action';
+    final query = schoolId == null || schoolId.isEmpty
+        ? ''
+        : '?schoolId=${Uri.encodeQueryComponent(schoolId)}';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) appRouter.go('$path$query');
+    });
+    Timer(const Duration(seconds: 2), () => _lastWidgetUri = null);
+  }
 
   @override
   Widget build(BuildContext context) {

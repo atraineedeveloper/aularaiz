@@ -7,6 +7,8 @@ export 'attendance_days.dart';
 export 'attendance_entries.dart';
 export 'enrollments.dart';
 export 'group_grades.dart';
+export 'incident_participants.dart';
+export 'incident_reports.dart';
 export 'literacy_assessments.dart';
 export 'project_articulating_axes.dart';
 export 'project_formative_fields.dart';

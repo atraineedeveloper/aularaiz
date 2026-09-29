@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="teacher_widget_title">AulaRaíz · Jornada docente</string>
+    <string name="teacher_widget_description">Consulta y registra tu entrada o salida de la escuela.</string>
+    <string name="teacher_widget_open_app">Abre AulaRaíz para ver tu jornada</string>
+    <string name="teacher_widget_arrival_pending">Entrada pendiente</string>
+    <string name="teacher_widget_record_arrival">Registrar entrada</string>
+</resources>

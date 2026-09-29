@@ -1,6 +1,7 @@
 import 'package:aularaiz/application/contracts/activity_repository.dart';
 import 'package:aularaiz/application/contracts/attendance_repository.dart';
 import 'package:aularaiz/application/contracts/evaluation_repository.dart';
+import 'package:aularaiz/application/contracts/incident_repository.dart';
 import 'package:aularaiz/application/contracts/literacy_assessment_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
@@ -11,6 +12,7 @@ import 'package:aularaiz/application/student_record/update_student_record.dart';
 import 'package:aularaiz/core/logging/safe_log.dart';
 import 'package:aularaiz/domain/attendance/attendance_status.dart';
 import 'package:aularaiz/domain/evaluation/activity_evaluation.dart';
+import 'package:aularaiz/domain/incident/incident_report.dart';
 import 'package:aularaiz/domain/literacy/literacy_assessment.dart';
 import 'package:aularaiz/domain/literacy/reading_level.dart';
 import 'package:aularaiz/domain/literacy/writing_level.dart';
@@ -52,6 +54,7 @@ final class StudentRecordController extends ChangeNotifier {
     required SaveLiteracyAssessment saveLiteracyAssessment,
     required UpdateLiteracyAssessment updateLiteracyAssessment,
     required DeleteLiteracyAssessment deleteLiteracyAssessment,
+    this.incidentRepository,
   }) : _studentRecordRepository = studentRecordRepository,
        _attendanceRepository = attendanceRepository,
        _evaluationRepository = evaluationRepository,
@@ -73,11 +76,13 @@ final class StudentRecordController extends ChangeNotifier {
   final SaveLiteracyAssessment _saveLiteracyAssessment;
   final UpdateLiteracyAssessment _updateLiteracyAssessment;
   final DeleteLiteracyAssessment _deleteLiteracyAssessment;
+  final IncidentRepository? incidentRepository;
 
   TeachingGroup? _group;
   Student? _student;
   StudentRecord? _record;
   List<StudentRecordEntry> _entries = const [];
+  List<IncidentReport> _incidents = const [];
   List<LiteracyAssessment> _literacyAssessments = const [];
   List<AttendanceEvidence> _attendanceEvidence = const [];
   List<EvaluationEvidence> _evaluationEvidence = const [];
@@ -89,6 +94,7 @@ final class StudentRecordController extends ChangeNotifier {
   Student? get student => _student;
   StudentRecord? get record => _record;
   List<StudentRecordEntry> get entries => _entries;
+  List<IncidentReport> get incidents => _incidents;
   List<LiteracyAssessment> get literacyAssessments => _literacyAssessments;
   LiteracyAssessment? get latestLiteracyAssessment =>
       _literacyAssessments.isEmpty ? null : _literacyAssessments.first;
@@ -118,6 +124,9 @@ final class StudentRecordController extends ChangeNotifier {
       final reference = referenceDate ?? DateTime.now();
       _record = await _studentRecordRepository.find(student.id);
       _entries = await _studentRecordRepository.listEntries(student.id);
+      _incidents =
+          await incidentRepository?.listForStudent(student.id) ??
+          const <IncidentReport>[];
       _literacyAssessments = await _literacyAssessmentRepository.listForStudent(
         student.id,
       );

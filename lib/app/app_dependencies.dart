@@ -13,6 +13,7 @@ import 'package:aularaiz/application/contracts/student_enrollment_batch_writer.d
 import 'package:aularaiz/application/contracts/student_enrollment_writer.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_attendance_repository.dart';
 import 'package:aularaiz/application/contracts/teacher_profile_repository.dart';
 import 'package:aularaiz/application/contracts/teaching_group_repository.dart';
 import 'package:aularaiz/application/enrollment/enroll_student.dart';
@@ -50,6 +51,7 @@ import 'package:aularaiz/data/repositories/drift_student_enrollment_batch_writer
 import 'package:aularaiz/data/repositories/drift_student_enrollment_writer.dart';
 import 'package:aularaiz/data/repositories/drift_student_record_repository.dart';
 import 'package:aularaiz/data/repositories/drift_student_repository.dart';
+import 'package:aularaiz/data/repositories/drift_teacher_attendance_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teacher_profile_repository.dart';
 import 'package:aularaiz/data/repositories/drift_teaching_group_repository.dart';
 import 'package:aularaiz/data/repositories/sync_metadata_values.dart';
@@ -176,6 +178,14 @@ class AppDependencies extends StatelessWidget {
         ),
         Provider<TeacherProfileRepository>(
           create: (context) => DriftTeacherProfileRepository(
+            context.read<AppDatabase>(),
+            deviceIdProvider: _syncDeviceIdProvider(
+              context.read<SyncDeviceRegistry>(),
+            ),
+          ),
+        ),
+        Provider<TeacherAttendanceRepository>(
+          create: (context) => DriftTeacherAttendanceRepository(
             context.read<AppDatabase>(),
             deviceIdProvider: _syncDeviceIdProvider(
               context.read<SyncDeviceRegistry>(),

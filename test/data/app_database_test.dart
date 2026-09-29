@@ -49,6 +49,8 @@ void main() {
           'student_record_entries',
           'literacy_assessments',
           'teacher_profiles',
+          'teacher_attendance_records',
+          'teacher_attendance_schedules',
         ]),
       );
     },

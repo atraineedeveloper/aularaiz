@@ -10,6 +10,7 @@ import 'package:aularaiz/application/contracts/literacy_assessment_repository.da
 import 'package:aularaiz/application/contracts/project_repository.dart';
 import 'package:aularaiz/application/contracts/student_record_repository.dart';
 import 'package:aularaiz/application/contracts/student_repository.dart';
+import 'package:aularaiz/application/contracts/teacher_attendance_repository.dart';
 import 'package:aularaiz/application/evaluation/save_activity_evaluation.dart';
 import 'package:aularaiz/application/literacy/delete_literacy_assessment.dart';
 import 'package:aularaiz/application/literacy/save_literacy_assessment.dart';
@@ -47,6 +48,8 @@ import 'package:aularaiz/features/student_record/presentation/student_records_co
 import 'package:aularaiz/features/student_record/presentation/student_records_screen.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_controller.dart';
 import 'package:aularaiz/features/student_roster/presentation/student_roster_screen.dart';
+import 'package:aularaiz/features/teacher_attendance/presentation/teacher_attendance_controller.dart';
+import 'package:aularaiz/features/teacher_attendance/presentation/teacher_attendance_screen.dart';
 import 'package:aularaiz/infrastructure/reports/report_publication_service.dart';
 import 'package:aularaiz/infrastructure/sync/sync_refresh_listener.dart';
 import 'package:aularaiz/l10n/generated/app_localizations.dart';
@@ -120,6 +123,55 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
               groups.first);
     final layout = ResponsiveLayoutInfo.of(context);
     final compactWorkspace = layout.isCompactWidth || layout.preferDenseUi;
+    final destinations = <SchoolWorkspaceDestination>[
+      SchoolWorkspaceDestination(
+        label: _label(context, 'Inicio', 'Home'),
+        icon: Icons.home_outlined,
+        onSelect: () => _selectDestination(0),
+      ),
+      if (group != null) ...[
+        SchoolWorkspaceDestination(
+          label: l10n.openStudents,
+          icon: Icons.groups_outlined,
+          onSelect: () => _selectDestination(1),
+        ),
+        SchoolWorkspaceDestination(
+          label: _label(context, 'Asistencia', 'Attendance'),
+          icon: Icons.fact_check_outlined,
+          onSelect: () => _selectDestination(2),
+        ),
+        SchoolWorkspaceDestination(
+          label: l10n.openProjects,
+          icon: Icons.auto_awesome_motion_outlined,
+          onSelect: () => _selectDestination(3),
+        ),
+        SchoolWorkspaceDestination(
+          label: _label(context, 'Evaluación', 'Evaluation'),
+          icon: Icons.assignment_turned_in_outlined,
+          onSelect: () => _selectDestination(4),
+        ),
+        SchoolWorkspaceDestination(
+          label: l10n.openStudentRecords,
+          icon: Icons.folder_shared_outlined,
+          onSelect: _openRecordsList,
+        ),
+        SchoolWorkspaceDestination(
+          label: _label(context, 'Lectoescritura', 'Literacy'),
+          icon: Icons.menu_book_outlined,
+          onSelect: () => _selectDestination(6),
+        ),
+        SchoolWorkspaceDestination(
+          label: l10n.openReports,
+          icon: Icons.summarize_outlined,
+          onSelect: () => _selectDestination(7),
+        ),
+      ],
+      SchoolWorkspaceDestination(
+        label: _label(context, 'Asistencia docente', 'Teacher attendance'),
+        icon: Icons.badge_outlined,
+        onSelect: () => _selectDestination(group == null ? 1 : 8),
+      ),
+    ];
     return SyncRefreshListener(
       onRefresh: () =>
           context.read<SchoolWorkspaceController>().refreshAfterSync(),
@@ -145,51 +197,26 @@ class _SchoolWorkspaceScreenState extends State<SchoolWorkspaceScreen> {
         onChooseSchool: widget.onChooseSchool,
         onEditSchool: controller.isSaving ? null : _showEditSchoolDialog,
         onOpenSettings: () => context.push('/settings'),
-        destinations: group == null
-            ? const <SchoolWorkspaceDestination>[]
-            : <SchoolWorkspaceDestination>[
-                SchoolWorkspaceDestination(
-                  label: _label(context, 'Inicio', 'Home'),
-                  icon: Icons.home_outlined,
-                  onSelect: () => _selectDestination(0),
+        destinations: destinations,
+        child: _selectedDestination == (group == null ? 1 : 8)
+            ? ChangeNotifierProvider(
+                create: (context) => TeacherAttendanceController(
+                  repository: context.read<TeacherAttendanceRepository>(),
                 ),
-                SchoolWorkspaceDestination(
-                  label: l10n.openStudents,
-                  icon: Icons.groups_outlined,
-                  onSelect: () => _selectDestination(1),
+                child: Builder(
+                  builder: (context) => SyncRefreshListener(
+                    onRefresh: () => context
+                        .read<TeacherAttendanceController>()
+                        .refreshAfterSync(),
+                    child: TeacherAttendanceScreen(
+                      schoolId: setup.school.id,
+                      schoolName: setup.school.name,
+                      embedded: true,
+                    ),
+                  ),
                 ),
-                SchoolWorkspaceDestination(
-                  label: _label(context, 'Asistencia', 'Attendance'),
-                  icon: Icons.fact_check_outlined,
-                  onSelect: () => _selectDestination(2),
-                ),
-                SchoolWorkspaceDestination(
-                  label: l10n.openProjects,
-                  icon: Icons.auto_awesome_motion_outlined,
-                  onSelect: () => _selectDestination(3),
-                ),
-                SchoolWorkspaceDestination(
-                  label: _label(context, 'Evaluación', 'Evaluation'),
-                  icon: Icons.assignment_turned_in_outlined,
-                  onSelect: () => _selectDestination(4),
-                ),
-                SchoolWorkspaceDestination(
-                  label: l10n.openStudentRecords,
-                  icon: Icons.folder_shared_outlined,
-                  onSelect: _openRecordsList,
-                ),
-                SchoolWorkspaceDestination(
-                  label: _label(context, 'Lectoescritura', 'Literacy'),
-                  icon: Icons.menu_book_outlined,
-                  onSelect: () => _selectDestination(6),
-                ),
-                SchoolWorkspaceDestination(
-                  label: l10n.openReports,
-                  icon: Icons.summarize_outlined,
-                  onSelect: () => _selectDestination(7),
-                ),
-              ],
-        child: group != null && _selectedStudentRecord != null
+              )
+            : group != null && _selectedStudentRecord != null
             ? ChangeNotifierProvider(
                 create: (context) => StudentRecordController(
                   studentRecordRepository: context

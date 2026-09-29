@@ -45,6 +45,8 @@ part 'app_database.g.dart';
     StudentRecordEntries,
     LiteracyAssessments,
     TeacherProfiles,
+    TeacherAttendanceRecords,
+    TeacherAttendanceSchedules,
   ],
 )
 final class AppDatabase extends _$AppDatabase {
@@ -65,7 +67,7 @@ final class AppDatabase extends _$AppDatabase {
     StorageProfile? storageProfile,
   }) => AppDatabase(executor, storageProfile: storageProfile);
 
-  static const int currentSchemaVersion = 10;
+  static const int currentSchemaVersion = 12;
 
   final StorageProfile? storageProfile;
 
@@ -210,6 +212,13 @@ final class AppDatabase extends _$AppDatabase {
           await _addSyncMetadataColumnsIfMissing(tableName);
         }
       }
+      if (from < 11 && to >= 11) {
+        await migrator.createTable(teacherAttendanceRecords);
+      }
+      if (from < 12 && to >= 12) {
+        await _addTeacherAttendanceSnapshotColumnsIfMissing();
+        await migrator.createTable(teacherAttendanceSchedules);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -253,5 +262,30 @@ final class AppDatabase extends _$AppDatabase {
     await addColumn('updated_at', 'INTEGER');
     await addColumn('deleted_at', 'INTEGER');
     await addColumn('updated_by_device_id', 'TEXT');
+  }
+
+  Future<void> _addTeacherAttendanceSnapshotColumnsIfMissing() async {
+    final columns = await customSelect(
+      "PRAGMA table_info('teacher_attendance_records')",
+    ).get();
+    final names = columns.map((row) => row.read<String>('name')).toSet();
+    if (!names.contains('expected_arrival_minute')) {
+      await customStatement(
+        'ALTER TABLE teacher_attendance_records '
+        'ADD COLUMN expected_arrival_minute INTEGER',
+      );
+    }
+    if (!names.contains('expected_departure_minute')) {
+      await customStatement(
+        'ALTER TABLE teacher_attendance_records '
+        'ADD COLUMN expected_departure_minute INTEGER',
+      );
+    }
+    if (!names.contains('arrival_grace_minutes')) {
+      await customStatement(
+        'ALTER TABLE teacher_attendance_records '
+        'ADD COLUMN arrival_grace_minutes INTEGER',
+      );
+    }
   }
 }

@@ -268,112 +268,13 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                 )
               else
                 Expanded(
-                  child: Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Scrollbar(
-                      controller: _horizontalScrollController,
-                      thumbVisibility: true,
-                      trackVisibility: true,
-                      interactive: true,
-                      scrollbarOrientation: ScrollbarOrientation.bottom,
-                      notificationPredicate: (notification) =>
-                          notification.metrics.axis == Axis.horizontal,
-                      child: SingleChildScrollView(
-                        controller: _horizontalScrollController,
-                        primary: false,
-                        padding: const EdgeInsets.only(bottom: 16),
-                        scrollDirection: Axis.horizontal,
-                        child: SingleChildScrollView(
-                          child: DataTable(
-                            headingRowHeight: layout.preferDenseUi ? 82 : 108,
-                            horizontalMargin: layout.preferDenseUi ? 10 : 14,
-                            columnSpacing: layout.preferDenseUi ? 8 : 10,
-                            columns: [
-                              DataColumn(
-                                label: SizedBox(
-                                  width: 210,
-                                  child: Text(l10n.student),
-                                ),
-                              ),
-                              if (controller.group?.isMultigrade == true)
-                                DataColumn(
-                                  label: Text(
-                                    _label(context, 'Grado', 'Grade'),
-                                  ),
-                                ),
-                              for (final date in controller.monthDates)
-                                DataColumn(
-                                  label: _DayHeader(
-                                    date: date,
-                                    dirty: controller.isDateDirty(date),
-                                    summary: controller.daySummary(date),
-                                    enabled: !controller.isSaving,
-                                    onDelete: () => _deleteDay(context, date),
-                                    onMarkPresent: () =>
-                                        controller.markDayPresent(date),
-                                    compact: layout.preferDenseUi,
-                                  ),
-                                ),
-                              DataColumn(
-                                numeric: true,
-                                label: SizedBox(
-                                  width: 76,
-                                  child: Text(
-                                    _label(context, '% Asist.', '% Attend.'),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                            ],
-                            rows: [
-                              for (final student in controller.visibleStudents)
-                                DataRow(
-                                  cells: [
-                                    DataCell(
-                                      SizedBox(
-                                        width: 210,
-                                        child: Text(
-                                          '${student.listNumber}. ${student.displayName}',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ),
-                                    if (controller.group?.isMultigrade == true)
-                                      DataCell(Text(student.gradeLabel)),
-                                    for (final date in controller.monthDates)
-                                      DataCell(
-                                        _AttendanceCell(
-                                          active: controller.isStudentActiveOn(
-                                            student.studentId,
-                                            date,
-                                          ),
-                                          status: controller.statusFor(
-                                            student.studentId,
-                                            date,
-                                          ),
-                                          onChanged: (status) =>
-                                              controller.setMonthStatus(
-                                                student.studentId,
-                                                date,
-                                                status,
-                                              ),
-                                          compact: layout.preferDenseUi,
-                                        ),
-                                      ),
-                                    DataCell(
-                                      _AttendanceRateCell(
-                                        summary: controller.summaryFor(
-                                          student.studentId,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                  child: _AttendanceMatrixTable(
+                    controller: controller,
+                    scrollController: _horizontalScrollController,
+                    compact: layout.preferDenseUi,
+                    studentLabel: l10n.student,
+                    rateLabel: _label(context, '% Asist.', '% Attend.'),
+                    onDeleteDay: (date) => _deleteDay(context, date),
                   ),
                 ),
               if (!layout.preferDenseUi) const SizedBox(height: 10),
@@ -515,6 +416,286 @@ class _MonthlyAttendanceGridState extends State<_MonthlyAttendanceGrid> {
                 ),
         ),
       ),
+    );
+  }
+}
+
+class _AttendanceMatrixTable extends StatelessWidget {
+  const _AttendanceMatrixTable({
+    required this.controller,
+    required this.scrollController,
+    required this.compact,
+    required this.studentLabel,
+    required this.rateLabel,
+    required this.onDeleteDay,
+  });
+
+  final AttendanceController controller;
+  final ScrollController scrollController;
+  final bool compact;
+  final String studentLabel;
+  final String rateLabel;
+  final ValueChanged<DateTime> onDeleteDay;
+
+  static const _dayWidth = 56.0;
+  static const _rateWidth = 88.0;
+
+  double get _rowHeight => compact ? 52 : 58;
+  double get _headerHeight => compact ? 86 : 108;
+
+  @override
+  Widget build(BuildContext context) {
+    final fixedWidth = compact ? 184.0 : 260.0;
+    final borderColor = Theme.of(context).dividerColor;
+    final dates = controller.monthDates;
+    final students = controller.visibleStudents;
+    final rightWidth = dates.length * _dayWidth + _rateWidth;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border.all(color: borderColor.withValues(alpha: 0.45)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: SingleChildScrollView(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Material(
+                color: Theme.of(context).colorScheme.surface,
+                elevation: 3,
+                shadowColor: Colors.black.withValues(alpha: 0.18),
+                child: SizedBox(
+                  width: fixedWidth,
+                  child: Column(
+                    children: [
+                      _FrozenMatrixCell(
+                        height: _headerHeight,
+                        alignment: Alignment.centerLeft,
+                        bottomBorder: true,
+                        child: Text(
+                          studentLabel,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ),
+                      for (final student in students)
+                        _FrozenMatrixCell(
+                          height: _rowHeight,
+                          alignment: Alignment.centerLeft,
+                          bottomBorder: true,
+                          child: _StudentAnchorLabel(
+                            title:
+                                '${student.listNumber}. ${student.displayName}',
+                            subtitle: controller.group?.isMultigrade == true
+                                ? student.gradeLabel
+                                : null,
+                            compact: compact,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Scrollbar(
+                  controller: scrollController,
+                  thumbVisibility: true,
+                  trackVisibility: true,
+                  interactive: true,
+                  scrollbarOrientation: ScrollbarOrientation.bottom,
+                  notificationPredicate: (notification) =>
+                      notification.metrics.axis == Axis.horizontal,
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    primary: false,
+                    padding: const EdgeInsets.only(bottom: 16),
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: rightWidth,
+                      child: Column(
+                        children: [
+                          _ScrollableMatrixRow(
+                            height: _headerHeight,
+                            bottomBorder: true,
+                            children: [
+                              for (final date in dates)
+                                SizedBox(
+                                  width: _dayWidth,
+                                  child: Center(
+                                    child: _DayHeader(
+                                      date: date,
+                                      dirty: controller.isDateDirty(date),
+                                      summary: controller.daySummary(date),
+                                      enabled: !controller.isSaving,
+                                      onDelete: () => onDeleteDay(date),
+                                      onMarkPresent: () =>
+                                          controller.markDayPresent(date),
+                                      compact: compact,
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(
+                                width: _rateWidth,
+                                child: Center(
+                                  child: Text(
+                                    rateLabel,
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          for (final student in students)
+                            _ScrollableMatrixRow(
+                              height: _rowHeight,
+                              bottomBorder: true,
+                              children: [
+                                for (final date in dates)
+                                  SizedBox(
+                                    width: _dayWidth,
+                                    child: Center(
+                                      child: _AttendanceCell(
+                                        active: controller.isStudentActiveOn(
+                                          student.studentId,
+                                          date,
+                                        ),
+                                        status: controller.statusFor(
+                                          student.studentId,
+                                          date,
+                                        ),
+                                        onChanged: (status) =>
+                                            controller.setMonthStatus(
+                                              student.studentId,
+                                              date,
+                                              status,
+                                            ),
+                                        compact: compact,
+                                      ),
+                                    ),
+                                  ),
+                                SizedBox(
+                                  width: _rateWidth,
+                                  child: Center(
+                                    child: _AttendanceRateCell(
+                                      summary: controller.summaryFor(
+                                        student.studentId,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StudentAnchorLabel extends StatelessWidget {
+  const _StudentAnchorLabel({
+    required this.title,
+    required this.compact,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: subtitle == null ? title : '$title · $subtitle',
+      waitDuration: const Duration(milliseconds: 500),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: compact ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FrozenMatrixCell extends StatelessWidget {
+  const _FrozenMatrixCell({
+    required this.height,
+    required this.child,
+    this.alignment = Alignment.center,
+    this.bottomBorder = false,
+  });
+
+  final double height;
+  final Widget child;
+  final AlignmentGeometry alignment;
+  final bool bottomBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        border: bottomBorder
+            ? Border(bottom: BorderSide(color: Theme.of(context).dividerColor))
+            : null,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ScrollableMatrixRow extends StatelessWidget {
+  const _ScrollableMatrixRow({
+    required this.height,
+    required this.children,
+    this.bottomBorder = false,
+  });
+
+  final double height;
+  final List<Widget> children;
+  final bool bottomBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        border: bottomBorder
+            ? Border(bottom: BorderSide(color: Theme.of(context).dividerColor))
+            : null,
+      ),
+      child: Row(children: children),
     );
   }
 }

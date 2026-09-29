@@ -324,21 +324,37 @@ class _EvaluationToolbar extends StatelessWidget {
   );
 }
 
-class _EvaluationMatrix extends StatelessWidget {
+class _EvaluationMatrix extends StatefulWidget {
   const _EvaluationMatrix({required this.controller, required this.dense});
   final EvaluationController controller;
   final bool dense;
+
+  @override
+  State<_EvaluationMatrix> createState() => _EvaluationMatrixState();
+}
+
+class _EvaluationMatrixState extends State<_EvaluationMatrix> {
+  final _horizontalScrollController = ScrollController();
+
+  EvaluationController get controller => widget.controller;
+  bool get dense => widget.dense;
+
+  @override
+  void dispose() {
+    _horizontalScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) => constraints.maxWidth < 720
           ? _mobileList(context)
-          : _desktopMatrix(context, constraints.maxWidth),
+          : _desktopMatrix(context),
     );
   }
 
-  Widget _desktopMatrix(BuildContext context, double width) {
+  Widget _desktopMatrix(BuildContext context) {
     if (controller.matrixRows.isEmpty) {
       return Center(
         child: Text(
@@ -358,88 +374,141 @@ class _EvaluationMatrix extends StatelessWidget {
         PointerDeviceKind.stylus,
       },
     );
+    final fixedWidth = dense ? 220.0 : 320.0;
+    final headerHeight = dense ? 68.0 : 82.0;
+    final rowHeight = dense ? 52.0 : 58.0;
+    const activityWidth = 116.0;
+    final activityOptions = controller.projectActivities;
+    final rightWidth = activityOptions.length * activityWidth;
+
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ScrollConfiguration(
         behavior: behavior,
-        child: Scrollbar(
-          thumbVisibility: true,
-          trackVisibility: true,
-          interactive: true,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.45),
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minWidth: width - 8),
-                child: DataTable(
-                  headingRowHeight: dense ? 62 : 78,
-                  horizontalMargin: dense ? 10 : 14,
-                  columnSpacing: dense ? 8 : 12,
-                  columns: [
-                    DataColumn(
-                      label: SizedBox(
-                        width: 320,
-                        child: Text(_label(context, 'Alumno', 'Student')),
-                      ),
-                    ),
-                    if (controller.group?.isMultigrade == true)
-                      DataColumn(
-                        label: Text(_label(context, 'Grado', 'Grade')),
-                      ),
-                    for (final option in controller.projectActivities)
-                      DataColumn(
-                        label: _ActivityHeader(activity: option.activity),
-                      ),
-                  ],
-                  rows: [
-                    for (final student in controller.matrixRows)
-                      DataRow(
-                        cells: [
-                          DataCell(
-                            SizedBox(
-                              width: 320,
-                              child: Text(
-                                student.student?.displayName ??
-                                    student.studentId,
-                                overflow: TextOverflow.ellipsis,
-                              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Material(
+                  color: Theme.of(context).colorScheme.surface,
+                  elevation: 3,
+                  shadowColor: Colors.black.withValues(alpha: 0.18),
+                  child: SizedBox(
+                    width: fixedWidth,
+                    child: Column(
+                      children: [
+                        _EvaluationFrozenCell(
+                          height: headerHeight,
+                          alignment: Alignment.centerLeft,
+                          bottomBorder: true,
+                          child: Text(
+                            _label(context, 'Alumno', 'Student'),
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                        for (final student in controller.matrixRows)
+                          _EvaluationFrozenCell(
+                            height: rowHeight,
+                            alignment: Alignment.centerLeft,
+                            bottomBorder: true,
+                            child: _EvaluationStudentAnchor(
+                              title:
+                                  student.student?.displayName ??
+                                  student.studentId,
+                              subtitle: controller.group?.isMultigrade == true
+                                  ? student.gradeLabel
+                                  : null,
+                              compact: dense,
                             ),
                           ),
-                          if (controller.group?.isMultigrade == true)
-                            DataCell(Text(student.gradeLabel)),
-                          for (final option in controller.projectActivities)
-                            DataCell(
-                              _EvaluationCell(
-                                row:
-                                    !controller.isVisibleForActivity(
-                                      option.activity.id,
-                                      student.studentId,
-                                    )
-                                    ? null
-                                    : controller.cell(
-                                        option.activity.id,
-                                        student.studentId,
-                                      ),
-                                disabled: controller.isSaving,
-                                onQuickSave: (draft) => controller.saveCell(
-                                  activityId: option.activity.id,
-                                  studentId: student.studentId,
-                                  deliveryStatus: draft.delivery,
-                                  achievement: draft.achievement,
-                                ),
-                                onDetails: () => _editDetails(
-                                  context,
-                                  controller,
-                                  option.activity.id,
-                                  student.studentId,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                Expanded(
+                  child: Scrollbar(
+                    controller: _horizontalScrollController,
+                    thumbVisibility: true,
+                    trackVisibility: true,
+                    interactive: true,
+                    scrollbarOrientation: ScrollbarOrientation.bottom,
+                    child: SingleChildScrollView(
+                      controller: _horizontalScrollController,
+                      primary: false,
+                      padding: const EdgeInsets.only(bottom: 16),
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: rightWidth,
+                        child: Column(
+                          children: [
+                            _EvaluationScrollableRow(
+                              height: headerHeight,
+                              bottomBorder: true,
+                              children: [
+                                for (final option in activityOptions)
+                                  SizedBox(
+                                    width: activityWidth,
+                                    child: Center(
+                                      child: _ActivityHeader(
+                                        activity: option.activity,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            for (final student in controller.matrixRows)
+                              _EvaluationScrollableRow(
+                                height: rowHeight,
+                                bottomBorder: true,
+                                children: [
+                                  for (final option in activityOptions)
+                                    SizedBox(
+                                      width: activityWidth,
+                                      child: Center(
+                                        child: _EvaluationCell(
+                                          row:
+                                              !controller.isVisibleForActivity(
+                                                option.activity.id,
+                                                student.studentId,
+                                              )
+                                              ? null
+                                              : controller.cell(
+                                                  option.activity.id,
+                                                  student.studentId,
+                                                ),
+                                          disabled: controller.isSaving,
+                                          onQuickSave: (draft) =>
+                                              controller.saveCell(
+                                                activityId: option.activity.id,
+                                                studentId: student.studentId,
+                                                deliveryStatus: draft.delivery,
+                                                achievement: draft.achievement,
+                                              ),
+                                          onDetails: () => _editDetails(
+                                            context,
+                                            controller,
+                                            option.activity.id,
+                                            student.studentId,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -545,6 +614,103 @@ class _EvaluationMatrix extends StatelessWidget {
       deliveryStatus: draft.delivery,
       achievement: draft.achievement,
       observation: draft.observation,
+    );
+  }
+}
+
+class _EvaluationStudentAnchor extends StatelessWidget {
+  const _EvaluationStudentAnchor({
+    required this.title,
+    required this.compact,
+    this.subtitle,
+  });
+
+  final String title;
+  final String? subtitle;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: subtitle == null ? title : '$title · $subtitle',
+      waitDuration: const Duration(milliseconds: 500),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            maxLines: compact ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _EvaluationFrozenCell extends StatelessWidget {
+  const _EvaluationFrozenCell({
+    required this.height,
+    required this.child,
+    this.alignment = Alignment.center,
+    this.bottomBorder = false,
+  });
+
+  final double height;
+  final Widget child;
+  final AlignmentGeometry alignment;
+  final bool bottomBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        border: bottomBorder
+            ? Border(bottom: BorderSide(color: Theme.of(context).dividerColor))
+            : null,
+      ),
+      child: child,
+    );
+  }
+}
+
+class _EvaluationScrollableRow extends StatelessWidget {
+  const _EvaluationScrollableRow({
+    required this.height,
+    required this.children,
+    this.bottomBorder = false,
+  });
+
+  final double height;
+  final List<Widget> children;
+  final bool bottomBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        border: bottomBorder
+            ? Border(bottom: BorderSide(color: Theme.of(context).dividerColor))
+            : null,
+      ),
+      child: Row(children: children),
     );
   }
 }

@@ -18,5 +18,7 @@ export 'schools.dart';
 export 'student_record_entries.dart';
 export 'student_records.dart';
 export 'students.dart';
+export 'teacher_attendance_records.dart';
+export 'teacher_attendance_schedules.dart';
 export 'teacher_profiles.dart';
 export 'teaching_groups.dart';

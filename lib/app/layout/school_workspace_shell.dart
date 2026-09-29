@@ -315,7 +315,9 @@ class SchoolWorkspaceShell extends StatelessWidget {
     final primary = destinations.take(3).toList(growable: false);
     return NavigationBar(
       height: compact ? 56 : null,
-      selectedIndex: selectedIndex < primary.length ? selectedIndex : 0,
+      selectedIndex: selectedIndex < primary.length
+          ? selectedIndex
+          : primary.length,
       destinations: [
         for (final destination in primary)
           NavigationDestination(

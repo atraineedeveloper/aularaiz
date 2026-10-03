@@ -35,9 +35,37 @@ class TeacherAttendanceScreen extends StatefulWidget {
       _TeacherAttendanceScreenState();
 }
 
-class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen> {
+class _TeacherAttendanceScreenState extends State<TeacherAttendanceScreen>
+    with WidgetsBindingObserver {
   bool _loadStarted = false;
   bool _quickActionHandled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Platform.isAndroid) WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_refreshAfterBackgroundAction());
+    }
+  }
+
+  Future<void> _refreshAfterBackgroundAction() async {
+    if (!mounted || !_loadStarted) return;
+    final controller = context.read<TeacherAttendanceController>();
+    if (controller.isLoading || controller.isSaving) return;
+    await controller.refreshAfterSync();
+    if (mounted) await _refreshWidget();
+  }
 
   @override
   void didChangeDependencies() {

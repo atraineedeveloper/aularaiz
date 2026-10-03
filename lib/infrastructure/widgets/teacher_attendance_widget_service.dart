@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:aularaiz/application/contracts/teacher_attendance_repository.dart';
+import 'package:aularaiz/data/local/storage_profile.dart';
+import 'package:aularaiz/data/repositories/drift_teacher_attendance_repository.dart';
 import 'package:aularaiz/domain/teacher/teacher_attendance_record.dart';
 import 'package:home_widget/home_widget.dart';
 
@@ -17,6 +19,13 @@ final class TeacherAttendanceWidgetService {
     final record = await repository.findForDate(schoolId, DateTime.now());
     final snapshot = _snapshot(record);
     final now = DateTime.now();
+    final profile = repository is DriftTeacherAttendanceRepository
+        ? repository.database.storageProfile ?? StorageProfile.production
+        : StorageProfile.production;
+    await HomeWidget.saveWidgetData<String>(
+      'teacher_attendance_profile',
+      profile.name,
+    );
     await HomeWidget.saveWidgetData<String>(
       'teacher_attendance_school_id',
       schoolId,

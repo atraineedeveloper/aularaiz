@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:aularaiz/app/app.dart';
@@ -13,7 +14,9 @@ import 'package:aularaiz/data/local/app_database.dart';
 import 'package:aularaiz/data/local/storage_profile.dart';
 import 'package:aularaiz/infrastructure/backup/restore_bootstrap_service.dart';
 import 'package:aularaiz/infrastructure/backup/restore_runtime_adapter.dart';
+import 'package:aularaiz/infrastructure/widgets/teacher_attendance_widget_callback.dart';
 import 'package:flutter/material.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:provider/provider.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -63,6 +66,16 @@ Future<void> main(List<String> arguments) async {
     }
 
     final settings = await AppSettingsController.load();
+
+    if (Platform.isAndroid) {
+      try {
+        await HomeWidget.registerInteractivityCallback(
+          teacherAttendanceWidgetCallback,
+        );
+      } catch (error) {
+        SafeLog.operationFailure('register_widget_interactivity', error);
+      }
+    }
 
     runApp(
       Provider<AppRuntimeConfig>.value(

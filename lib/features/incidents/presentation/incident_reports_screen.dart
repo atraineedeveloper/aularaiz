@@ -313,6 +313,7 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<IncidentCategory>(
                     initialValue: _category,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: _t(
                         context,
@@ -324,7 +325,11 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
                       for (final category in IncidentCategory.values)
                         DropdownMenuItem(
                           value: category,
-                          child: Text(incidentCategoryLabel(context, category)),
+                          child: Text(
+                            incidentCategoryLabel(context, category),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                     onChanged: (value) {
@@ -335,6 +340,7 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
                       initialValue: _groupId,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         labelText: _t(
                           context,
@@ -352,7 +358,11 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
                         for (final group in widget.groups)
                           DropdownMenuItem<String?>(
                             value: group.id,
-                            child: Text(group.name),
+                            child: Text(
+                              group.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                       ],
                       onChanged: (value) => setState(() => _groupId = value),
@@ -428,6 +438,7 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
                       children: [
                         DropdownButtonFormField<IncidentStatus>(
                           initialValue: _status,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: _t(context, 'Estado', 'Status'),
                           ),
@@ -516,6 +527,7 @@ class _IncidentEditorScreenState extends State<IncidentEditorScreen> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Center(
+          heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 820),
             child: Padding(
